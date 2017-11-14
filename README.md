@@ -14,7 +14,16 @@ cf install-plugin $GOPATH/bin/log-cache-cli
 ### Usage
 
 ```
-cf log-cache <application-guid>
+$ cf log-cache guid --help
+NAME:
+   log-cache -
+
+USAGE:
+   log-cache [options] <app-guid>
+
+OPTIONS:
+   -start-time       Start of query range in UNIX seconds.
+   -end-time         End of query range in UNIX seconds.
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release

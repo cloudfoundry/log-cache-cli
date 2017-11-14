@@ -44,7 +44,11 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 			{
 				Name: "log-cache",
 				UsageDetails: plugin.Usage{
-					Usage: "log-cache <app-guid>",
+					Usage: "log-cache [options] <app-guid>",
+					Options: map[string]string{
+						"start-time": "Start of query range in UNIX seconds.",
+						"end-time":   "End of query range in UNIX seconds.",
+					},
 				},
 			},
 		},

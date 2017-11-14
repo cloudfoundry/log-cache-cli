@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.cloudfoundry.org/cli/plugin"
@@ -34,6 +35,30 @@ var _ = Describe("LogCache", func() {
 
 		Expect(httpClient.requestURL).To(Equal("https://log-cache.some-system.com/app-guid"))
 		Expect(logger.printfMessage).To(Equal("some payload"))
+	})
+
+	It("accepts start-time and end-time flags", func() {
+		httpClient.responseBody = "some payload"
+
+		args := []string{"--start-time", "100", "--end-time", "123", "app-guid"}
+		command.LogCache(cliConn, args, httpClient, logger)
+
+		requestURL, err := url.Parse(httpClient.requestURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(requestURL.Scheme).To(Equal("https"))
+		Expect(requestURL.Host).To(Equal("log-cache.some-system.com"))
+		Expect(requestURL.Path).To(Equal("/app-guid"))
+		Expect(requestURL.Query().Get("starttime")).To(Equal("100"))
+		Expect(requestURL.Query().Get("endtime")).To(Equal("123"))
+	})
+
+	It("fatally logs if the start > end", func() {
+		args := []string{"--start-time", "1000", "--end-time", "100", "app-guid"}
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
 	})
 
 	It("fatally logs if too many arguments are given", func() {

@@ -1,9 +1,11 @@
 package command
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.cloudfoundry.org/cli/plugin"
@@ -23,8 +25,21 @@ type HTTPClient interface {
 // LogCache will fetch the logs for a given application guid and write them to
 // stdout.
 func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger) {
-	if len(args) != 1 {
-		log.Fatalf("Expected 1 argument, got %d.", len(args))
+	f := flag.NewFlagSet("log-cache", flag.ExitOnError)
+	start := f.Int64("start-time", 0, "")
+	end := f.Int64("end-time", 0, "")
+
+	err := f.Parse(args)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	if len(f.Args()) != 1 {
+		log.Fatalf("Expected 1 argument, got %d.", len(f.Args()))
+	}
+
+	if *start > *end {
+		log.Fatalf("Invalid date/time range. Ensure your start time is prior or equal the end time.")
 	}
 
 	hasAPI, err := cli.HasAPIEndpoint()
@@ -41,8 +56,20 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("%s", err)
 	}
 
-	logCacheURL := strings.Replace(tokenURL, "api", "log-cache", 1)
-	resp, err := c.Get(fmt.Sprintf("%s/%s", logCacheURL, args[0]))
+	query := url.Values{}
+	if *start != 0 {
+		query.Set("starttime", fmt.Sprintf("%d", *start))
+	}
+
+	if *end != 0 {
+		query.Set("endtime", fmt.Sprintf("%d", *end))
+	}
+
+	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
+	URL.Path = f.Args()[0]
+	URL.RawQuery = query.Encode()
+
+	resp, err := c.Get(URL.String())
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
