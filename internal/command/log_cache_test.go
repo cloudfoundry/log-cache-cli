@@ -37,10 +37,15 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.printfMessage).To(Equal("some payload"))
 	})
 
-	It("accepts start-time and end-time flags", func() {
+	It("accepts start-time, end-time and envelope-type flags", func() {
 		httpClient.responseBody = "some payload"
 
-		args := []string{"--start-time", "100", "--end-time", "123", "app-guid"}
+		args := []string{
+			"--start-time", "100",
+			"--end-time", "123",
+			"--envelope-type", "log",
+			"app-guid",
+		}
 		command.LogCache(cliConn, args, httpClient, logger)
 
 		requestURL, err := url.Parse(httpClient.requestURL)
@@ -50,6 +55,7 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Path).To(Equal("/app-guid"))
 		Expect(requestURL.Query().Get("starttime")).To(Equal("100"))
 		Expect(requestURL.Query().Get("endtime")).To(Equal("123"))
+		Expect(requestURL.Query().Get("envelopetype")).To(Equal("log"))
 	})
 
 	It("fatally logs if the start > end", func() {

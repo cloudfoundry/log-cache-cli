@@ -25,9 +25,10 @@ type HTTPClient interface {
 // LogCache will fetch the logs for a given application guid and write them to
 // stdout.
 func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger) {
-	f := flag.NewFlagSet("log-cache", flag.ExitOnError)
+	f := flag.NewFlagSet("log-cache", flag.ContinueOnError)
 	start := f.Int64("start-time", 0, "")
 	end := f.Int64("end-time", 0, "")
+	envelopeType := f.String("envelope-type", "", "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -63,6 +64,10 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 
 	if *end != 0 {
 		query.Set("endtime", fmt.Sprintf("%d", *end))
+	}
+
+	if *envelopeType != "" {
+		query.Set("envelopetype", *envelopeType)
 	}
 
 	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))

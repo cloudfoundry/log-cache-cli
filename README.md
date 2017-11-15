@@ -24,6 +24,7 @@ USAGE:
 OPTIONS:
    -start-time       Start of query range in UNIX seconds.
    -end-time         End of query range in UNIX seconds.
+   -envelope-type    Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release
