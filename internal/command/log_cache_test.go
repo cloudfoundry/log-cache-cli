@@ -67,6 +67,13 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
 	})
 
+	It("allows for empty end time with populated start time", func() {
+		args := []string{"--start-time", "1000", "app-guid"}
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).ToNot(Panic())
+	})
+
 	It("fatally logs if too many arguments are given", func() {
 		Expect(func() {
 			command.LogCache(cliConn, []string{"one", "two"}, httpClient, logger)

@@ -39,7 +39,7 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("Expected 1 argument, got %d.", len(f.Args()))
 	}
 
-	if *start > *end {
+	if *start > *end && *end != 0 {
 		log.Fatalf("Invalid date/time range. Ensure your start time is prior or equal the end time.")
 	}
 
