@@ -37,13 +37,14 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.printfMessage).To(Equal("some payload"))
 	})
 
-	It("accepts start-time, end-time and envelope-type flags", func() {
+	It("accepts start-time, end-time, envelope-type and limit flags", func() {
 		httpClient.responseBody = "some payload"
 
 		args := []string{
 			"--start-time", "100",
 			"--end-time", "123",
 			"--envelope-type", "log",
+			"--limit", "99",
 			"app-guid",
 		}
 		command.LogCache(cliConn, args, httpClient, logger)
@@ -56,6 +57,7 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Query().Get("starttime")).To(Equal("100"))
 		Expect(requestURL.Query().Get("endtime")).To(Equal("123"))
 		Expect(requestURL.Query().Get("envelopetype")).To(Equal("log"))
+		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
 	})
 
 	It("fatally logs if the start > end", func() {
@@ -65,6 +67,15 @@ var _ = Describe("LogCache", func() {
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
+	})
+
+	It("fatally logs if the limit is greater than 1000", func() {
+		args := []string{"--limit", "1001", "app-guid"}
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("Invalid limit value. It must be 1000 or less."))
 	})
 
 	It("allows for empty end time with populated start time", func() {

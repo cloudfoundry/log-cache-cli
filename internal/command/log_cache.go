@@ -29,6 +29,7 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 	start := f.Int64("start-time", 0, "")
 	end := f.Int64("end-time", 0, "")
 	envelopeType := f.String("envelope-type", "", "")
+	limit := f.Uint64("limit", 0, "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -41,6 +42,10 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 
 	if *start > *end && *end != 0 {
 		log.Fatalf("Invalid date/time range. Ensure your start time is prior or equal the end time.")
+	}
+
+	if *limit > 1000 {
+		log.Fatalf("Invalid limit value. It must be 1000 or less.")
 	}
 
 	hasAPI, err := cli.HasAPIEndpoint()
@@ -68,6 +73,10 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 
 	if *envelopeType != "" {
 		query.Set("envelopetype", *envelopeType)
+	}
+
+	if *limit != 0 {
+		query.Set("limit", fmt.Sprintf("%d", *limit))
 	}
 
 	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
