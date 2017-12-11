@@ -60,6 +60,32 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
 	})
 
+	It("formats the output via text/template", func() {
+		// 'hello world' base64 is 'aGVsbG8gd29ybGQ='
+		httpClient.responseBody = `{"envelopes":[{"a":1,"b":2, "base64Encoded":"aGVsbG8gd29ybGQ="}]}`
+		args := []string{
+			"--output-format", "{{.a}} {{base64 .base64Encoded}}",
+			"app-guid",
+		}
+
+		command.LogCache(cliConn, args, httpClient, logger)
+
+		Expect(logger.printfMessage).To(Equal("1 hello world"))
+	})
+
+	It("formats structured logs", func() {
+		// '{"msg":"hello world"}' base64 is 'eyJtc2ciOiJoZWxsbyB3b3JsZCJ9'
+		httpClient.responseBody = `{"envelopes":[{"a":1,"b":2, "base64Encoded":"eyJtc2ciOiJoZWxsbyB3b3JsZCJ9"}]}`
+		args := []string{
+			"--output-format", "{{.a}} {{(base64 .base64Encoded).msg}}",
+			"app-guid",
+		}
+
+		command.LogCache(cliConn, args, httpClient, logger)
+
+		Expect(logger.printfMessage).To(Equal("1 hello world"))
+	})
+
 	It("fatally logs if the start > end", func() {
 		args := []string{"--start-time", "1000", "--end-time", "100", "app-guid"}
 		Expect(func() {
@@ -99,6 +125,29 @@ var _ = Describe("LogCache", func() {
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("Expected 1 argument, got 0."))
+	})
+
+	It("errors if an output-format is malformed", func() {
+		args := []string{"--output-format", "{{INVALID}}", "app-guid"}
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal(`template: OutputFormat:1: function "INVALID" not defined`))
+	})
+
+	It("errors if an output-format won't execute", func() {
+		httpClient.responseBody = `{"envelopes":[{"a":1,"b":2}]}`
+		args := []string{
+			"--output-format", "{{.invalid 9}}",
+			"app-guid",
+		}
+
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal(`Output template parsed, but failed to execute: template: OutputFormat:1:2: executing "OutputFormat" at <.invalid>: invalid is not a method but has arguments`))
 	})
 
 	It("errors if there is an error while getting API endpoint", func() {
