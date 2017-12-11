@@ -1,8 +1,13 @@
 package command
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -30,6 +35,7 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 	end := f.Int64("end-time", 0, "")
 	envelopeType := f.String("envelope-type", "", "")
 	limit := f.Uint64("limit", 0, "")
+	outputFormat := f.String("output-format", "", "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -79,6 +85,12 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		query.Set("limit", fmt.Sprintf("%d", *limit))
 	}
 
+	outputter, err := buildOutputter(log, *outputFormat)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	_ = outputter
+
 	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
 	URL.Path = f.Args()[0]
 	URL.RawQuery = query.Encode()
@@ -92,10 +104,70 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("Expected 200 response code, but got %d.", resp.StatusCode)
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("%s", err)
+	outputter(resp.Body)
+}
+
+func buildOutputter(log Logger, format string) (func(io.Reader), error) {
+	if format != "" {
+		templ := template.New("OutputFormat")
+		templ.Funcs(map[string]interface{}{
+			"base64": func(s string) interface{} {
+				data, err := base64.StdEncoding.DecodeString(s)
+				if err != nil {
+					log.Fatalf("%s failed to base64 decode: %s", s, err)
+				}
+
+				d := json.NewDecoder(bytes.NewReader(data))
+				d.UseNumber()
+
+				var m map[string]interface{}
+				if err := d.Decode(&m); err != nil {
+					return string(data)
+				}
+
+				return m
+			},
+		})
+
+		_, err := templ.Parse(format)
+		if err != nil {
+			return nil, err
+		}
+
+		return func(r io.Reader) {
+			d := json.NewDecoder(r)
+			d.UseNumber()
+
+			m := struct {
+				Envelopes []map[string]interface{}
+			}{}
+
+			err = d.Decode(&m)
+			if err != nil {
+				log.Fatalf("invalid json: %s", err)
+			}
+
+			for _, e := range m.Envelopes {
+				b := bytes.Buffer{}
+				if err := templ.Execute(&b, e); err != nil {
+					log.Fatalf("Output template parsed, but failed to execute: %s", err)
+				}
+
+				if b.Len() == 0 {
+					continue
+				}
+
+				log.Printf("%s", b.String())
+			}
+		}, nil
 	}
 
-	log.Printf("%s", data)
+	return func(r io.Reader) {
+		data, err := ioutil.ReadAll(r)
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+
+		log.Printf("%s", data)
+	}, nil
 }
