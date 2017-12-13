@@ -30,6 +30,7 @@ var _ = Describe("LogCache", func() {
 
 	It("reports successful results", func() {
 		httpClient.responseBody = "some payload"
+		cliConn.cliCommandResult = []string{"app-guid"}
 
 		command.LogCache(cliConn, []string{"app-guid"}, httpClient, logger)
 
@@ -39,13 +40,14 @@ var _ = Describe("LogCache", func() {
 
 	It("accepts start-time, end-time, envelope-type and limit flags", func() {
 		httpClient.responseBody = "some payload"
+		cliConn.cliCommandResult = []string{"app-guid"}
 
 		args := []string{
 			"--start-time", "100",
 			"--end-time", "123",
 			"--envelope-type", "log",
 			"--limit", "99",
-			"app-guid",
+			"app-name",
 		}
 		command.LogCache(cliConn, args, httpClient, logger)
 
@@ -58,6 +60,26 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Query().Get("endtime")).To(Equal("123"))
 		Expect(requestURL.Query().Get("envelopetype")).To(Equal("log"))
 		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
+	})
+
+	It("requests the app guid", func() {
+		args := []string{"some-app"}
+		command.LogCache(cliConn, args, httpClient, logger)
+
+		Expect(cliConn.cliCommandArgs).To(HaveLen(3))
+		Expect(cliConn.cliCommandArgs[0]).To(Equal("app"))
+		Expect(cliConn.cliCommandArgs[1]).To(Equal("some-app"))
+		Expect(cliConn.cliCommandArgs[2]).To(Equal("--guid"))
+	})
+
+	It("fatally logs if app name is unknown", func() {
+		args := []string{"unknown-app"}
+		cliConn.cliCommandErr = errors.New("some-error")
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("some-error"))
 	})
 
 	It("fatally logs if the start > end", func() {
@@ -199,6 +221,10 @@ type stubCliConnection struct {
 
 	hasAPIEndpoint    bool
 	hasAPIEndpointErr error
+
+	cliCommandArgs   []string
+	cliCommandResult []string
+	cliCommandErr    error
 }
 
 func newStubCliConnection() *stubCliConnection {
@@ -213,4 +239,9 @@ func (s *stubCliConnection) ApiEndpoint() (string, error) {
 
 func (s *stubCliConnection) HasAPIEndpoint() (bool, error) {
 	return s.hasAPIEndpoint, s.hasAPIEndpointErr
+}
+
+func (s *stubCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]string, error) {
+	s.cliCommandArgs = args
+	return s.cliCommandResult, s.cliCommandErr
 }

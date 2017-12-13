@@ -57,6 +57,8 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("No API endpoint targeted.")
 	}
 
+	appGuid := getAppGuid(f.Args()[0], cli, log)
+
 	tokenURL, err := cli.ApiEndpoint()
 	if err != nil {
 		log.Fatalf("%s", err)
@@ -80,7 +82,7 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 	}
 
 	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
-	URL.Path = f.Args()[0]
+	URL.Path = appGuid
 	URL.RawQuery = query.Encode()
 
 	resp, err := c.Get(URL.String())
@@ -98,4 +100,17 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 	}
 
 	log.Printf("%s", data)
+}
+
+func getAppGuid(appName string, cli plugin.CliConnection, log Logger) string {
+	r, err := cli.CliCommandWithoutTerminalOutput(
+		"app",
+		appName,
+		"--guid",
+	)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	return strings.Join(r, "")
 }
