@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/log-cache-cli/internal/command"
@@ -24,22 +25,21 @@ var _ = Describe("LogCache", func() {
 
 	BeforeEach(func() {
 		logger = &stubLogger{}
-		httpClient = newStubHTTPClient()
+		httpClient = newStubHTTPClient(validPayload())
 		cliConn = newStubCliConnection()
 	})
 
 	It("reports successful results", func() {
-		httpClient.responseBody = "some payload"
 		cliConn.cliCommandResult = []string{"app-guid"}
 
-		command.LogCache(cliConn, []string{"app-guid"}, httpClient, logger)
+		command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
 
-		Expect(httpClient.requestURL).To(Equal("https://log-cache.some-system.com/app-guid"))
-		Expect(logger.printfMessage).To(Equal("some payload"))
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		Expect(httpClient.requestURLs[0]).To(Equal("https://log-cache.some-system.com/app-guid"))
+		Expect(logger.printfMessage).To(Equal(validPayload()))
 	})
 
 	It("accepts start-time, end-time, envelope-type and limit flags", func() {
-		httpClient.responseBody = "some payload"
 		cliConn.cliCommandResult = []string{"app-guid"}
 
 		args := []string{
@@ -51,7 +51,8 @@ var _ = Describe("LogCache", func() {
 		}
 		command.LogCache(cliConn, args, httpClient, logger)
 
-		requestURL, err := url.Parse(httpClient.requestURL)
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
 		Expect(err).ToNot(HaveOccurred())
 		Expect(requestURL.Scheme).To(Equal("https"))
 		Expect(requestURL.Host).To(Equal("log-cache.some-system.com"))
@@ -190,26 +191,32 @@ func (l *stubLogger) Printf(format string, args ...interface{}) {
 }
 
 type stubHTTPClient struct {
-	responseBody string
-	responseCode int
-	responseErr  error
+	responseCount int
+	responseBody  []string
+	responseCode  int
+	responseErr   error
 
-	requestURL string
+	requestURLs []string
 }
 
-func newStubHTTPClient() *stubHTTPClient {
+func newStubHTTPClient(payload string) *stubHTTPClient {
 	return &stubHTTPClient{
 		responseCode: http.StatusOK,
+		responseBody: []string{payload},
 	}
 }
 
 func (s *stubHTTPClient) Get(url string) (*http.Response, error) {
-	s.requestURL = url
+	s.requestURLs = append(s.requestURLs, url)
 
 	resp := &http.Response{
 		StatusCode: s.responseCode,
-		Body:       ioutil.NopCloser(strings.NewReader(s.responseBody)),
+		Body: ioutil.NopCloser(
+			strings.NewReader(s.responseBody[s.responseCount]),
+		),
 	}
+
+	s.responseCount++
 
 	return resp, s.responseErr
 }
@@ -245,3 +252,82 @@ func (s *stubCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]s
 	s.cliCommandArgs = args
 	return s.cliCommandResult, s.cliCommandErr
 }
+
+func responseBody(startTime time.Time) string {
+	return fmt.Sprintf(responseBodyTemplate,
+		startTime,
+		startTime.Add(1*time.Second),
+		startTime.Add(2*time.Second),
+	)
+}
+
+func validPayload() string {
+	return `
+	{
+		"envelopes": [{
+			"timestamp":"1000000000",
+			"sourceId":"6e707796-71bf-47de-8d50-3063df307de0",
+			"instanceId":"0",
+			"deprecatedTags": {
+				"deployment":{"text":"cf"},
+				"index":{"text":"a5d9c003-3d89-469a-86df-a8b36f0ad79f"},
+				"ip":{"text":"10.0.16.17"},
+				"job":{"text":"diego-cell"},
+				"origin":{"text":"rep"},
+				"source_type":{"text":"APP/PROC/WEB"}
+			},
+			"tags":{"source_id":"6e707796-71bf-47de-8d50-3063df307de0"},
+			"log":{"payload":"eyJtc2ciOiJMb2cgIyA0MzQwOTI1In0="}
+		}]
+	}`
+}
+
+var responseBodyTemplate = `{
+	"envelopes": [
+		{
+			"timestamp":"%d",
+			"sourceId":"6e707796-71bf-47de-8d50-3063df307de0",
+			"instanceId":"0",
+			"deprecatedTags": {
+				"deployment":{"text":"cf"},
+				"index":{"text":"a5d9c003-3d89-469a-86df-a8b36f0ad79f"},
+				"ip":{"text":"10.0.16.17"},
+				"job":{"text":"diego-cell"},
+				"origin":{"text":"rep"},
+				"source_type":{"text":"APP/PROC/WEB"}
+			},
+			"tags":{"source_id":"6e707796-71bf-47de-8d50-3063df307de0"},
+			"log":{"payload":"eyJtc2ciOiJMb2cgIyA0MzQwOTI1In0="}
+		},
+		{
+			"timestamp":"%d",
+			"sourceId":"6e707796-71bf-47de-8d50-3063df307de0",
+			"instanceId":"0",
+			"deprecatedTags": {
+				"deployment":{"text":"cf"},
+				"index":{"text":"a5d9c003-3d89-469a-86df-a8b36f0ad79f"},
+				"ip":{"text":"10.0.16.17"},
+				"job":{"text":"diego-cell"},
+				"origin":{"text":"rep"},
+				"source_type":{"text":"APP/PROC/WEB"}
+			},
+			"tags":{"source_id":"6e707796-71bf-47de-8d50-3063df307de0"},
+			"log":{"payload":"eyJtc2ciOiJMb2cgIyA0MzQwOTI1In0="}
+		},
+		{
+			"timestamp":"%d",
+			"sourceId":"6e707796-71bf-47de-8d50-3063df307de0",
+			"instanceId":"0",
+			"deprecatedTags": {
+				"deployment":{"text":"cf"},
+				"index":{"text":"a5d9c003-3d89-469a-86df-a8b36f0ad79f"},
+				"ip":{"text":"10.0.16.17"},
+				"job":{"text":"diego-cell"},
+				"origin":{"text":"rep"},
+				"source_type":{"text":"APP/PROC/WEB"}
+			},
+			"tags":{"source_id":"6e707796-71bf-47de-8d50-3063df307de0"},
+			"log":{"payload":"eyJtc2ciOiJMb2cgIyA0MzQwOTI1In0="}
+		}
+	]
+}`

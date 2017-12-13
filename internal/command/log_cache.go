@@ -45,6 +45,7 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("%s", err)
 	}
 
+	appGuid := getAppGuid(f.Args()[0], cli, log)
 	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
 	URL.Path = o.guid
 	URL.RawQuery = o.query().Encode()
@@ -58,13 +59,7 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("Expected 200 response code, but got %d.", resp.StatusCode)
 	}
 
-<<<<<<< HEAD
-	appGuid := getAppGuid(f.Args()[0], cli, log)
-
-	tokenURL, err := cli.ApiEndpoint()
-=======
 	data, err := ioutil.ReadAll(resp.Body)
->>>>>>> Improve factoring of command
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -113,15 +108,9 @@ func (o options) validate() error {
 		return errors.New("Invalid date/time range. Ensure your start time is prior or equal the end time.")
 	}
 
-<<<<<<< HEAD
-	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
-	URL.Path = appGuid
-	URL.RawQuery = query.Encode()
-=======
 	if o.limit > 1000 {
 		return errors.New("Invalid limit value. It must be 1000 or less.")
 	}
->>>>>>> Improve factoring of command
 
 	return nil
 }
