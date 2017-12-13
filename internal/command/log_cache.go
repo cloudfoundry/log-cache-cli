@@ -66,15 +66,15 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 
 	query := url.Values{}
 	if *start != 0 {
-		query.Set("starttime", fmt.Sprintf("%d", *start))
+		query.Set("start_time", fmt.Sprintf("%d", *start))
 	}
 
 	if *end != 0 {
-		query.Set("endtime", fmt.Sprintf("%d", *end))
+		query.Set("end_time", fmt.Sprintf("%d", *end))
 	}
 
 	if *envelopeType != "" {
-		query.Set("envelopetype", *envelopeType)
+		query.Set("envelope_type", strings.ToUpper(*envelopeType))
 	}
 
 	if *limit != 0 {
@@ -82,7 +82,7 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 	}
 
 	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
-	URL.Path = appGuid
+	URL.Path = fmt.Sprintf("/v1/read/%s", appGuid)
 	URL.RawQuery = query.Encode()
 
 	resp, err := c.Get(URL.String())

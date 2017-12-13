@@ -34,7 +34,7 @@ var _ = Describe("LogCache", func() {
 
 		command.LogCache(cliConn, []string{"app-guid"}, httpClient, logger)
 
-		Expect(httpClient.requestURL).To(Equal("https://log-cache.some-system.com/app-guid"))
+		Expect(httpClient.requestURL).To(Equal("https://log-cache.some-system.com/v1/read/app-guid"))
 		Expect(logger.printfMessage).To(Equal("some payload"))
 	})
 
@@ -55,10 +55,13 @@ var _ = Describe("LogCache", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(requestURL.Scheme).To(Equal("https"))
 		Expect(requestURL.Host).To(Equal("log-cache.some-system.com"))
-		Expect(requestURL.Path).To(Equal("/app-guid"))
-		Expect(requestURL.Query().Get("starttime")).To(Equal("100"))
-		Expect(requestURL.Query().Get("endtime")).To(Equal("123"))
-		Expect(requestURL.Query().Get("envelopetype")).To(Equal("log"))
+		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
+		Expect(requestURL.Query().Get("start_time")).To(Equal("100"))
+		Expect(requestURL.Query().Get("end_time")).To(Equal("123"))
+
+		// It should upcase everything on envelope_type
+		Expect(requestURL.Query().Get("envelope_type")).To(Equal("LOG"))
+
 		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
 	})
 
