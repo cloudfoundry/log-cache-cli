@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -25,29 +26,6 @@ type HTTPClient interface {
 // LogCache will fetch the logs for a given application guid and write them to
 // stdout.
 func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger) {
-	f := flag.NewFlagSet("log-cache", flag.ContinueOnError)
-	start := f.Int64("start-time", 0, "")
-	end := f.Int64("end-time", 0, "")
-	envelopeType := f.String("envelope-type", "", "")
-	limit := f.Uint64("limit", 0, "")
-
-	err := f.Parse(args)
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	if len(f.Args()) != 1 {
-		log.Fatalf("Expected 1 argument, got %d.", len(f.Args()))
-	}
-
-	if *start > *end && *end != 0 {
-		log.Fatalf("Invalid date/time range. Ensure your start time is prior or equal the end time.")
-	}
-
-	if *limit > 1000 {
-		log.Fatalf("Invalid limit value. It must be 1000 or less.")
-	}
-
 	hasAPI, err := cli.HasAPIEndpoint()
 	if err != nil {
 		log.Fatalf("%s", err)
@@ -57,33 +35,19 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("No API endpoint targeted.")
 	}
 
-	appGuid := getAppGuid(f.Args()[0], cli, log)
-
 	tokenURL, err := cli.ApiEndpoint()
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
 
-	query := url.Values{}
-	if *start != 0 {
-		query.Set("starttime", fmt.Sprintf("%d", *start))
-	}
-
-	if *end != 0 {
-		query.Set("endtime", fmt.Sprintf("%d", *end))
-	}
-
-	if *envelopeType != "" {
-		query.Set("envelopetype", *envelopeType)
-	}
-
-	if *limit != 0 {
-		query.Set("limit", fmt.Sprintf("%d", *limit))
+	o, err := newOptions(args)
+	if err != nil {
+		log.Fatalf("%s", err)
 	}
 
 	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
-	URL.Path = appGuid
-	URL.RawQuery = query.Encode()
+	URL.Path = o.guid
+	URL.RawQuery = o.query().Encode()
 
 	resp, err := c.Get(URL.String())
 	if err != nil {
@@ -94,12 +58,93 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("Expected 200 response code, but got %d.", resp.StatusCode)
 	}
 
+<<<<<<< HEAD
+	appGuid := getAppGuid(f.Args()[0], cli, log)
+
+	tokenURL, err := cli.ApiEndpoint()
+=======
 	data, err := ioutil.ReadAll(resp.Body)
+>>>>>>> Improve factoring of command
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
 
 	log.Printf("%s", data)
+}
+
+type options struct {
+	startTime    int64
+	endTime      int64
+	envelopeType string
+	limit        uint64
+
+	guid string
+}
+
+func newOptions(args []string) (options, error) {
+	f := flag.NewFlagSet("log-cache", flag.ContinueOnError)
+	start := f.Int64("start-time", 0, "")
+	end := f.Int64("end-time", 0, "")
+	envelopeType := f.String("envelope-type", "", "")
+	limit := f.Uint64("limit", 0, "")
+
+	err := f.Parse(args)
+	if err != nil {
+		return options{}, err
+	}
+
+	if len(f.Args()) != 1 {
+		return options{}, fmt.Errorf("Expected 1 argument, got %d.", len(f.Args()))
+	}
+
+	o := options{
+		startTime:    *start,
+		endTime:      *end,
+		envelopeType: *envelopeType,
+		limit:        *limit,
+		guid:         f.Args()[0],
+	}
+
+	return o, o.validate()
+}
+
+func (o options) validate() error {
+	if o.startTime > o.endTime && o.endTime != 0 {
+		return errors.New("Invalid date/time range. Ensure your start time is prior or equal the end time.")
+	}
+
+<<<<<<< HEAD
+	URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
+	URL.Path = appGuid
+	URL.RawQuery = query.Encode()
+=======
+	if o.limit > 1000 {
+		return errors.New("Invalid limit value. It must be 1000 or less.")
+	}
+>>>>>>> Improve factoring of command
+
+	return nil
+}
+
+func (o options) query() url.Values {
+	query := url.Values{}
+	if o.startTime != 0 {
+		query.Set("starttime", fmt.Sprintf("%d", o.startTime))
+	}
+
+	if o.endTime != 0 {
+		query.Set("endtime", fmt.Sprintf("%d", o.endTime))
+	}
+
+	if o.envelopeType != "" {
+		query.Set("envelopetype", o.envelopeType)
+	}
+
+	if o.limit != 0 {
+		query.Set("limit", fmt.Sprintf("%d", o.limit))
+	}
+
+	return query
 }
 
 func getAppGuid(appName string, cli plugin.CliConnection, log Logger) string {
