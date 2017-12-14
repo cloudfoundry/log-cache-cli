@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
+	"code.cloudfoundry.org/cli/plugin/models"
 	"code.cloudfoundry.org/log-cache-cli/internal/command"
 
 	. "github.com/onsi/ginkgo"
@@ -21,27 +23,74 @@ var _ = Describe("LogCache", func() {
 		logger     *stubLogger
 		httpClient *stubHTTPClient
 		cliConn    *stubCliConnection
+		startTime  time.Time
 	)
 
 	BeforeEach(func() {
+		startTime = time.Now().Truncate(time.Second).Add(time.Minute)
 		logger = &stubLogger{}
-		httpClient = newStubHTTPClient(validPayload())
+		httpClient = newStubHTTPClient(responseBody(startTime))
 		cliConn = newStubCliConnection()
+		cliConn.cliCommandResult = []string{"app-guid"}
+		cliConn.usernameResp = "a-user"
+		cliConn.orgName = "organization"
+		cliConn.spaceName = "space"
 	})
 
 	It("reports successful results", func() {
-		cliConn.cliCommandResult = []string{"app-guid"}
-
 		command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
 
 		Expect(httpClient.requestURLs).To(HaveLen(1))
-		Expect(httpClient.requestURLs[0]).To(Equal("https://log-cache.some-system.com/app-guid"))
-		Expect(logger.printfMessage).To(Equal(validPayload()))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
+		timeFormat := "2006-01-02T15:04:05.00-0700"
+		logFormat := "   %s [APP/PROC/WEB/0] OUT log body"
+		Expect(logger.printfMessages).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving logs for app %s in org %s / space %s as %s...",
+				"app-name",
+				cliConn.orgName,
+				cliConn.spaceName,
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(logFormat, startTime.Format(timeFormat)),
+			fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat)),
+			fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat)),
+		}))
+	})
+
+	It("reports successful results with deprecated tags", func() {
+		httpClient.responseBody = []string{
+			deprecatedTagsResponseBody(startTime),
+		}
+		command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
+
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
+		timeFormat := "2006-01-02T15:04:05.00-0700"
+		logFormat := "   %s [APP/PROC/WEB/0] OUT log body"
+		Expect(logger.printfMessages).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving logs for app %s in org %s / space %s as %s...",
+				"app-name",
+				cliConn.orgName,
+				cliConn.spaceName,
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(logFormat, startTime.Format(timeFormat)),
+			fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat)),
+			fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat)),
+		}))
 	})
 
 	It("accepts start-time, end-time, envelope-type and limit flags", func() {
-		cliConn.cliCommandResult = []string{"app-guid"}
-
 		args := []string{
 			"--start-time", "100",
 			"--end-time", "123",
@@ -56,11 +105,84 @@ var _ = Describe("LogCache", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(requestURL.Scheme).To(Equal("https"))
 		Expect(requestURL.Host).To(Equal("log-cache.some-system.com"))
-		Expect(requestURL.Path).To(Equal("/app-guid"))
-		Expect(requestURL.Query().Get("starttime")).To(Equal("100"))
-		Expect(requestURL.Query().Get("endtime")).To(Equal("123"))
-		Expect(requestURL.Query().Get("envelopetype")).To(Equal("log"))
+		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
+		Expect(requestURL.Query().Get("start_time")).To(Equal("100"))
+		Expect(requestURL.Query().Get("end_time")).To(Equal("123"))
+		Expect(requestURL.Query().Get("envelope_type")).To(Equal("log"))
 		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
+	})
+
+	It("accepts a recent flag", func() {
+		args := []string{
+			"--recent",
+			"app-name",
+		}
+		command.LogCache(cliConn, args, httpClient, logger)
+
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
+		Expect(requestURL.Query().Get("start_time")).To(BeEmpty())
+		Expect(requestURL.Query().Get("envelope_type")).To(Equal("log"))
+		Expect(requestURL.Query().Get("limit")).To(Equal("100"))
+
+		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
+	})
+
+	It("requests all pages until end time is reached", func() {
+		startTimeA := time.Unix(0, 0)
+		startTimeB := time.Now().Truncate(time.Second)
+		httpClient.responseBody = []string{
+			responseBody(startTimeA),
+			responseBody(startTimeB),
+		}
+
+		args := []string{
+			"--recent",
+			"app-name",
+		}
+		command.LogCache(cliConn, args, httpClient, logger)
+
+		Expect(httpClient.requestURLs).To(HaveLen(2))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
+		Expect(requestURL.Query().Get("start_time")).To(BeEmpty())
+		Expect(requestURL.Query().Get("envelope_type")).To(Equal("log"))
+		Expect(requestURL.Query().Get("limit")).To(Equal("100"))
+
+		requestURL, err = url.Parse(httpClient.requestURLs[1])
+		Expect(err).ToNot(HaveOccurred())
+		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
+		Expect(requestURL.Query().Get("envelope_type")).To(Equal("log"))
+		Expect(requestURL.Query().Get("limit")).To(Equal("100"))
+
+		expectedStartTime := startTimeA.Add(2*time.Second + time.Nanosecond)
+		Expect(requestURL.Query().Get("start_time")).To(
+			Equal(strconv.FormatInt(expectedStartTime.UnixNano(), 10)),
+		)
+
+		timeFormat := "2006-01-02T15:04:05.00-0700"
+		logFormat := "   %s [APP/PROC/WEB/0] OUT log body"
+		Expect(logger.printfMessages).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving logs for app %s in org %s / space %s as %s...",
+				"app-name",
+				cliConn.orgName,
+				cliConn.spaceName,
+				cliConn.usernameResp,
+			),
+			"",
+			"   1969-12-31T17:00:00.00-0700 [APP/PROC/WEB/0] OUT log body",
+			"   1969-12-31T17:00:01.00-0700 [APP/PROC/WEB/0] OUT log body",
+			"   1969-12-31T17:00:02.00-0700 [APP/PROC/WEB/0] OUT log body",
+			fmt.Sprintf(logFormat, startTimeB.Format(timeFormat)),
+			fmt.Sprintf(logFormat, startTimeB.Add(1*time.Second).Format(timeFormat)),
+			fmt.Sprintf(logFormat, startTimeB.Add(2*time.Second).Format(timeFormat)),
+		}))
 	})
 
 	It("requests the app guid", func() {
@@ -83,8 +205,41 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("some-error"))
 	})
 
+	It("fatally logs if username cannot be fetched", func() {
+		cliConn.usernameErr = errors.New("unknown user")
+		args := []string{"app-name"}
+
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("unknown user"))
+	})
+
+	It("fatally logs if org name cannot be fetched", func() {
+		cliConn.orgErr = errors.New("Organization could not be fetched")
+		args := []string{"app-name"}
+
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("Organization could not be fetched"))
+	})
+
+	It("fatally logs if space cannot be fetched", func() {
+		cliConn.spaceErr = errors.New("unknown space")
+		args := []string{"app-name"}
+
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("unknown space"))
+	})
+
 	It("fatally logs if the start > end", func() {
-		args := []string{"--start-time", "1000", "--end-time", "100", "app-guid"}
+		args := []string{"--start-time", "1000", "--end-time", "100", "app-name"}
 		Expect(func() {
 			command.LogCache(cliConn, args, httpClient, logger)
 		}).To(Panic())
@@ -93,7 +248,7 @@ var _ = Describe("LogCache", func() {
 	})
 
 	It("fatally logs if the limit is greater than 1000", func() {
-		args := []string{"--limit", "1001", "app-guid"}
+		args := []string{"--limit", "1001", "app-name"}
 		Expect(func() {
 			command.LogCache(cliConn, args, httpClient, logger)
 		}).To(Panic())
@@ -102,7 +257,7 @@ var _ = Describe("LogCache", func() {
 	})
 
 	It("allows for empty end time with populated start time", func() {
-		args := []string{"--start-time", "1000", "app-guid"}
+		args := []string{"--start-time", "1000", "app-name"}
 		Expect(func() {
 			command.LogCache(cliConn, args, httpClient, logger)
 		}).ToNot(Panic())
@@ -128,7 +283,7 @@ var _ = Describe("LogCache", func() {
 		cliConn.apiEndpointErr = errors.New("some-error")
 
 		Expect(func() {
-			command.LogCache(cliConn, []string{"app-guid"}, httpClient, logger)
+			command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("some-error"))
@@ -138,7 +293,7 @@ var _ = Describe("LogCache", func() {
 		cliConn.hasAPIEndpoint = false
 
 		Expect(func() {
-			command.LogCache(cliConn, []string{"app-guid"}, httpClient, logger)
+			command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("No API endpoint targeted."))
@@ -149,7 +304,7 @@ var _ = Describe("LogCache", func() {
 		cliConn.hasAPIEndpointErr = errors.New("some-error")
 
 		Expect(func() {
-			command.LogCache(cliConn, []string{"app-guid"}, httpClient, logger)
+			command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("some-error"))
@@ -159,7 +314,7 @@ var _ = Describe("LogCache", func() {
 		httpClient.responseCode = 400
 
 		Expect(func() {
-			command.LogCache(cliConn, []string{"app-guid"}, httpClient, logger)
+			command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("Expected 200 response code, but got 400."))
@@ -169,16 +324,59 @@ var _ = Describe("LogCache", func() {
 		httpClient.responseErr = errors.New("some-error")
 
 		Expect(func() {
-			command.LogCache(cliConn, []string{"app-guid"}, httpClient, logger)
+			command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("some-error"))
 	})
+
+	It("errors if the response body has an invalid timestmap", func() {
+		httpClient.responseBody = []string{
+			invalidTimestampResponse,
+		}
+
+		args := []string{"--recent", "app-name"}
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal(
+			`Error parsing timestamp: strconv.ParseInt: parsing "not-a-timestamp": invalid syntax`,
+		))
+	})
+
+	It("errors if the payload cannot be base64 decoded", func() {
+		httpClient.responseBody = []string{
+			invalidPayloadResponse,
+		}
+
+		args := []string{"--recent", "app-name"}
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal(
+			"Error decoding log payload: illegal base64 data at input byte 0",
+		))
+	})
+
+	It("errors if the payload cannot be base64 decoded", func() {
+		httpClient.responseBody = []string{"{"}
+
+		args := []string{"--recent", "app-name"}
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal(
+			"Error unmarshalling log: unexpected EOF",
+		))
+	})
 })
 
 type stubLogger struct {
-	fatalfMessage string
-	printfMessage string
+	fatalfMessage  string
+	printfMessages []string
 }
 
 func (l *stubLogger) Fatalf(format string, args ...interface{}) {
@@ -187,7 +385,7 @@ func (l *stubLogger) Fatalf(format string, args ...interface{}) {
 }
 
 func (l *stubLogger) Printf(format string, args ...interface{}) {
-	l.printfMessage = fmt.Sprintf(format, args...)
+	l.printfMessages = append(l.printfMessages, fmt.Sprintf(format, args...))
 }
 
 type stubHTTPClient struct {
@@ -232,6 +430,13 @@ type stubCliConnection struct {
 	cliCommandArgs   []string
 	cliCommandResult []string
 	cliCommandErr    error
+
+	usernameResp string
+	usernameErr  error
+	orgName      string
+	orgErr       error
+	spaceName    string
+	spaceErr     error
 }
 
 func newStubCliConnection() *stubCliConnection {
@@ -253,81 +458,136 @@ func (s *stubCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]s
 	return s.cliCommandResult, s.cliCommandErr
 }
 
+func (s *stubCliConnection) Username() (string, error) {
+	return s.usernameResp, s.usernameErr
+}
+
+func (s *stubCliConnection) GetCurrentOrg() (plugin_models.Organization, error) {
+	return plugin_models.Organization{
+		plugin_models.OrganizationFields{
+			Name: s.orgName,
+		},
+	}, s.orgErr
+}
+
+func (s *stubCliConnection) GetCurrentSpace() (plugin_models.Space, error) {
+	return plugin_models.Space{
+		plugin_models.SpaceFields{
+			Name: s.spaceName,
+		},
+	}, s.spaceErr
+}
+
 func responseBody(startTime time.Time) string {
-	return fmt.Sprintf(responseBodyTemplate,
-		startTime,
-		startTime.Add(1*time.Second),
-		startTime.Add(2*time.Second),
+	return fmt.Sprintf(responseTemplate,
+		startTime.UnixNano(),
+		startTime.Add(1*time.Second).UnixNano(),
+		startTime.Add(2*time.Second).UnixNano(),
 	)
 }
 
-func validPayload() string {
-	return `
-	{
-		"envelopes": [{
-			"timestamp":"1000000000",
-			"sourceId":"6e707796-71bf-47de-8d50-3063df307de0",
-			"instanceId":"0",
-			"deprecatedTags": {
-				"deployment":{"text":"cf"},
-				"index":{"text":"a5d9c003-3d89-469a-86df-a8b36f0ad79f"},
-				"ip":{"text":"10.0.16.17"},
-				"job":{"text":"diego-cell"},
-				"origin":{"text":"rep"},
-				"source_type":{"text":"APP/PROC/WEB"}
-			},
-			"tags":{"source_id":"6e707796-71bf-47de-8d50-3063df307de0"},
-			"log":{"payload":"eyJtc2ciOiJMb2cgIyA0MzQwOTI1In0="}
-		}]
-	}`
+func deprecatedTagsResponseBody(startTime time.Time) string {
+	return fmt.Sprintf(deprecatedTagsResponseTemplate,
+		startTime.UnixNano(),
+		startTime.Add(1*time.Second).UnixNano(),
+		startTime.Add(2*time.Second).UnixNano(),
+	)
 }
 
-var responseBodyTemplate = `{
-	"envelopes": [
-		{
-			"timestamp":"%d",
-			"sourceId":"6e707796-71bf-47de-8d50-3063df307de0",
-			"instanceId":"0",
-			"deprecatedTags": {
-				"deployment":{"text":"cf"},
-				"index":{"text":"a5d9c003-3d89-469a-86df-a8b36f0ad79f"},
-				"ip":{"text":"10.0.16.17"},
-				"job":{"text":"diego-cell"},
-				"origin":{"text":"rep"},
-				"source_type":{"text":"APP/PROC/WEB"}
+var responseTemplate = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp":"%d",
+				"instance_id":"0",
+				"tags":{
+					"source_type":"APP/PROC/WEB"
+				},
+				"log":{
+					"payload":"bG9nIGJvZHk="
+				}
 			},
-			"tags":{"source_id":"6e707796-71bf-47de-8d50-3063df307de0"},
-			"log":{"payload":"eyJtc2ciOiJMb2cgIyA0MzQwOTI1In0="}
-		},
-		{
-			"timestamp":"%d",
-			"sourceId":"6e707796-71bf-47de-8d50-3063df307de0",
-			"instanceId":"0",
-			"deprecatedTags": {
-				"deployment":{"text":"cf"},
-				"index":{"text":"a5d9c003-3d89-469a-86df-a8b36f0ad79f"},
-				"ip":{"text":"10.0.16.17"},
-				"job":{"text":"diego-cell"},
-				"origin":{"text":"rep"},
-				"source_type":{"text":"APP/PROC/WEB"}
+			{
+				"timestamp":"%d",
+				"instance_id":"0",
+				"tags":{
+					"source_type":"APP/PROC/WEB"
+				},
+				"log":{
+					"payload":"bG9nIGJvZHk="
+				}
 			},
-			"tags":{"source_id":"6e707796-71bf-47de-8d50-3063df307de0"},
-			"log":{"payload":"eyJtc2ciOiJMb2cgIyA0MzQwOTI1In0="}
-		},
-		{
-			"timestamp":"%d",
-			"sourceId":"6e707796-71bf-47de-8d50-3063df307de0",
-			"instanceId":"0",
-			"deprecatedTags": {
-				"deployment":{"text":"cf"},
-				"index":{"text":"a5d9c003-3d89-469a-86df-a8b36f0ad79f"},
-				"ip":{"text":"10.0.16.17"},
-				"job":{"text":"diego-cell"},
-				"origin":{"text":"rep"},
-				"source_type":{"text":"APP/PROC/WEB"}
+			{
+				"timestamp":"%d",
+				"instance_id":"0",
+				"tags":{
+					"source_type":"APP/PROC/WEB"
+				},
+				"log":{
+					"payload":"bG9nIGJvZHk="
+				}
+			}
+		]
+	}
+}`
+
+var deprecatedTagsResponseTemplate = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp":"%d",
+				"instance_id":"0",
+				"deprecated_tags": {
+					"source_type":{"text":"APP/PROC/WEB"}
+				},
+				"log":{"payload":"bG9nIGJvZHk="}
 			},
-			"tags":{"source_id":"6e707796-71bf-47de-8d50-3063df307de0"},
-			"log":{"payload":"eyJtc2ciOiJMb2cgIyA0MzQwOTI1In0="}
-		}
-	]
+			{
+				"timestamp":"%d",
+				"instance_id":"0",
+				"deprecated_tags": {
+					"source_type":{"text":"APP/PROC/WEB"}
+				},
+				"log":{"payload":"bG9nIGJvZHk="}
+			},
+			{
+				"timestamp":"%d",
+				"instance_id":"0",
+				"deprecated_tags": {
+					"source_type":{"text":"APP/PROC/WEB"}
+				},
+				"log":{"payload":"bG9nIGJvZHk="}
+			}
+		]
+	}
+}`
+
+var invalidTimestampResponse = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp":"not-a-timestamp",
+				"instance_id":"0",
+				"deprecated_tags": {
+					"source_type":{"text":"APP/PROC/WEB"}
+				},
+				"log":{"payload":"bG9nIGJvZHk="}
+			}
+		]
+	}
+}`
+
+var invalidPayloadResponse = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp":"0",
+				"instance_id":"0",
+				"deprecated_tags": {
+					"source_type":{"text":"APP/PROC/WEB"}
+				},
+				"log":{"payload":"~*&#"}
+			}
+		]
+	}
 }`
