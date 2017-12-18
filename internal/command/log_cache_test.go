@@ -46,7 +46,7 @@ var _ = Describe("LogCache", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
 		timeFormat := "2006-01-02T15:04:05.00-0700"
-		logFormat := "   %s [APP/PROC/WEB/0] OUT log body"
+		logFormat := "   %s [APP/PROC/WEB/0] %s log body"
 		Expect(logger.printfMessages).To(Equal([]string{
 			fmt.Sprintf(
 				"Retrieving logs for app %s in org %s / space %s as %s...",
@@ -56,9 +56,9 @@ var _ = Describe("LogCache", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			fmt.Sprintf(logFormat, startTime.Format(timeFormat)),
-			fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat)),
-			fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat)),
+			fmt.Sprintf(logFormat, startTime.Format(timeFormat), "OUT"),
+			fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
+			fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "ERR"),
 		}))
 	})
 
@@ -108,7 +108,7 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
 		Expect(requestURL.Query().Get("start_time")).To(Equal("100"))
 		Expect(requestURL.Query().Get("end_time")).To(Equal("123"))
-		Expect(requestURL.Query().Get("envelope_type")).To(Equal("log"))
+		Expect(requestURL.Query().Get("envelope_type")).To(Equal("LOG"))
 		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
 	})
 
@@ -123,66 +123,13 @@ var _ = Describe("LogCache", func() {
 		requestURL, err := url.Parse(httpClient.requestURLs[0])
 		Expect(err).ToNot(HaveOccurred())
 		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
-		Expect(requestURL.Query().Get("start_time")).To(BeEmpty())
-		Expect(requestURL.Query().Get("envelope_type")).To(Equal("log"))
+		Expect(requestURL.Query().Get("start_time")).To(Equal("0"))
+		Expect(requestURL.Query().Get("envelope_type")).To(Equal("LOG"))
 		Expect(requestURL.Query().Get("limit")).To(Equal("100"))
 
 		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
-	})
-
-	It("requests all pages until end time is reached", func() {
-		startTimeA := time.Unix(0, 0)
-		startTimeB := time.Now().Truncate(time.Second)
-		httpClient.responseBody = []string{
-			responseBody(startTimeA),
-			responseBody(startTimeB),
-		}
-
-		args := []string{
-			"--recent",
-			"app-name",
-		}
-		command.LogCache(cliConn, args, httpClient, logger)
-
-		Expect(httpClient.requestURLs).To(HaveLen(2))
-		requestURL, err := url.Parse(httpClient.requestURLs[0])
-		Expect(err).ToNot(HaveOccurred())
-		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
-		Expect(requestURL.Query().Get("start_time")).To(BeEmpty())
-		Expect(requestURL.Query().Get("envelope_type")).To(Equal("log"))
-		Expect(requestURL.Query().Get("limit")).To(Equal("100"))
-
-		requestURL, err = url.Parse(httpClient.requestURLs[1])
-		Expect(err).ToNot(HaveOccurred())
-		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
-		Expect(requestURL.Query().Get("envelope_type")).To(Equal("log"))
-		Expect(requestURL.Query().Get("limit")).To(Equal("100"))
-
-		expectedStartTime := startTimeA.Add(2*time.Second + time.Nanosecond)
-		Expect(requestURL.Query().Get("start_time")).To(
-			Equal(strconv.FormatInt(expectedStartTime.UnixNano(), 10)),
-		)
-
-		timeFormat := "2006-01-02T15:04:05.00-0700"
-		logFormat := "   %s [APP/PROC/WEB/0] OUT log body"
-		Expect(logger.printfMessages).To(Equal([]string{
-			fmt.Sprintf(
-				"Retrieving logs for app %s in org %s / space %s as %s...",
-				"app-name",
-				cliConn.orgName,
-				cliConn.spaceName,
-				cliConn.usernameResp,
-			),
-			"",
-			"   1969-12-31T17:00:00.00-0700 [APP/PROC/WEB/0] OUT log body",
-			"   1969-12-31T17:00:01.00-0700 [APP/PROC/WEB/0] OUT log body",
-			"   1969-12-31T17:00:02.00-0700 [APP/PROC/WEB/0] OUT log body",
-			fmt.Sprintf(logFormat, startTimeB.Format(timeFormat)),
-			fmt.Sprintf(logFormat, startTimeB.Add(1*time.Second).Format(timeFormat)),
-			fmt.Sprintf(logFormat, startTimeB.Add(2*time.Second).Format(timeFormat)),
-		}))
 	})
 
 	It("requests the app guid", func() {
@@ -310,16 +257,6 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("some-error"))
 	})
 
-	It("errors if the response code is not 200", func() {
-		httpClient.responseCode = 400
-
-		Expect(func() {
-			command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
-		}).To(Panic())
-
-		Expect(logger.fatalfMessage).To(Equal("Expected 200 response code, but got 400."))
-	})
-
 	It("errors if the request returns an error", func() {
 		httpClient.responseErr = errors.New("some-error")
 
@@ -330,48 +267,6 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("some-error"))
 	})
 
-	It("errors if the response body has an invalid timestmap", func() {
-		httpClient.responseBody = []string{
-			invalidTimestampResponse,
-		}
-
-		args := []string{"--recent", "app-name"}
-		Expect(func() {
-			command.LogCache(cliConn, args, httpClient, logger)
-		}).To(Panic())
-
-		Expect(logger.fatalfMessage).To(Equal(
-			`Error parsing timestamp: strconv.ParseInt: parsing "not-a-timestamp": invalid syntax`,
-		))
-	})
-
-	It("errors if the payload cannot be base64 decoded", func() {
-		httpClient.responseBody = []string{
-			invalidPayloadResponse,
-		}
-
-		args := []string{"--recent", "app-name"}
-		Expect(func() {
-			command.LogCache(cliConn, args, httpClient, logger)
-		}).To(Panic())
-
-		Expect(logger.fatalfMessage).To(Equal(
-			"Error decoding log payload: illegal base64 data at input byte 0",
-		))
-	})
-
-	It("errors if the payload cannot be base64 decoded", func() {
-		httpClient.responseBody = []string{"{"}
-
-		args := []string{"--recent", "app-name"}
-		Expect(func() {
-			command.LogCache(cliConn, args, httpClient, logger)
-		}).To(Panic())
-
-		Expect(logger.fatalfMessage).To(Equal(
-			"Error unmarshalling log: unexpected EOF",
-		))
-	})
 })
 
 type stubLogger struct {
@@ -524,7 +419,8 @@ var responseTemplate = `{
 					"source_type":"APP/PROC/WEB"
 				},
 				"log":{
-					"payload":"bG9nIGJvZHk="
+					"payload":"bG9nIGJvZHk=",
+					"type": "ERR"
 				}
 			}
 		]

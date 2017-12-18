@@ -1,18 +1,17 @@
 package command
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
+	logcache "code.cloudfoundry.org/go-log-cache"
+	logcacherpc "code.cloudfoundry.org/go-log-cache/rpc/logcache"
+	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
 )
 
 const (
@@ -67,6 +66,10 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("%s", err)
 	}
 
+	client := logcache.NewClient(strings.Replace(tokenURL, "api", "log-cache", 1),
+		logcache.WithHTTPClient(c),
+	)
+
 	log.Printf(
 		"Retrieving logs for app %s in org %s / space %s as %s...",
 		o.appName,
@@ -76,57 +79,33 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 	)
 	log.Printf("")
 
-	for {
-		URL, err := url.Parse(strings.Replace(tokenURL, "api", "log-cache", 1))
-		URL.Path = fmt.Sprintf("/v1/read/%s", o.guid)
-		URL.RawQuery = o.query().Encode()
-
-		resp, err := c.Get(URL.String())
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("Expected 200 response code, but got %d.", resp.StatusCode)
-		}
-
-		var r response
-		err = json.NewDecoder(resp.Body).Decode(&r)
-		if err != nil {
-			log.Fatalf("Error unmarshalling log: %s", err)
-		}
-
-		if len(r.Envelopes.Batch) == 0 {
-			return
-		}
-
-		for _, e := range r.Envelopes.Batch {
-			l, err := e.format()
-			if err != nil {
-				log.Fatalf("%s", err)
+	logcache.Walk(
+		o.guid,
+		func(b []*loggregator_v2.Envelope) bool {
+			for _, e := range b {
+				log.Printf("%s", envelopeWrapper{e})
 			}
 
-			log.Printf(l)
-		}
+			lastEnv := b[len(b)-1]
+			if lastEnv.Timestamp >= o.endTime.UnixNano() {
+				return false
+			}
 
-		lastEnv := r.Envelopes.Batch[len(r.Envelopes.Batch)-1]
-		lastTS, err := lastEnv.timestamp()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-
-		if lastTS.UnixNano() >= o.endTime {
-			return
-		}
-
-		o.startTime = lastTS.UnixNano() + 1
-	}
+			return true
+		},
+		client.Read,
+		logcache.WithWalkStartTime(o.startTime),
+		logcache.WithWalkEndTime(o.endTime),
+		logcache.WithWalkLimit(int(o.limit)),
+		logcache.WithWalkEnvelopeType(o.envelopeType),
+		logcache.WithWalkBackoff(newBackoff(log)),
+	)
 }
 
 type options struct {
-	startTime    int64
-	endTime      int64
-	envelopeType string
+	startTime    time.Time
+	endTime      time.Time
+	envelopeType logcacherpc.EnvelopeTypes
 	limit        uint64
 
 	guid    string
@@ -151,18 +130,18 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	}
 
 	o := options{
-		startTime:    *start,
-		endTime:      *end,
-		envelopeType: *envelopeType,
+		startTime:    time.Unix(0, *start),
+		endTime:      time.Unix(0, *end),
+		envelopeType: translateEnvelopeType(*envelopeType),
 		limit:        *limit,
 		guid:         getAppGuid(f.Args()[0], cli, log),
 		appName:      f.Args()[0],
 	}
 
 	if *recent {
-		o.startTime = 0
-		o.endTime = time.Now().UnixNano()
-		o.envelopeType = "log"
+		o.startTime = time.Unix(0, 0)
+		o.endTime = time.Now()
+		o.envelopeType = logcacherpc.EnvelopeTypes_LOG
 		o.limit = 100
 	}
 
@@ -170,7 +149,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 }
 
 func (o options) validate() error {
-	if o.startTime > o.endTime && o.endTime != 0 {
+	if o.startTime.After(o.endTime) && o.endTime != time.Unix(0, 0) {
 		return errors.New("Invalid date/time range. Ensure your start time is prior or equal the end time.")
 	}
 
@@ -181,100 +160,54 @@ func (o options) validate() error {
 	return nil
 }
 
-func (o options) query() url.Values {
-	query := url.Values{}
-	if o.startTime != 0 {
-		query.Set("start_time", fmt.Sprintf("%d", o.startTime))
+func translateEnvelopeType(t string) logcacherpc.EnvelopeTypes {
+	switch t {
+	case "ANY":
+		return logcacherpc.EnvelopeTypes_ANY
+	case "LOG", "":
+		return logcacherpc.EnvelopeTypes_LOG
+	case "COUNTER":
+		return logcacherpc.EnvelopeTypes_COUNTER
+	case "GAUGE":
+		return logcacherpc.EnvelopeTypes_GAUGE
+	case "TIMER":
+		return logcacherpc.EnvelopeTypes_TIMER
+	case "EVENT":
+		return logcacherpc.EnvelopeTypes_EVENT
+	default:
+		return logcacherpc.EnvelopeTypes_LOG
 	}
-
-	if o.endTime != 0 {
-		query.Set("end_time", fmt.Sprintf("%d", o.endTime))
-	}
-
-	if o.envelopeType != "" {
-		query.Set("envelope_type", o.envelopeType)
-	}
-
-	if o.limit != 0 {
-		query.Set("limit", fmt.Sprintf("%d", o.limit))
-	}
-
-	return query
 }
 
-type response struct {
-	Envelopes struct {
-		Batch []envelope `json:"batch"`
-	} `json:"envelopes"`
+type envelopeWrapper struct {
+	*loggregator_v2.Envelope
 }
 
-type envelope struct {
-	Timestamp  string `json:"timestamp"`
-	InstanceID string `json:"instance_id"`
-
-	Tags struct {
-		SourceType string `json:"source_type"`
-	} `json:"tags"`
-
-	DeprecatedTags struct {
-		SourceType struct {
-			Text string `json:"text"`
-		} `json:"source_type"`
-	} `json:"deprecated_tags"`
-
-	Log struct {
-		Payload string `json:"payload"`
-	} `json:"log"`
-}
-
-func (e envelope) format() (string, error) {
-	ts, err := e.timestamp()
-	if err != nil {
-		return "", err
-	}
-
-	body, err := e.body()
-	if err != nil {
-		return "", err
-	}
+func (e envelopeWrapper) String() string {
+	ts := time.Unix(0, e.Timestamp)
 
 	// TODO DO NOT HARDCODE OUT
-	return fmt.Sprintf("   %s [%s] OUT %s",
+	return fmt.Sprintf("   %s [%s/%s] %s %s",
 		ts.Format(timeFormat),
-		e.source(),
-		body,
-	), nil
-}
-
-func (e envelope) timestamp() (time.Time, error) {
-	ts, err := strconv.ParseInt(e.Timestamp, 10, 64)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("Error parsing timestamp: %s", err)
-	}
-
-	return time.Unix(0, ts), nil
-}
-
-func (e envelope) source() string {
-	if e.Tags.SourceType != "" {
-		return fmt.Sprintf("%s/%s",
-			e.Tags.SourceType,
-			e.InstanceID,
-		)
-	}
-	return fmt.Sprintf("%s/%s",
-		e.DeprecatedTags.SourceType.Text,
-		e.InstanceID,
+		e.sourceType(),
+		e.InstanceId,
+		e.GetLog().GetType(),
+		e.GetLog().GetPayload(),
 	)
 }
 
-func (e envelope) body() ([]byte, error) {
-	str, err := base64.StdEncoding.DecodeString(e.Log.Payload)
-	if err != nil {
-		return nil, fmt.Errorf("Error decoding log payload: %s", err)
+func (e envelopeWrapper) sourceType() string {
+	st, ok := e.Tags["source_type"]
+	if !ok {
+		t, ok := e.DeprecatedTags["source_type"]
+		if !ok {
+			return "unknown"
+		}
+
+		return t.GetText()
 	}
 
-	return str, nil
+	return st
 }
 
 func getAppGuid(appName string, cli plugin.CliConnection, log Logger) string {
@@ -288,4 +221,19 @@ func getAppGuid(appName string, cli plugin.CliConnection, log Logger) string {
 	}
 
 	return strings.Join(r, "")
+}
+
+type backoff struct {
+	logcache.AlwaysDoneBackoff
+
+	logger Logger
+}
+
+func newBackoff(log Logger) backoff {
+	return backoff{logger: log}
+}
+
+func (b backoff) OnErr(err error) bool {
+	b.logger.Fatalf("%s", err)
+	return b.AlwaysDoneBackoff.OnErr(err)
 }
