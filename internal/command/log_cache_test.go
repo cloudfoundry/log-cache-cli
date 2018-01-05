@@ -90,6 +90,109 @@ var _ = Describe("LogCache", func() {
 		}))
 	})
 
+	It("reports successful results with counter envelopes", func() {
+		httpClient.responseBody = []string{
+			counterResponseBody(startTime),
+		}
+		command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
+
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
+		timeFormat := "2006-01-02T15:04:05.00-0700"
+		logFormat := "   %s COUNTER %s:%d"
+		Expect(logger.printfMessages).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving logs for app %s in org %s / space %s as %s...",
+				"app-name",
+				cliConn.orgName,
+				cliConn.spaceName,
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(logFormat, startTime.Format(timeFormat), "some-name", 99),
+		}))
+	})
+
+	It("reports successful results with guage envelopes", func() {
+		httpClient.responseBody = []string{
+			gaugeResponseBody(startTime),
+		}
+		command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
+
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
+		timeFormat := "2006-01-02T15:04:05.00-0700"
+		logFormat := "   %s GAUGE %s:%f %s %s:%f %s"
+		Expect(logger.printfMessages).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving logs for app %s in org %s / space %s as %s...",
+				"app-name",
+				cliConn.orgName,
+				cliConn.spaceName,
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(logFormat, startTime.Format(timeFormat), "some-name", 99.0, "my-unit", "some-other-name", 101.0, "my-unit"),
+		}))
+	})
+
+	It("reports successful results with timer envelopes", func() {
+		httpClient.responseBody = []string{
+			timerResponseBody(startTime),
+		}
+		command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
+
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
+		timeFormat := "2006-01-02T15:04:05.00-0700"
+		Expect(logger.printfMessages).To(ConsistOf(
+			fmt.Sprintf(
+				"Retrieving logs for app %s in org %s / space %s as %s...",
+				"app-name",
+				cliConn.orgName,
+				cliConn.spaceName,
+				cliConn.usernameResp,
+			),
+			"",
+			And(ContainSubstring(startTime.Format(timeFormat)), ContainSubstring("start"), ContainSubstring("stop")),
+		))
+	})
+
+	It("reports successful results with event envelopes", func() {
+		httpClient.responseBody = []string{
+			eventResponseBody(startTime),
+		}
+		command.LogCache(cliConn, []string{"app-name"}, httpClient, logger)
+
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
+		timeFormat := "2006-01-02T15:04:05.00-0700"
+		logFormat := "   %s EVENT %s:%s"
+		Expect(logger.printfMessages).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving logs for app %s in org %s / space %s as %s...",
+				"app-name",
+				cliConn.orgName,
+				cliConn.spaceName,
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(logFormat, startTime.Format(timeFormat), "some-title", "some-body"),
+		}))
+	})
+
 	It("accepts start-time, end-time, envelope-type and limit flags", func() {
 		args := []string{
 			"--start-time", "100",
@@ -389,6 +492,32 @@ func deprecatedTagsResponseBody(startTime time.Time) string {
 	)
 }
 
+func counterResponseBody(startTime time.Time) string {
+	return fmt.Sprintf(counterResponseTemplate,
+		startTime.UnixNano(),
+	)
+}
+
+func gaugeResponseBody(startTime time.Time) string {
+	return fmt.Sprintf(gaugeResponseTemplate,
+		startTime.UnixNano(),
+	)
+}
+
+func timerResponseBody(startTime time.Time) string {
+	return fmt.Sprintf(timerResponseTemplate,
+		startTime.UnixNano(),
+		startTime.Add(1*time.Second).UnixNano(),
+		startTime.Add(2*time.Second).UnixNano(),
+	)
+}
+
+func eventResponseBody(startTime time.Time) string {
+	return fmt.Sprintf(eventResponseTemplate,
+		startTime.UnixNano(),
+	)
+}
+
 var responseTemplate = `{
 	"envelopes": {
 		"batch": [
@@ -453,6 +582,69 @@ var deprecatedTagsResponseTemplate = `{
 					"source_type":{"text":"APP/PROC/WEB"}
 				},
 				"log":{"payload":"bG9nIGJvZHk="}
+			}
+		]
+	}
+}`
+
+var counterResponseTemplate = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp":"%d",
+				"instance_id":"0",
+				"counter":{"name":"some-name","total":99}
+			}
+		]
+	}
+}`
+
+var gaugeResponseTemplate = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp": "%d",
+				"gauge": {
+				  "metrics": {
+					"some-name": {
+					  "value": 99,
+					  "unit":"my-unit"
+					},
+					"some-other-name": {
+					  "value": 101,
+					  "unit":"my-unit"
+					}
+				  }
+				}
+			  }
+		]
+	}
+}`
+
+var timerResponseTemplate = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp": "%d",
+				"timer": {
+					"name": "http",
+					"start": "%d",
+					"stop": "%d"
+				}
+			}
+		]
+	}
+}`
+
+var eventResponseTemplate = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp": "%d",
+				"event": {
+					"title": "some-title",
+					"body": "some-body"
+				}
 			}
 		]
 	}

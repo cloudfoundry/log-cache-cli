@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -188,14 +189,48 @@ type envelopeWrapper struct {
 func (e envelopeWrapper) String() string {
 	ts := time.Unix(0, e.Timestamp)
 
-	// TODO DO NOT HARDCODE OUT
-	return fmt.Sprintf("   %s [%s/%s] %s %s",
-		ts.Format(timeFormat),
-		e.sourceType(),
-		e.InstanceId,
-		e.GetLog().GetType(),
-		e.GetLog().GetPayload(),
-	)
+	switch e.Message.(type) {
+	case *loggregator_v2.Envelope_Log:
+		return fmt.Sprintf("   %s [%s/%s] %s %s",
+			ts.Format(timeFormat),
+			e.sourceType(),
+			e.InstanceId,
+			e.GetLog().GetType(),
+			e.GetLog().GetPayload(),
+		)
+	case *loggregator_v2.Envelope_Counter:
+		return fmt.Sprintf("   %s COUNTER %s:%d",
+			ts.Format(timeFormat),
+			e.GetCounter().GetName(),
+			e.GetCounter().GetTotal(),
+		)
+	case *loggregator_v2.Envelope_Gauge:
+		var values []string
+		for k, v := range e.GetGauge().GetMetrics() {
+			values = append(values, fmt.Sprintf("%s:%f %s", k, v.Value, v.Unit))
+		}
+
+		sort.Sort(sort.StringSlice(values))
+
+		return fmt.Sprintf("   %s GAUGE %s",
+			ts.Format(timeFormat),
+			strings.Join(values, " "),
+		)
+	case *loggregator_v2.Envelope_Timer:
+		return fmt.Sprintf("   %s TIMER start=%d stop=%d",
+			ts.Format(timeFormat),
+			e.GetTimer().GetStart(),
+			e.GetTimer().GetStop(),
+		)
+	case *loggregator_v2.Envelope_Event:
+		return fmt.Sprintf("   %s EVENT %s:%s",
+			ts.Format(timeFormat),
+			e.GetEvent().GetTitle(),
+			e.GetEvent().GetBody(),
+		)
+	default:
+		return e.Envelope.String()
+	}
 }
 
 func (e envelopeWrapper) sourceType() string {
