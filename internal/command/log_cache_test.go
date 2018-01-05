@@ -94,7 +94,7 @@ var _ = Describe("LogCache", func() {
 		args := []string{
 			"--start-time", "100",
 			"--end-time", "123",
-			"--envelope-type", "log",
+			"--envelope-type", "gauge", // deliberately lowercase
 			"--limit", "99",
 			"app-name",
 		}
@@ -108,7 +108,7 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
 		Expect(requestURL.Query().Get("start_time")).To(Equal("100"))
 		Expect(requestURL.Query().Get("end_time")).To(Equal("123"))
-		Expect(requestURL.Query().Get("envelope_type")).To(Equal("LOG"))
+		Expect(requestURL.Query().Get("envelope_type")).To(Equal("GAUGE"))
 		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
 	})
 

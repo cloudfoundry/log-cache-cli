@@ -161,6 +161,8 @@ func (o options) validate() error {
 }
 
 func translateEnvelopeType(t string) logcacherpc.EnvelopeTypes {
+	t = strings.ToUpper(t)
+
 	switch t {
 	case "ANY":
 		return logcacherpc.EnvelopeTypes_ANY
