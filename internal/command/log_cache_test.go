@@ -245,6 +245,16 @@ var _ = Describe("LogCache", func() {
 		Expect(cliConn.cliCommandArgs[2]).To(Equal("--guid"))
 	})
 
+	It("places the JWT in the 'Authorization' header", func() {
+		args := []string{"some-app"}
+		cliConn.accessToken = "bearer some-token"
+		command.LogCache(cliConn, args, httpClient, logger)
+
+		Expect(httpClient.requestHeaders).To(HaveLen(1))
+		Expect(httpClient.requestHeaders[0]).To(HaveLen(1))
+		Expect(httpClient.requestHeaders[0].Get("Authorization")).To(Equal("bearer some-token"))
+	})
+
 	It("fatally logs if app name is unknown", func() {
 		args := []string{"unknown-app"}
 		cliConn.cliCommandErr = errors.New("some-error")
@@ -392,7 +402,8 @@ type stubHTTPClient struct {
 	responseCode  int
 	responseErr   error
 
-	requestURLs []string
+	requestURLs    []string
+	requestHeaders []http.Header
 }
 
 func newStubHTTPClient(payload string) *stubHTTPClient {
@@ -402,8 +413,9 @@ func newStubHTTPClient(payload string) *stubHTTPClient {
 	}
 }
 
-func (s *stubHTTPClient) Get(url string) (*http.Response, error) {
-	s.requestURLs = append(s.requestURLs, url)
+func (s *stubHTTPClient) Do(r *http.Request) (*http.Response, error) {
+	s.requestURLs = append(s.requestURLs, r.URL.String())
+	s.requestHeaders = append(s.requestHeaders, r.Header)
 
 	resp := &http.Response{
 		StatusCode: s.responseCode,
@@ -435,6 +447,9 @@ type stubCliConnection struct {
 	orgErr       error
 	spaceName    string
 	spaceErr     error
+
+	accessToken    string
+	accessTokenErr error
 }
 
 func newStubCliConnection() *stubCliConnection {
@@ -474,6 +489,10 @@ func (s *stubCliConnection) GetCurrentSpace() (plugin_models.Space, error) {
 			Name: s.spaceName,
 		},
 	}, s.spaceErr
+}
+
+func (s *stubCliConnection) AccessToken() (string, error) {
+	return s.accessToken, s.accessTokenErr
 }
 
 func responseBody(startTime time.Time) string {

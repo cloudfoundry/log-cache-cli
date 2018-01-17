@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -27,7 +28,7 @@ type Logger interface {
 
 // HTTPClient is the client used for HTTP requests
 type HTTPClient interface {
-	Get(url string) (resp *http.Response, err error)
+	Do(req *http.Request) (*http.Response, error)
 }
 
 // LogCache will fetch the logs for a given application guid and write them to
@@ -67,8 +68,13 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		log.Fatalf("%s", err)
 	}
 
+	tc := &tokenHTTPClient{
+		c:        c,
+		getToken: cli.AccessToken,
+	}
+
 	client := logcache.NewClient(strings.Replace(tokenURL, "api", "log-cache", 1),
-		logcache.WithHTTPClient(c),
+		logcache.WithHTTPClient(tc),
 	)
 
 	log.Printf(
@@ -81,6 +87,7 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 	log.Printf("")
 
 	logcache.Walk(
+		context.Background(),
 		o.guid,
 		func(b []*loggregator_v2.Envelope) bool {
 			for _, e := range b {
@@ -273,4 +280,19 @@ func newBackoff(log Logger) backoff {
 func (b backoff) OnErr(err error) bool {
 	b.logger.Fatalf("%s", err)
 	return b.AlwaysDoneBackoff.OnErr(err)
+}
+
+type tokenHTTPClient struct {
+	c        HTTPClient
+	getToken func() (string, error)
+}
+
+func (c *tokenHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	token, err := c.getToken()
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", token)
+
+	return c.c.Do(req)
 }
