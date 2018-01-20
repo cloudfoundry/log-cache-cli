@@ -127,6 +127,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	envelopeType := f.String("envelope-type", "", "")
 	limit := f.Uint64("limit", 0, "")
 	recent := f.Bool("recent", false, "")
+	rawGuid := f.Bool("raw-guid", false, "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -137,12 +138,17 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		return options{}, fmt.Errorf("Expected 1 argument, got %d.", len(f.Args()))
 	}
 
+	guid := f.Args()[0]
+	if !*rawGuid {
+		guid = getAppGuid(f.Args()[0], cli, log)
+	}
+
 	o := options{
 		startTime:    time.Unix(0, *start),
 		endTime:      time.Unix(0, *end),
 		envelopeType: translateEnvelopeType(*envelopeType),
 		limit:        *limit,
-		guid:         getAppGuid(f.Args()[0], cli, log),
+		guid:         guid,
 		appName:      f.Args()[0],
 	}
 

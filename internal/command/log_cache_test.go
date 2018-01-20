@@ -245,6 +245,13 @@ var _ = Describe("LogCache", func() {
 		Expect(cliConn.cliCommandArgs[2]).To(Equal("--guid"))
 	})
 
+	It("does not request app guid when given --raw-guid flag", func() {
+		args := []string{"some-app", "--raw-guid"}
+		command.LogCache(cliConn, args, httpClient, logger)
+
+		Expect(cliConn.cliCommandArgs).To(HaveLen(0))
+	})
+
 	It("places the JWT in the 'Authorization' header", func() {
 		args := []string{"some-app"}
 		cliConn.accessToken = "bearer some-token"
