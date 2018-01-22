@@ -44,13 +44,14 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 			{
 				Name: "log-cache",
 				UsageDetails: plugin.Usage{
-					Usage: "log-cache [options] <app-guid>",
+					Usage: "log-cache [options] <app>",
 					Options: map[string]string{
 						"start-time":    "Start of query range in UNIX nanoseconds.",
 						"end-time":      "End of query range in UNIX nanoseconds.",
 						"envelope-type": "Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.",
 						"limit":         "Limit the number of envelopes to return. Defaults to 100. Max value is 1000.",
 						"recent":        "Show all logs in cache for the app. If given, all other flags are ignored.",
+						"raw-guid":      "Do not convert app name into a guid.",
 					},
 				},
 			},
