@@ -213,25 +213,6 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Query().Get("envelope_type")).To(Equal("GAUGE"))
 	})
 
-	It("accepts a recent flag", func() {
-		args := []string{
-			"--recent",
-			"app-name",
-		}
-		command.LogCache(cliConn, args, httpClient, logger)
-
-		Expect(httpClient.requestURLs).To(HaveLen(1))
-		requestURL, err := url.Parse(httpClient.requestURLs[0])
-		Expect(err).ToNot(HaveOccurred())
-		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
-		Expect(requestURL.Query().Get("start_time")).To(Equal("0"))
-		Expect(requestURL.Query().Get("envelope_type")).To(Equal("LOG"))
-
-		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
-	})
-
 	It("requests the app guid", func() {
 		args := []string{"some-app"}
 		command.LogCache(cliConn, args, httpClient, logger)

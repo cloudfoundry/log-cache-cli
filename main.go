@@ -49,7 +49,6 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 						"start-time":    "Start of query range in UNIX nanoseconds.",
 						"end-time":      "End of query range in UNIX nanoseconds.",
 						"envelope-type": "Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.",
-						"recent":        "Show all logs in cache for the app. If given, all other flags are ignored.",
 					},
 				},
 			},

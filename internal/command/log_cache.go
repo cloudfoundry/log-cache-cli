@@ -123,7 +123,6 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	start := f.Int64("start-time", 0, "")
 	end := f.Int64("end-time", time.Now().UnixNano(), "")
 	envelopeType := f.String("envelope-type", "", "")
-	recent := f.Bool("recent", false, "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -140,12 +139,6 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		envelopeType: translateEnvelopeType(*envelopeType),
 		guid:         getAppGuid(f.Args()[0], cli, log),
 		appName:      f.Args()[0],
-	}
-
-	if *recent {
-		o.startTime = time.Unix(0, 0)
-		o.endTime = time.Now()
-		o.envelopeType = logcacherpc.EnvelopeTypes_LOG
 	}
 
 	return o, o.validate()
