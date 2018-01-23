@@ -86,27 +86,21 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 	)
 	log.Printf("")
 
-	logcache.Walk(
+	envelopes, err := client.Read(
 		context.Background(),
 		o.guid,
-		func(b []*loggregator_v2.Envelope) bool {
-			for _, e := range b {
-				log.Printf("%s", envelopeWrapper{e})
-			}
-
-			lastEnv := b[len(b)-1]
-			if lastEnv.Timestamp >= o.endTime.UnixNano() {
-				return false
-			}
-
-			return true
-		},
-		client.Read,
-		logcache.WithWalkStartTime(o.startTime),
-		logcache.WithWalkEndTime(o.endTime),
-		logcache.WithWalkEnvelopeType(o.envelopeType),
-		logcache.WithWalkBackoff(newBackoff(log)),
+		o.startTime,
+		logcache.WithEndTime(o.endTime),
+		logcache.WithEnvelopeType(o.envelopeType),
 	)
+
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	for _, e := range envelopes {
+		log.Printf("%s", envelopeWrapper{e})
+	}
 }
 
 type options struct {
