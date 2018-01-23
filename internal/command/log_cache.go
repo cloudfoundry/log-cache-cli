@@ -92,14 +92,16 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		o.startTime,
 		logcache.WithEndTime(o.endTime),
 		logcache.WithEnvelopeType(o.envelopeType),
+		logcache.WithDescending(),
 	)
 
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
 
-	for _, e := range envelopes {
-		log.Printf("%s", envelopeWrapper{e})
+	// we get envelopes in descending order but want to print them ascending
+	for i := len(envelopes) - 1; i >= 0; i-- {
+		log.Printf("%s", envelopeWrapper{envelopes[i]})
 	}
 }
 

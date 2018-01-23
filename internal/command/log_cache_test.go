@@ -56,9 +56,9 @@ var _ = Describe("LogCache", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			fmt.Sprintf(logFormat, startTime.Format(timeFormat), "OUT"),
+			fmt.Sprintf(logFormat, startTime.Format(timeFormat), "ERR"),
 			fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
-			fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "ERR"),
+			fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "OUT"),
 		}))
 	})
 
@@ -211,6 +211,7 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Query().Get("start_time")).To(Equal("100"))
 		Expect(requestURL.Query().Get("end_time")).To(Equal("123"))
 		Expect(requestURL.Query().Get("envelope_type")).To(Equal("GAUGE"))
+		Expect(requestURL.Query().Get("descending")).To(Equal("true"))
 	})
 
 	It("requests the app guid", func() {
@@ -465,18 +466,20 @@ func (s *stubCliConnection) AccessToken() (string, error) {
 }
 
 func responseBody(startTime time.Time) string {
+	// NOTE: These are in descending order.
 	return fmt.Sprintf(responseTemplate,
-		startTime.UnixNano(),
-		startTime.Add(1*time.Second).UnixNano(),
 		startTime.Add(2*time.Second).UnixNano(),
+		startTime.Add(1*time.Second).UnixNano(),
+		startTime.UnixNano(),
 	)
 }
 
 func deprecatedTagsResponseBody(startTime time.Time) string {
+	// NOTE: These are in descending order.
 	return fmt.Sprintf(deprecatedTagsResponseTemplate,
-		startTime.UnixNano(),
-		startTime.Add(1*time.Second).UnixNano(),
 		startTime.Add(2*time.Second).UnixNano(),
+		startTime.Add(1*time.Second).UnixNano(),
+		startTime.UnixNano(),
 	)
 }
 
