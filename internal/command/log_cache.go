@@ -92,6 +92,7 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		o.startTime,
 		logcache.WithEndTime(o.endTime),
 		logcache.WithEnvelopeType(o.envelopeType),
+		logcache.WithLimit(o.limit),
 		logcache.WithDescending(),
 	)
 
@@ -109,6 +110,7 @@ type options struct {
 	startTime    time.Time
 	endTime      time.Time
 	envelopeType logcacherpc.EnvelopeTypes
+	limit        int
 
 	guid    string
 	appName string
@@ -119,6 +121,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	start := f.Int64("start-time", 0, "")
 	end := f.Int64("end-time", time.Now().UnixNano(), "")
 	envelopeType := f.String("envelope-type", "", "")
+	lines := f.Uint("lines", 10, "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -133,6 +136,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		startTime:    time.Unix(0, *start),
 		endTime:      time.Unix(0, *end),
 		envelopeType: translateEnvelopeType(*envelopeType),
+		limit:        int(*lines),
 		guid:         getAppGuid(f.Args()[0], cli, log),
 		appName:      f.Args()[0],
 	}
@@ -143,6 +147,10 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 func (o options) validate() error {
 	if o.startTime.After(o.endTime) && o.endTime != time.Unix(0, 0) {
 		return errors.New("Invalid date/time range. Ensure your start time is prior or equal the end time.")
+	}
+
+	if o.limit > 1000 || o.limit < 1 {
+		return errors.New("Lines must be 1 to 1000.")
 	}
 
 	return nil

@@ -193,11 +193,12 @@ var _ = Describe("LogCache", func() {
 		}))
 	})
 
-	It("accepts start-time, end-time and envelope-type flags", func() {
+	It("accepts start-time, end-time, envelope-type, and lines flags", func() {
 		args := []string{
 			"--start-time", "100",
 			"--end-time", "123",
 			"--envelope-type", "gauge", // deliberately lowercase
+			"--lines", "99",
 			"app-name",
 		}
 		command.LogCache(cliConn, args, httpClient, logger)
@@ -212,6 +213,19 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Query().Get("end_time")).To(Equal("123"))
 		Expect(requestURL.Query().Get("envelope_type")).To(Equal("GAUGE"))
 		Expect(requestURL.Query().Get("descending")).To(Equal("true"))
+		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
+	})
+
+	It("defaults lines flag to 10", func() {
+		args := []string{
+			"app-name",
+		}
+		command.LogCache(cliConn, args, httpClient, logger)
+
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		Expect(requestURL.Query().Get("limit")).To(Equal("10"))
 	})
 
 	It("requests the app guid", func() {
@@ -232,6 +246,28 @@ var _ = Describe("LogCache", func() {
 		Expect(httpClient.requestHeaders).To(HaveLen(1))
 		Expect(httpClient.requestHeaders[0]).To(HaveLen(1))
 		Expect(httpClient.requestHeaders[0].Get("Authorization")).To(Equal("bearer some-token"))
+	})
+
+	It("fatally logs if lines is greater than 1000 or less than 1", func() {
+		args := []string{
+			"--lines", "1001",
+			"some-app",
+		}
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("Lines must be 1 to 1000."))
+
+		args = []string{
+			"--lines", "0",
+			"some-app",
+		}
+		Expect(func() {
+			command.LogCache(cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("Lines must be 1 to 1000."))
 	})
 
 	It("fatally logs if app name is unknown", func() {
