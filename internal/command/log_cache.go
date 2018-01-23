@@ -104,7 +104,6 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 		client.Read,
 		logcache.WithWalkStartTime(o.startTime),
 		logcache.WithWalkEndTime(o.endTime),
-		logcache.WithWalkLimit(int(o.limit)),
 		logcache.WithWalkEnvelopeType(o.envelopeType),
 		logcache.WithWalkBackoff(newBackoff(log)),
 	)
@@ -114,7 +113,6 @@ type options struct {
 	startTime    time.Time
 	endTime      time.Time
 	envelopeType logcacherpc.EnvelopeTypes
-	limit        uint64
 
 	guid    string
 	appName string
@@ -125,7 +123,6 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	start := f.Int64("start-time", 0, "")
 	end := f.Int64("end-time", time.Now().UnixNano(), "")
 	envelopeType := f.String("envelope-type", "", "")
-	limit := f.Uint64("limit", 0, "")
 	recent := f.Bool("recent", false, "")
 
 	err := f.Parse(args)
@@ -141,7 +138,6 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		startTime:    time.Unix(0, *start),
 		endTime:      time.Unix(0, *end),
 		envelopeType: translateEnvelopeType(*envelopeType),
-		limit:        *limit,
 		guid:         getAppGuid(f.Args()[0], cli, log),
 		appName:      f.Args()[0],
 	}
@@ -150,7 +146,6 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		o.startTime = time.Unix(0, 0)
 		o.endTime = time.Now()
 		o.envelopeType = logcacherpc.EnvelopeTypes_LOG
-		o.limit = 100
 	}
 
 	return o, o.validate()
@@ -159,10 +154,6 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 func (o options) validate() error {
 	if o.startTime.After(o.endTime) && o.endTime != time.Unix(0, 0) {
 		return errors.New("Invalid date/time range. Ensure your start time is prior or equal the end time.")
-	}
-
-	if o.limit > 1000 {
-		return errors.New("Invalid limit value. It must be 1000 or less.")
 	}
 
 	return nil

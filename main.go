@@ -14,7 +14,7 @@ type LogCacheCLI struct{}
 
 func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 	if len(args) == 0 {
-		log.Fatalf("Expected atleast 1 argument, but got 0.")
+		log.Fatalf("Expected at least 1 argument, but got 0.")
 	}
 
 	skipSSL, err := conn.IsSSLDisabled()
@@ -49,7 +49,6 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 						"start-time":    "Start of query range in UNIX nanoseconds.",
 						"end-time":      "End of query range in UNIX nanoseconds.",
 						"envelope-type": "Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.",
-						"limit":         "Limit the number of envelopes to return. Defaults to 100. Max value is 1000.",
 						"recent":        "Show all logs in cache for the app. If given, all other flags are ignored.",
 					},
 				},

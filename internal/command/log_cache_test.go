@@ -193,12 +193,11 @@ var _ = Describe("LogCache", func() {
 		}))
 	})
 
-	It("accepts start-time, end-time, envelope-type and limit flags", func() {
+	It("accepts start-time, end-time and envelope-type flags", func() {
 		args := []string{
 			"--start-time", "100",
 			"--end-time", "123",
 			"--envelope-type", "gauge", // deliberately lowercase
-			"--limit", "99",
 			"app-name",
 		}
 		command.LogCache(cliConn, args, httpClient, logger)
@@ -212,7 +211,6 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Query().Get("start_time")).To(Equal("100"))
 		Expect(requestURL.Query().Get("end_time")).To(Equal("123"))
 		Expect(requestURL.Query().Get("envelope_type")).To(Equal("GAUGE"))
-		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
 	})
 
 	It("accepts a recent flag", func() {
@@ -228,7 +226,6 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
 		Expect(requestURL.Query().Get("start_time")).To(Equal("0"))
 		Expect(requestURL.Query().Get("envelope_type")).To(Equal("LOG"))
-		Expect(requestURL.Query().Get("limit")).To(Equal("100"))
 
 		end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 		Expect(err).ToNot(HaveOccurred())
@@ -305,15 +302,6 @@ var _ = Describe("LogCache", func() {
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
-	})
-
-	It("fatally logs if the limit is greater than 1000", func() {
-		args := []string{"--limit", "1001", "app-name"}
-		Expect(func() {
-			command.LogCache(cliConn, args, httpClient, logger)
-		}).To(Panic())
-
-		Expect(logger.fatalfMessage).To(Equal("Invalid limit value. It must be 1000 or less."))
 	})
 
 	It("allows for empty end time with populated start time", func() {

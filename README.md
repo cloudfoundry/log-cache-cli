@@ -25,7 +25,6 @@ OPTIONS:
    -start-time       Start of query range in UNIX nanoseconds.
    -end-time         End of query range in UNIX nanoseconds.
    -envelope-type    Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
-   -limit            Limit the number of envelopes to return. Defaults to 100. Max value is 1000.
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release
