@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"log"
 	"net/http"
@@ -28,6 +29,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 	switch args[0] {
 	case "log-cache":
 		command.LogCache(
+			context.Background(),
 			conn,
 			args[1:],
 			http.DefaultClient,
@@ -50,6 +52,7 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 						"end-time":      "End of query range in UNIX nanoseconds.",
 						"envelope-type": "Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.",
 						"lines":         "Number of envelopes to return. Default is 10.",
+						"follow":        "Output appended to stdout as logs are egressed.",
 					},
 				},
 			},

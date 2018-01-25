@@ -33,7 +33,7 @@ type HTTPClient interface {
 
 // LogCache will fetch the logs for a given application guid and write them to
 // stdout.
-func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger) {
+func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger) {
 	hasAPI, err := cli.HasAPIEndpoint()
 	if err != nil {
 		log.Fatalf("%s", err)
@@ -86,13 +86,33 @@ func LogCache(cli plugin.CliConnection, args []string, c HTTPClient, log Logger)
 	)
 	log.Printf("")
 
+	if o.follow {
+		logcache.Walk(
+			ctx,
+			o.guid,
+			logcache.Visitor(func(envelopes []*loggregator_v2.Envelope) bool {
+				for _, e := range envelopes {
+					log.Printf("%s", envelopeWrapper{e})
+				}
+				return true
+			}),
+			client.Read,
+			logcache.WithWalkStartTime(time.Now()),
+			logcache.WithWalkEnvelopeType(o.envelopeType),
+			logcache.WithWalkBackoff(logcache.NewAlwaysRetryBackoff(250*time.Millisecond)),
+		)
+
+		return
+	}
+
+	// Lines mode
 	envelopes, err := client.Read(
 		context.Background(),
 		o.guid,
 		o.startTime,
 		logcache.WithEndTime(o.endTime),
 		logcache.WithEnvelopeType(o.envelopeType),
-		logcache.WithLimit(o.limit),
+		logcache.WithLimit(o.lines),
 		logcache.WithDescending(),
 	)
 
@@ -110,7 +130,8 @@ type options struct {
 	startTime    time.Time
 	endTime      time.Time
 	envelopeType logcacherpc.EnvelopeTypes
-	limit        int
+	lines        int
+	follow       bool
 
 	guid    string
 	appName string
@@ -122,6 +143,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	end := f.Int64("end-time", time.Now().UnixNano(), "")
 	envelopeType := f.String("envelope-type", "", "")
 	lines := f.Uint("lines", 10, "")
+	follow := f.Bool("follow", false, "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -136,9 +158,10 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		startTime:    time.Unix(0, *start),
 		endTime:      time.Unix(0, *end),
 		envelopeType: translateEnvelopeType(*envelopeType),
-		limit:        int(*lines),
+		lines:        int(*lines),
 		guid:         getAppGuid(f.Args()[0], cli, log),
 		appName:      f.Args()[0],
+		follow:       *follow,
 	}
 
 	return o, o.validate()
@@ -149,7 +172,7 @@ func (o options) validate() error {
 		return errors.New("Invalid date/time range. Ensure your start time is prior or equal the end time.")
 	}
 
-	if o.limit > 1000 || o.limit < 1 {
+	if o.lines > 1000 || o.lines < 1 {
 		return errors.New("Lines must be 1 to 1000.")
 	}
 
