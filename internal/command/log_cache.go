@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
@@ -122,6 +124,19 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 
 	// we get envelopes in descending order but want to print them ascending
 	for i := len(envelopes) - 1; i >= 0; i-- {
+		if o.outputTemplate != nil {
+			b := bytes.Buffer{}
+			if err := o.outputTemplate.Execute(&b, envelopes[i]); err != nil {
+				log.Fatalf("Output template parsed, but failed to execute: %s", err)
+			}
+
+			if b.Len() == 0 {
+				continue
+			}
+
+			log.Printf("%s", b.String())
+			continue
+		}
 		log.Printf("%s", envelopeWrapper{envelopes[i]})
 	}
 }
@@ -133,8 +148,9 @@ type options struct {
 	lines        int
 	follow       bool
 
-	guid    string
-	appName string
+	guid           string
+	appName        string
+	outputTemplate *template.Template
 }
 
 func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, error) {
@@ -144,6 +160,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	envelopeType := f.String("envelope-type", "", "")
 	lines := f.Uint("lines", 10, "")
 	follow := f.Bool("follow", false, "")
+	outputFormat := f.String("output-format", "", "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -154,14 +171,23 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		return options{}, fmt.Errorf("Expected 1 argument, got %d.", len(f.Args()))
 	}
 
+	var outputTemplate *template.Template
+	if *outputFormat != "" {
+		outputTemplate, err = parseOutputFormat(*outputFormat)
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+	}
+
 	o := options{
-		startTime:    time.Unix(0, *start),
-		endTime:      time.Unix(0, *end),
-		envelopeType: translateEnvelopeType(*envelopeType),
-		lines:        int(*lines),
-		guid:         getAppGuid(f.Args()[0], cli, log),
-		appName:      f.Args()[0],
-		follow:       *follow,
+		startTime:      time.Unix(0, *start),
+		endTime:        time.Unix(0, *end),
+		envelopeType:   translateEnvelopeType(*envelopeType),
+		lines:          int(*lines),
+		guid:           getAppGuid(f.Args()[0], cli, log),
+		appName:        f.Args()[0],
+		follow:         *follow,
+		outputTemplate: outputTemplate,
 	}
 
 	return o, o.validate()
@@ -177,6 +203,15 @@ func (o options) validate() error {
 	}
 
 	return nil
+}
+
+func parseOutputFormat(f string) (*template.Template, error) {
+	templ := template.New("OutputFormat")
+	_, err := templ.Parse(f)
+	if err != nil {
+		return nil, err
+	}
+	return templ, nil
 }
 
 func translateEnvelopeType(t string) logcacherpc.EnvelopeTypes {

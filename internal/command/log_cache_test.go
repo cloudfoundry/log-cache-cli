@@ -308,6 +308,41 @@ var _ = Describe("LogCache", func() {
 		Expect(httpClient.requestHeaders[0].Get("Authorization")).To(Equal("bearer some-token"))
 	})
 
+	It("formats the output via text/template", func() {
+		httpClient.responseBody = []string{responseBody(time.Unix(0, 1))}
+		args := []string{
+			"--output-format", `{{.Timestamp}} {{printf "%s" .GetLog.GetPayload}}`,
+			"app-guid",
+		}
+
+		command.LogCache(context.Background(), cliConn, args, httpClient, logger)
+
+		Expect(logger.printfMessages).To(ContainElement("1 log body"))
+	})
+
+	It("errors if an output-format is malformed", func() {
+		args := []string{"--output-format", "{{INVALID}}", "app-guid"}
+		Expect(func() {
+			command.LogCache(context.Background(), cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal(`template: OutputFormat:1: function "INVALID" not defined`))
+	})
+
+	It("errors if an output-format won't execute", func() {
+		httpClient.responseBody = []string{`{"envelopes":{"batch":[{"source_id": "a", "timestamp": 1},{"source_id":"b", "timestamp":2}]}}`}
+		args := []string{
+			"--output-format", "{{.invalid 9}}",
+			"app-guid",
+		}
+
+		Expect(func() {
+			command.LogCache(context.Background(), cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal(`Output template parsed, but failed to execute: template: OutputFormat:1:2: executing "OutputFormat" at <.invalid>: can't evaluate field invalid in type *loggregator_v2.Envelope`))
+	})
+
 	It("fatally logs if lines is greater than 1000 or less than 1", func() {
 		args := []string{
 			"--lines", "1001",
