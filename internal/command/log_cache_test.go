@@ -33,7 +33,10 @@ var _ = Describe("LogCache", func() {
 		startTime = time.Now().Truncate(time.Second).Add(time.Minute)
 		timeFormat = "2006-01-02T15:04:05.00-0700"
 		logger = &stubLogger{}
-		httpClient = newStubHTTPClient(responseBody(startTime))
+
+		httpClient = newStubHTTPClient()
+		httpClient.responseBody = []string{responseBody(startTime)}
+
 		cliConn = newStubCliConnection()
 		cliConn.cliCommandResult = []string{"app-guid"}
 		cliConn.usernameResp = "a-user"
@@ -541,10 +544,10 @@ type stubHTTPClient struct {
 	requestHeaders []http.Header
 }
 
-func newStubHTTPClient(payload string) *stubHTTPClient {
+func newStubHTTPClient() *stubHTTPClient {
 	return &stubHTTPClient{
 		responseCode: http.StatusOK,
-		responseBody: []string{payload},
+		responseBody: []string{},
 	}
 }
 
