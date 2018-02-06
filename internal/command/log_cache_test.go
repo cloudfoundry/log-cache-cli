@@ -168,6 +168,24 @@ var _ = Describe("LogCache", func() {
 		))
 	})
 
+	It("writes out json", func() {
+		httpClient.responseBody = []string{
+			mixedResponseBody(startTime),
+		}
+
+		ctx, _ := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		args := []string{"--envelope-type", "any", "--json", "app-name"}
+		command.LogCache(ctx, cliConn, args, httpClient, logger)
+
+		Expect(logger.printfMessages).To(ConsistOf(
+			fmt.Sprintf(`{"timestamp":"%d","event":{"title":"some-title","body":"some-body"}}`, startTime.UnixNano()),
+			fmt.Sprintf(`{"timestamp":"%d","timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}}`, startTime.UnixNano()),
+			fmt.Sprintf(`{"timestamp":"%d","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
+			fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
+			fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"bG9nIGJvZHk="}}`, startTime.UnixNano()),
+		))
+	})
+
 	It("reports successful results when following", func() {
 		httpClient.responseBody = []string{
 			responseBodyAsc(startTime),
@@ -318,6 +336,21 @@ var _ = Describe("LogCache", func() {
 		command.LogCache(context.Background(), cliConn, args, httpClient, logger)
 
 		Expect(logger.printfMessages).To(ContainElement("1 log body"))
+	})
+
+	It("errors if output-format and json flags are given", func() {
+		httpClient.responseBody = []string{responseBody(time.Unix(0, 1))}
+		args := []string{
+			"--output-format", `{{.Timestamp}} {{printf "%s" .GetLog.GetPayload}}`,
+			"--json",
+			"app-guid",
+		}
+
+		Expect(func() {
+			command.LogCache(context.Background(), cliConn, args, httpClient, logger)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("Cannot use output-format and json flags together"))
 	})
 
 	It("errors if an output-format is malformed", func() {
@@ -665,6 +698,12 @@ func eventResponseBody(startTime time.Time) string {
 	)
 }
 
+func mixedResponseBody(startTime time.Time) string {
+	return fmt.Sprintf(mixedResponseTemplate,
+		startTime.UnixNano(),
+	)
+}
+
 var responseTemplate = `{
 	"envelopes": {
 		"batch": [
@@ -822,6 +861,54 @@ var invalidPayloadResponse = `{
 					"source_type":{"text":"APP/PROC/WEB"}
 				},
 				"log":{"payload":"~*&#"}
+			}
+		]
+	}
+}`
+
+var mixedResponseTemplate = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp":"%[1]d",
+				"instance_id":"0",
+				"tags":{
+					"source_type":"APP/PROC/WEB"
+				},
+				"log":{
+					"payload":"bG9nIGJvZHk="
+				}
+			},
+			{
+				"timestamp":"%[1]d",
+				"instance_id":"0",
+				"counter":{"name":"some-name","total":99}
+			},
+			{
+				"timestamp":"%[1]d",
+				"gauge": {
+					"metrics": {
+						"some-name": {
+							"value": 99,
+							"unit":"my-unit"
+						}
+					}
+				}
+			},
+			{
+				"timestamp":"%[1]d",
+				"timer": {
+					"name": "http",
+					"start": "1517940773000000000",
+					"stop": "1517940773000000000"
+				}
+			},
+			{
+				"timestamp":"%[1]d",
+				"event": {
+					"title": "some-title",
+					"body": "some-body"
+				}
 			}
 		]
 	}

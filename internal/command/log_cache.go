@@ -1,13 +1,11 @@
 package command
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"net/http"
-	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -79,14 +77,13 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 		logcache.WithHTTPClient(tc),
 	)
 
-	log.Printf(
-		"Retrieving logs for app %s in org %s / space %s as %s...",
-		o.appName,
-		org.Name,
-		space.Name,
-		user,
-	)
-	log.Printf("")
+	formatter := NewFormatter(formatterKind(o), log, o.outputTemplate)
+
+	header, ok := formatter.Header(o.appName, org.Name, space.Name, user)
+	if ok {
+		log.Printf(header)
+		log.Printf("")
+	}
 
 	if o.follow {
 		logcache.Walk(
@@ -94,7 +91,9 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 			o.guid,
 			logcache.Visitor(func(envelopes []*loggregator_v2.Envelope) bool {
 				for _, e := range envelopes {
-					log.Printf("%s", envelopeWrapper{e})
+					if output, ok := formatter.FormatEnvelope(e); ok {
+						log.Printf(output)
+					}
 				}
 				return true
 			}),
@@ -124,20 +123,9 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 
 	// we get envelopes in descending order but want to print them ascending
 	for i := len(envelopes) - 1; i >= 0; i-- {
-		if o.outputTemplate != nil {
-			b := bytes.Buffer{}
-			if err := o.outputTemplate.Execute(&b, envelopes[i]); err != nil {
-				log.Fatalf("Output template parsed, but failed to execute: %s", err)
-			}
-
-			if b.Len() == 0 {
-				continue
-			}
-
-			log.Printf("%s", b.String())
-			continue
+		if output, ok := formatter.FormatEnvelope(envelopes[i]); ok {
+			log.Printf(output)
 		}
-		log.Printf("%s", envelopeWrapper{envelopes[i]})
 	}
 }
 
@@ -151,6 +139,7 @@ type options struct {
 	guid           string
 	appName        string
 	outputTemplate *template.Template
+	jsonOutput     bool
 }
 
 func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, error) {
@@ -161,6 +150,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	lines := f.Uint("lines", 10, "")
 	follow := f.Bool("follow", false, "")
 	outputFormat := f.String("output-format", "", "")
+	jsonOutput := f.Bool("json", false, "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -169,6 +159,10 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 
 	if len(f.Args()) != 1 {
 		return options{}, fmt.Errorf("Expected 1 argument, got %d.", len(f.Args()))
+	}
+
+	if *jsonOutput && *outputFormat != "" {
+		return options{}, errors.New("Cannot use output-format and json flags together")
 	}
 
 	var outputTemplate *template.Template
@@ -188,9 +182,22 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		appName:        f.Args()[0],
 		follow:         *follow,
 		outputTemplate: outputTemplate,
+		jsonOutput:     *jsonOutput,
 	}
 
 	return o, o.validate()
+}
+
+func formatterKind(o options) FormatterKind {
+	if o.jsonOutput {
+		return JSONFormat
+	}
+
+	if o.outputTemplate != nil {
+		return TemplateFormat
+	}
+
+	return PrettyFormat
 }
 
 func (o options) validate() error {
@@ -233,71 +240,6 @@ func translateEnvelopeType(t string) logcacherpc.EnvelopeTypes {
 	default:
 		return logcacherpc.EnvelopeTypes_LOG
 	}
-}
-
-type envelopeWrapper struct {
-	*loggregator_v2.Envelope
-}
-
-func (e envelopeWrapper) String() string {
-	ts := time.Unix(0, e.Timestamp)
-
-	switch e.Message.(type) {
-	case *loggregator_v2.Envelope_Log:
-		return fmt.Sprintf("   %s [%s/%s] %s %s",
-			ts.Format(timeFormat),
-			e.sourceType(),
-			e.InstanceId,
-			e.GetLog().GetType(),
-			e.GetLog().GetPayload(),
-		)
-	case *loggregator_v2.Envelope_Counter:
-		return fmt.Sprintf("   %s COUNTER %s:%d",
-			ts.Format(timeFormat),
-			e.GetCounter().GetName(),
-			e.GetCounter().GetTotal(),
-		)
-	case *loggregator_v2.Envelope_Gauge:
-		var values []string
-		for k, v := range e.GetGauge().GetMetrics() {
-			values = append(values, fmt.Sprintf("%s:%f %s", k, v.Value, v.Unit))
-		}
-
-		sort.Sort(sort.StringSlice(values))
-
-		return fmt.Sprintf("   %s GAUGE %s",
-			ts.Format(timeFormat),
-			strings.Join(values, " "),
-		)
-	case *loggregator_v2.Envelope_Timer:
-		return fmt.Sprintf("   %s TIMER start=%d stop=%d",
-			ts.Format(timeFormat),
-			e.GetTimer().GetStart(),
-			e.GetTimer().GetStop(),
-		)
-	case *loggregator_v2.Envelope_Event:
-		return fmt.Sprintf("   %s EVENT %s:%s",
-			ts.Format(timeFormat),
-			e.GetEvent().GetTitle(),
-			e.GetEvent().GetBody(),
-		)
-	default:
-		return e.Envelope.String()
-	}
-}
-
-func (e envelopeWrapper) sourceType() string {
-	st, ok := e.Tags["source_type"]
-	if !ok {
-		t, ok := e.DeprecatedTags["source_type"]
-		if !ok {
-			return "unknown"
-		}
-
-		return t.GetText()
-	}
-
-	return st
 }
 
 func getAppGuid(appName string, cli plugin.CliConnection, log Logger) string {
