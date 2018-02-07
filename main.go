@@ -36,6 +36,15 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 			log.New(os.Stdout, "", 0),
 		)
 		return
+	case "log-cache-meta":
+		command.Meta(
+			context.Background(),
+			conn,
+			http.DefaultClient,
+			log.New(os.Stderr, "", 0),
+			os.Stdout,
+		)
+		return
 	}
 }
 
@@ -55,6 +64,13 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 						"follow":        "Output appended to stdout as logs are egressed.",
 						"json":          "Output envelopes in JSON format.",
 					},
+				},
+			},
+
+			{
+				Name: "log-cache-meta",
+				UsageDetails: plugin.Usage{
+					Usage: "log-cache-meta",
 				},
 			},
 		},

@@ -13,6 +13,8 @@ cf install-plugin $GOPATH/bin/log-cache-cli
 
 ### Usage
 
+##### `log-cache`
+
 ```
 $ cf log-cache guid --help
 NAME:
@@ -28,6 +30,17 @@ OPTIONS:
    -lines            Number of envelopes to return. Default is 10.
    -follow           Output appended to stdout as logs are egressed.
    -json             Output envelopes in JSON format.
+```
+
+##### `log-cache-meta`
+
+```
+$ cf log-cache-meta --help
+NAME:
+   log-cache-meta -
+
+USAGE:
+   log-cache-meta
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release

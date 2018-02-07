@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 	"text/tabwriter"
 
@@ -26,7 +25,7 @@ type appsResponse struct {
 func Meta(ctx context.Context, cli plugin.CliConnection, c HTTPClient, log Logger, tableWriter io.Writer) {
 	logCacheEndpoint, err := logCacheEndpoint(cli)
 	if err != nil {
-		log.Fatalf("Couldn't determine LogCache endpoint: %s", err)
+		log.Fatalf("Could not determine Log Cache endpoint: %s", err)
 	}
 
 	tc := &tokenHTTPClient{
@@ -40,34 +39,28 @@ func Meta(ctx context.Context, cli plugin.CliConnection, c HTTPClient, log Logge
 	)
 
 	meta, err := client.Meta(ctx)
-	_ = err
-
-	apiEndpoint, err := cli.ApiEndpoint()
-	_ = err
-
-	capiRequest, err := http.NewRequest(
-		http.MethodGet,
-		apiEndpoint+"/v3/apps?guids="+sourceIDsFromMeta(meta),
-		nil,
-	)
 	if err != nil {
-		log.Fatalf("Couldn't build HTTP request: %s", err)
+		log.Fatalf("Failed to read Meta information: %s", err)
 	}
 
-	resp, err := c.Do(capiRequest)
+	meta = truncate(50, meta)
+	lines, err := cli.CliCommandWithoutTerminalOutput(
+		"curl",
+		"/v3/apps?guids="+sourceIDsFromMeta(meta),
+	)
 	if err != nil {
-		log.Fatalf("Couldn't perform HTTP request: %s", err)
+		log.Fatalf("Failed to make CAPI request: %s", err)
 	}
 
 	var resources appsResponse
-	err = json.NewDecoder(resp.Body).Decode(&resources)
+	err = json.NewDecoder(strings.NewReader(strings.Join(lines, ""))).Decode(&resources)
 	if err != nil {
-		log.Fatalf("Couldn't decode CAPI response: %s", err)
+		log.Fatalf("Could not decode CAPI response: %s", err)
 	}
 
 	username, err := cli.Username()
 	if err != nil {
-		log.Fatalf("Couldn't get username: %s", err)
+		log.Fatalf("Could not get username: %s", err)
 	}
 
 	fmt.Fprintf(tableWriter, fmt.Sprintf(
@@ -88,6 +81,17 @@ func Meta(ctx context.Context, cli plugin.CliConnection, c HTTPClient, log Logge
 	}
 
 	tw.Flush()
+}
+
+func truncate(count int, entries map[string]*logcache.MetaInfo) map[string]*logcache.MetaInfo {
+	truncated := make(map[string]*logcache.MetaInfo)
+	for k, v := range entries {
+		if len(truncated) >= count {
+			break
+		}
+		truncated[k] = v
+	}
+	return truncated
 }
 
 func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
