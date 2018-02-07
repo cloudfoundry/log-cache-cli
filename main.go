@@ -53,7 +53,7 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 						"envelope-type": "Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.",
 						"lines":         "Number of envelopes to return. Default is 10.",
 						"follow":        "Output appended to stdout as logs are egressed.",
-						"json":          "Output envelopes in JSON format",
+						"json":          "Output envelopes in JSON format.",
 					},
 				},
 			},
