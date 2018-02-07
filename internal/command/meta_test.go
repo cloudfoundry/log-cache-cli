@@ -107,7 +107,7 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo(guids...),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = []string{capiResponse(map[string]string{})}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, httpClient, logger, tableWriter)
