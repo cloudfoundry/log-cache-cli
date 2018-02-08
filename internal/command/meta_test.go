@@ -41,7 +41,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, httpClient, logger, tableWriter)
+		command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
 		Expect(cliConn.cliCommandArgs[0]).To(Equal("curl"))
@@ -69,7 +69,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, httpClient, logger, tableWriter)
+		command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
 		Expect(cliConn.cliCommandArgs[0]).To(Equal("curl"))
@@ -110,7 +110,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandResult = []string{capiResponse(map[string]string{})}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, httpClient, logger, tableWriter)
+		command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
 		Expect(cliConn.cliCommandArgs[0]).To(Equal("curl"))
@@ -133,7 +133,7 @@ var _ = Describe("Meta", func() {
 		cliConn.apiEndpointErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, httpClient, logger, tableWriter)
+			command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(HavePrefix(`Could not determine Log Cache endpoint: some-error`))
@@ -148,7 +148,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, httpClient, logger, tableWriter)
+			command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(HavePrefix(`Failed to make CAPI request: some-error`))
@@ -165,7 +165,7 @@ var _ = Describe("Meta", func() {
 		cliConn.usernameErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, httpClient, logger, tableWriter)
+			command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal(`Could not get username: some-error`))
@@ -180,7 +180,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, httpClient, logger, tableWriter)
+			command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(HavePrefix(`Could not decode CAPI response: `))
@@ -190,7 +190,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, httpClient, logger, tableWriter)
+			command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal(`Failed to read Meta information: some-error`))

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"text/template"
@@ -20,10 +21,12 @@ const (
 	timeFormat = "2006-01-02T15:04:05.00-0700"
 )
 
+// Command is the interface to implement plugin commands
+type Command func(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, w io.Writer)
+
 // Logger is used for outputting log-cache results and errors
 type Logger interface {
 	Fatalf(format string, args ...interface{})
-	Printf(format string, args ...interface{})
 }
 
 // HTTPClient is the client used for HTTP requests
@@ -33,7 +36,7 @@ type HTTPClient interface {
 
 // LogCache will fetch the logs for a given application guid and write them to
 // stdout.
-func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger) {
+func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, w io.Writer) {
 	hasAPI, err := cli.HasAPIEndpoint()
 	if err != nil {
 		log.Fatalf("%s", err)
@@ -68,6 +71,8 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 		log.Fatalf("%s", err)
 	}
 
+	lw := lineWriter{w: w}
+
 	tc := &tokenHTTPClient{
 		c:        c,
 		getToken: cli.AccessToken,
@@ -81,8 +86,8 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 
 	header, ok := formatter.Header(o.appName, org.Name, space.Name, user)
 	if ok {
-		log.Printf(header)
-		log.Printf("")
+		lw.Write(header)
+		lw.Write("")
 	}
 
 	if o.follow {
@@ -92,7 +97,7 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 			logcache.Visitor(func(envelopes []*loggregator_v2.Envelope) bool {
 				for _, e := range envelopes {
 					if output, ok := formatter.FormatEnvelope(e); ok {
-						log.Printf(output)
+						lw.Write(output)
 					}
 				}
 				return true
@@ -124,9 +129,19 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 	// we get envelopes in descending order but want to print them ascending
 	for i := len(envelopes) - 1; i >= 0; i-- {
 		if output, ok := formatter.FormatEnvelope(envelopes[i]); ok {
-			log.Printf(output)
+			lw.Write(output)
 		}
 	}
+}
+
+type lineWriter struct {
+	w io.Writer
+}
+
+func (w *lineWriter) Write(line string) error {
+	line = strings.TrimSuffix(line, "\n") + "\n"
+	_, err := w.w.Write([]byte(line))
+	return err
 }
 
 type options struct {

@@ -22,7 +22,7 @@ type appsResponse struct {
 	Resources []app `json:"resources"`
 }
 
-func Meta(ctx context.Context, cli plugin.CliConnection, c HTTPClient, log Logger, tableWriter io.Writer) {
+func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, tableWriter io.Writer) {
 	logCacheEndpoint, err := logCacheEndpoint(cli)
 	if err != nil {
 		log.Fatalf("Could not determine Log Cache endpoint: %s", err)

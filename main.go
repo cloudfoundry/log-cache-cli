@@ -13,9 +13,14 @@ import (
 
 type LogCacheCLI struct{}
 
+var commands = map[string]command.Command{
+	"tail": command.LogCache,
+	"meta": command.Meta,
+}
+
 func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
-	if len(args) == 0 {
-		log.Fatalf("Expected at least 1 argument, but got 0.")
+	if len(args) < 2 {
+		log.Fatalf("Expected at least 2 argument, but got %d.", len(args))
 	}
 
 	skipSSL, err := conn.IsSSLDisabled()
@@ -26,26 +31,8 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 		InsecureSkipVerify: skipSSL,
 	}
 
-	switch args[0] {
-	case "log-cache":
-		command.LogCache(
-			context.Background(),
-			conn,
-			args[1:],
-			http.DefaultClient,
-			log.New(os.Stdout, "", 0),
-		)
-		return
-	case "log-cache-meta":
-		command.Meta(
-			context.Background(),
-			conn,
-			http.DefaultClient,
-			log.New(os.Stderr, "", 0),
-			os.Stdout,
-		)
-		return
-	}
+	op := commands[args[1]]
+	op(context.Background(), conn, args[2:], http.DefaultClient, log.New(os.Stderr, "", 0), os.Stdout)
 }
 
 func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
@@ -55,22 +42,17 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 			{
 				Name: "log-cache",
 				UsageDetails: plugin.Usage{
-					Usage: "log-cache [options] <app-guid>",
-					Options: map[string]string{
-						"start-time":    "Start of query range in UNIX nanoseconds.",
-						"end-time":      "End of query range in UNIX nanoseconds.",
-						"envelope-type": "Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.",
-						"lines":         "Number of envelopes to return. Default is 10.",
-						"follow":        "Output appended to stdout as logs are egressed.",
-						"json":          "Output envelopes in JSON format.",
-					},
-				},
-			},
+					Usage: `log-cache <meta | tail [options] <app-guid>]>
 
-			{
-				Name: "log-cache-meta",
-				UsageDetails: plugin.Usage{
-					Usage: "log-cache-meta",
+COMMANDS:
+    tail: Output logs for an app
+        --end-time           End of query range in UNIX nanoseconds.
+        --envelope-type      Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
+        --follow             Output appended to stdout as logs are egressed.
+        --json               Output envelopes in JSON format.
+        --lines              Number of envelopes to return. Default is 10.
+        --start-time         Start of query range in UNIX nanoseconds.
+    meta: Get meta information from Log Cache`,
 				},
 			},
 		},
