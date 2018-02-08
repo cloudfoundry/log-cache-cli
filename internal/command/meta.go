@@ -104,7 +104,7 @@ func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
 
 func sourceIDsFromMeta(meta map[string]*logcache.MetaInfo) string {
 	var ids []string
-	for id, _ := range meta {
+	for id := range meta {
 		ids = append(ids, id)
 	}
 	return strings.Join(ids, ",")

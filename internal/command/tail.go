@@ -34,9 +34,9 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// LogCache will fetch the logs for a given application guid and write them to
+// Tail will fetch the logs for a given application guid and write them to
 // stdout.
-func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, w io.Writer) {
+func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, w io.Writer) {
 	hasAPI, err := cli.HasAPIEndpoint()
 	if err != nil {
 		log.Fatalf("%s", err)
@@ -84,7 +84,15 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 
 	formatter := NewFormatter(formatterKind(o), log, o.outputTemplate)
 
-	header, ok := formatter.Header(o.appName, org.Name, space.Name, user)
+	guid := o.guid
+	headerPrinter := formatter.AppHeader
+	if guid == "" {
+		// fall back to provided name
+		guid = o.providedName
+		headerPrinter = formatter.SourceHeader
+	}
+
+	header, ok := headerPrinter(o.providedName, org.Name, space.Name, user)
 	if ok {
 		lw.Write(header)
 		lw.Write("")
@@ -93,7 +101,7 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 	if o.follow {
 		logcache.Walk(
 			ctx,
-			o.guid,
+			guid,
 			logcache.Visitor(func(envelopes []*loggregator_v2.Envelope) bool {
 				for _, e := range envelopes {
 					if output, ok := formatter.FormatEnvelope(e); ok {
@@ -114,7 +122,7 @@ func LogCache(ctx context.Context, cli plugin.CliConnection, args []string, c HT
 	// Lines mode
 	envelopes, err := client.Read(
 		context.Background(),
-		o.guid,
+		guid,
 		o.startTime,
 		logcache.WithEndTime(o.endTime),
 		logcache.WithEnvelopeType(o.envelopeType),
@@ -152,7 +160,7 @@ type options struct {
 	follow       bool
 
 	guid           string
-	appName        string
+	providedName   string
 	outputTemplate *template.Template
 	jsonOutput     bool
 }
@@ -193,8 +201,8 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		endTime:        time.Unix(0, *end),
 		envelopeType:   translateEnvelopeType(*envelopeType),
 		lines:          int(*lines),
-		guid:           getAppGuid(f.Args()[0], cli, log),
-		appName:        f.Args()[0],
+		guid:           getAppGUID(f.Args()[0], cli, log),
+		providedName:   f.Args()[0],
 		follow:         *follow,
 		outputTemplate: outputTemplate,
 		jsonOutput:     *jsonOutput,
@@ -257,14 +265,14 @@ func translateEnvelopeType(t string) logcacherpc.EnvelopeTypes {
 	}
 }
 
-func getAppGuid(appName string, cli plugin.CliConnection, log Logger) string {
+func getAppGUID(appName string, cli plugin.CliConnection, log Logger) string {
 	r, err := cli.CliCommandWithoutTerminalOutput(
 		"app",
 		appName,
 		"--guid",
 	)
 	if err != nil {
-		log.Fatalf("%s", err)
+		return ""
 	}
 
 	return strings.Join(r, "")

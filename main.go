@@ -14,13 +14,13 @@ import (
 type LogCacheCLI struct{}
 
 var commands = map[string]command.Command{
-	"tail": command.LogCache,
+	"tail": command.Tail,
 	"meta": command.Meta,
 }
 
 func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 	if len(args) < 2 {
-		log.Fatalf("Expected at least 2 argument, but got %d.", len(args))
+		log.Fatalf("Expected at least 2 arguments, but got %d.", len(args))
 	}
 
 	skipSSL, err := conn.IsSSLDisabled()
@@ -31,7 +31,10 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 		InsecureSkipVerify: skipSSL,
 	}
 
-	op := commands[args[1]]
+	op, ok := commands[args[1]]
+	if !ok {
+		log.Fatalf("Unknown Log Cache command: %s", args[1])
+	}
 	op(context.Background(), conn, args[2:], http.DefaultClient, log.New(os.Stderr, "", 0), os.Stdout)
 }
 

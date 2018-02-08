@@ -20,13 +20,15 @@ const (
 )
 
 const (
-	headerFormat = "Retrieving logs for app %s in org %s / space %s as %s..."
+	appHeaderFormat    = "Retrieving logs for app %s in org %s / space %s as %s..."
+	sourceHeaderFormat = "Retrieving logs for %s as %s..."
 )
 
 type FormatterKind int
 
 type Formatter interface {
-	Header(app, org, space, user string) (string, bool)
+	AppHeader(app, org, space, user string) (string, bool)
+	SourceHeader(sourceID, _, _, user string) (string, bool)
 	FormatEnvelope(e *loggregator_v2.Envelope) (string, bool)
 }
 
@@ -59,7 +61,11 @@ type BaseFormatter struct {
 	log Logger
 }
 
-func (f BaseFormatter) Header(_, _, _, _ string) (string, bool) {
+func (f BaseFormatter) AppHeader(_, _, _, _ string) (string, bool) {
+	return "", false
+}
+
+func (f BaseFormatter) SourceHeader(_, _, _, _ string) (string, bool) {
 	return "", false
 }
 
@@ -71,12 +77,20 @@ type PrettyFormatter struct {
 	BaseFormatter
 }
 
-func (f PrettyFormatter) Header(app, org, space, user string) (string, bool) {
+func (f PrettyFormatter) AppHeader(app, org, space, user string) (string, bool) {
 	return fmt.Sprintf(
-		headerFormat,
+		appHeaderFormat,
 		app,
 		org,
 		space,
+		user,
+	), true
+}
+
+func (f PrettyFormatter) SourceHeader(sourceID, _, _, user string) (string, bool) {
+	return fmt.Sprintf(
+		sourceHeaderFormat,
+		sourceID,
 		user,
 	), true
 }
@@ -107,12 +121,20 @@ type TemplateFormatter struct {
 	outputTemplate *template.Template
 }
 
-func (f TemplateFormatter) Header(app, org, space, user string) (string, bool) {
+func (f TemplateFormatter) AppHeader(app, org, space, user string) (string, bool) {
 	return fmt.Sprintf(
-		headerFormat,
+		appHeaderFormat,
 		app,
 		org,
 		space,
+		user,
+	), true
+}
+
+func (f TemplateFormatter) SourceHeader(sourceID, _, _, user string) (string, bool) {
+	return fmt.Sprintf(
+		sourceHeaderFormat,
+		sourceID,
 		user,
 	), true
 }
