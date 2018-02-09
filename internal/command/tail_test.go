@@ -31,7 +31,7 @@ var _ = Describe("LogCache", func() {
 	)
 
 	BeforeEach(func() {
-		startTime = time.Now().Truncate(time.Second).Add(time.Minute)
+		startTime = time.Now().Truncate(time.Second).Add(-time.Minute)
 		timeFormat = "2006-01-02T15:04:05.00-0700"
 		logger = &stubLogger{}
 		writer = &stubWriter{}
