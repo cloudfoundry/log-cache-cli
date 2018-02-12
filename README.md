@@ -30,6 +30,8 @@ OPTIONS:
    -lines            Number of envelopes to return. Default is 10.
    -follow           Output appended to stdout as logs are egressed.
    -json             Output envelopes in JSON format.
+   -counter-name     Counter name filter (implies --envelope-type=counter).
+   -gauge-name       Gauge name filter (implies --envelope-type=gauge).
 ```
 
 ##### `log-cache-meta`

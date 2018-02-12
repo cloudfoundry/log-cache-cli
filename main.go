@@ -55,6 +55,10 @@ COMMANDS:
         --json               Output envelopes in JSON format.
         --lines              Number of envelopes to return. Default is 10.
         --start-time         Start of query range in UNIX nanoseconds.
+
+        --counter-name       Counter name filter (implies --envelope-type=counter).
+        --gauge-name         Gauge name filter (implies --envelope-type=gauge).
+
     meta: Get meta information from Log Cache`,
 				},
 			},
