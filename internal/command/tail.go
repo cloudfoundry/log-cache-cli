@@ -98,6 +98,14 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		lw.Write("")
 	}
 
+	if o.gaugeName != "" {
+		o.envelopeType = logcacherpc.EnvelopeTypes_GAUGE
+	}
+
+	if o.counterName != "" {
+		o.envelopeType = logcacherpc.EnvelopeTypes_COUNTER
+	}
+
 	if o.follow {
 		logcache.Walk(
 			ctx,
@@ -136,6 +144,9 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 
 	// we get envelopes in descending order but want to print them ascending
 	for i := len(envelopes) - 1; i >= 0; i-- {
+		if !filter(envelopes[i], o) {
+			continue
+		}
 		if output, ok := formatter.FormatEnvelope(envelopes[i]); ok {
 			lw.Write(output)
 		}
@@ -163,6 +174,9 @@ type options struct {
 	providedName   string
 	outputTemplate *template.Template
 	jsonOutput     bool
+
+	gaugeName   string
+	counterName string
 }
 
 func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, error) {
@@ -174,6 +188,8 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	follow := f.Bool("follow", false, "")
 	outputFormat := f.String("output-format", "", "")
 	jsonOutput := f.Bool("json", false, "")
+	gaugeName := f.String("gauge-name", "", "")
+	counterName := f.String("counter-name", "", "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -186,6 +202,18 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 
 	if *jsonOutput && *outputFormat != "" {
 		return options{}, errors.New("Cannot use output-format and json flags together")
+	}
+
+	if *envelopeType != "" && *counterName != "" {
+		return options{}, errors.New("--counter-name cannot be used with --envelope-type")
+	}
+
+	if *envelopeType != "" && *gaugeName != "" {
+		return options{}, errors.New("--gauge-name cannot be used with --envelope-type")
+	}
+
+	if *gaugeName != "" && *counterName != "" {
+		return options{}, errors.New("--counter-name cannot be used with --gauge-name")
 	}
 
 	var outputTemplate *template.Template
@@ -206,6 +234,8 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		follow:         *follow,
 		outputTemplate: outputTemplate,
 		jsonOutput:     *jsonOutput,
+		gaugeName:      *gaugeName,
+		counterName:    *counterName,
 	}
 
 	return o, o.validate()
@@ -221,6 +251,24 @@ func formatterKind(o options) FormatterKind {
 	}
 
 	return PrettyFormat
+}
+
+func filter(e *loggregator_v2.Envelope, o options) bool {
+	if o.gaugeName != "" {
+		for name := range e.GetGauge().GetMetrics() {
+			if name == o.gaugeName {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	if o.counterName != "" {
+		return e.GetCounter().GetName() == o.counterName
+	}
+
+	return true
 }
 
 func (o options) validate() error {

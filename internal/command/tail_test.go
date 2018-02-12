@@ -219,6 +219,85 @@ var _ = Describe("LogCache", func() {
 		))
 	})
 
+	It("filters when given gauge-name flag", func() {
+		httpClient.responseBody = []string{
+			mixedResponseBody(startTime),
+		}
+
+		ctx, _ := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		args := []string{"--gauge-name", "some-name", "--json", "app-name"}
+		command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+
+		Expect(writer.lines()).To(ConsistOf(
+			fmt.Sprintf(`{"timestamp":"%d","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
+		))
+
+		Expect(httpClient.requestURLs).ToNot(BeEmpty())
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		envelopeType := requestURL.Query().Get("envelope_type")
+		Expect(envelopeType).To(Equal("GAUGE"))
+	})
+
+	It("fatally logs if gauge-name and envelope-type flags are both set", func() {
+		args := []string{
+			"--gauge-name", "some-name",
+			"--envelope-type", "LOG",
+			"some-app",
+		}
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("--gauge-name cannot be used with --envelope-type"))
+	})
+
+	It("filters when given counter-name flag", func() {
+		httpClient.responseBody = []string{
+			mixedResponseBody(startTime),
+		}
+
+		ctx, _ := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		args := []string{"--counter-name", "some-name", "--json", "app-name"}
+		command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+
+		Expect(writer.lines()).To(ConsistOf(
+			fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
+		))
+
+		Expect(httpClient.requestURLs).ToNot(BeEmpty())
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		envelopeType := requestURL.Query().Get("envelope_type")
+		Expect(envelopeType).To(Equal("COUNTER"))
+	})
+
+	It("fatally logs if counter-name and envelope-type flags are both set", func() {
+		args := []string{
+			"--counter-name", "some-name",
+			"--envelope-type", "LOG",
+			"some-app",
+		}
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --envelope-type"))
+	})
+
+	It("fatally logs if counter-name and gauge-name flags are both set", func() {
+		args := []string{
+			"--counter-name", "some-name",
+			"--gauge-name", "some-name",
+			"some-app",
+		}
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --gauge-name"))
+	})
+
 	It("reports successful results when following", func() {
 		httpClient.responseBody = []string{
 			responseBodyAsc(startTime),
