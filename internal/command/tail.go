@@ -106,14 +106,22 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		o.envelopeType = logcacherpc.EnvelopeTypes_COUNTER
 	}
 
+	filterAndFormat := func(e *loggregator_v2.Envelope) (string, bool) {
+		if !filter(e, o) {
+			return "", false
+		}
+
+		return formatter.FormatEnvelope(e)
+	}
+
 	if o.follow {
 		logcache.Walk(
 			ctx,
 			guid,
 			logcache.Visitor(func(envelopes []*loggregator_v2.Envelope) bool {
 				for _, e := range envelopes {
-					if output, ok := formatter.FormatEnvelope(e); ok {
-						lw.Write(output)
+					if formatted, ok := filterAndFormat(e); ok {
+						lw.Write(formatted)
 					}
 				}
 				return true
@@ -144,11 +152,8 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 
 	// we get envelopes in descending order but want to print them ascending
 	for i := len(envelopes) - 1; i >= 0; i-- {
-		if !filter(envelopes[i], o) {
-			continue
-		}
-		if output, ok := formatter.FormatEnvelope(envelopes[i]); ok {
-			lw.Write(output)
+		if formatted, ok := filterAndFormat(envelopes[i]); ok {
+			lw.Write(formatted)
 		}
 	}
 }

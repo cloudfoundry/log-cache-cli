@@ -341,6 +341,27 @@ var _ = Describe("LogCache", func() {
 		))
 	})
 
+	It("filters when given counter-name flag while following", func() {
+		httpClient.responseBody = []string{
+			mixedResponseBody(startTime),
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
+		args := []string{"--counter-name", "some-name", "--json", "--follow", "app-name"}
+		command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+
+		Expect(writer.lines()).To(ConsistOf(
+			fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
+		))
+
+		Expect(httpClient.requestURLs).ToNot(BeEmpty())
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		envelopeType := requestURL.Query().Get("envelope_type")
+		Expect(envelopeType).To(Equal("COUNTER"))
+	})
+
 	It("follow retries for empty responses", func() {
 		httpClient.responseBody = nil
 
