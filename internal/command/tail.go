@@ -82,14 +82,14 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		logcache.WithHTTPClient(tc),
 	)
 
-	formatter := NewFormatter(formatterKind(o), log, o.outputTemplate)
+	formatter := newFormatter(formatterKindFromOptions(o), log, o.outputTemplate)
 
 	guid := o.guid
-	headerPrinter := formatter.AppHeader
+	headerPrinter := formatter.appHeader
 	if guid == "" {
 		// fall back to provided name
 		guid = o.providedName
-		headerPrinter = formatter.SourceHeader
+		headerPrinter = formatter.sourceHeader
 	}
 
 	header, ok := headerPrinter(o.providedName, org.Name, space.Name, user)
@@ -111,7 +111,7 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 			return "", false
 		}
 
-		return formatter.FormatEnvelope(e)
+		return formatter.formatEnvelope(e)
 	}
 
 	if o.follow {
@@ -246,16 +246,16 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	return o, o.validate()
 }
 
-func formatterKind(o options) FormatterKind {
+func formatterKindFromOptions(o options) formatterKind {
 	if o.jsonOutput {
-		return JSONFormat
+		return jsonFormat
 	}
 
 	if o.outputTemplate != nil {
-		return TemplateFormat
+		return templateFormat
 	}
 
-	return PrettyFormat
+	return prettyFormat
 }
 
 func filter(e *loggregator_v2.Envelope, o options) bool {

@@ -180,7 +180,9 @@ var _ = Describe("LogCache", func() {
 		httpClient.responseBody = []string{
 			timerResponseBody(startTime),
 		}
-		ctx, _ := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
+
 		command.Tail(ctx, cliConn, []string{"app-name"}, httpClient, logger, writer)
 
 		Expect(httpClient.requestURLs).To(HaveLen(1))
@@ -205,8 +207,9 @@ var _ = Describe("LogCache", func() {
 		httpClient.responseBody = []string{
 			mixedResponseBody(startTime),
 		}
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
 
-		ctx, _ := context.WithTimeout(context.Background(), 250*time.Millisecond)
 		args := []string{"--envelope-type", "any", "--json", "app-name"}
 		command.Tail(ctx, cliConn, args, httpClient, logger, writer)
 
@@ -223,9 +226,11 @@ var _ = Describe("LogCache", func() {
 		httpClient.responseBody = []string{
 			mixedResponseBody(startTime),
 		}
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
 
-		ctx, _ := context.WithTimeout(context.Background(), 250*time.Millisecond)
 		args := []string{"--gauge-name", "some-name", "--json", "app-name"}
+
 		command.Tail(ctx, cliConn, args, httpClient, logger, writer)
 
 		Expect(writer.lines()).To(ConsistOf(
@@ -256,8 +261,9 @@ var _ = Describe("LogCache", func() {
 		httpClient.responseBody = []string{
 			mixedResponseBody(startTime),
 		}
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
 
-		ctx, _ := context.WithTimeout(context.Background(), 250*time.Millisecond)
 		args := []string{"--counter-name", "some-name", "--json", "app-name"}
 		command.Tail(ctx, cliConn, args, httpClient, logger, writer)
 
@@ -305,7 +311,8 @@ var _ = Describe("LogCache", func() {
 		}
 		logFormat := "   %s [APP/PROC/WEB/0] %s log body"
 
-		ctx, _ := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
 		command.Tail(ctx, cliConn, []string{"--follow", "app-name"}, httpClient, logger, writer)
 
 		Expect(httpClient.requestURLs).ToNot(BeEmpty())

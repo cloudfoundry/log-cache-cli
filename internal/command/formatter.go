@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	PrettyFormat FormatterKind = iota
-	JSONFormat
-	TemplateFormat
+	prettyFormat formatterKind = iota
+	jsonFormat
+	templateFormat
 )
 
 const (
@@ -24,60 +24,60 @@ const (
 	sourceHeaderFormat = "Retrieving logs for %s as %s..."
 )
 
-type FormatterKind int
+type formatterKind int
 
-type Formatter interface {
-	AppHeader(app, org, space, user string) (string, bool)
-	SourceHeader(sourceID, _, _, user string) (string, bool)
-	FormatEnvelope(e *loggregator_v2.Envelope) (string, bool)
+type formatter interface {
+	appHeader(app, org, space, user string) (string, bool)
+	sourceHeader(sourceID, _, _, user string) (string, bool)
+	formatEnvelope(e *loggregator_v2.Envelope) (string, bool)
 }
 
-func NewFormatter(kind FormatterKind, log Logger, t *template.Template) Formatter {
-	baseFormatter := BaseFormatter{
+func newFormatter(kind formatterKind, log Logger, t *template.Template) formatter {
+	bf := baseFormatter{
 		log: log,
 	}
 
 	switch kind {
-	case PrettyFormat:
-		return PrettyFormatter{
-			BaseFormatter: baseFormatter,
+	case prettyFormat:
+		return prettyFormatter{
+			baseFormatter: bf,
 		}
-	case JSONFormat:
-		return JSONFormatter{
-			BaseFormatter: baseFormatter,
+	case jsonFormat:
+		return jsonFormatter{
+			baseFormatter: bf,
 		}
-	case TemplateFormat:
-		return TemplateFormatter{
-			BaseFormatter:  baseFormatter,
+	case templateFormat:
+		return templateFormatter{
+			baseFormatter:  bf,
 			outputTemplate: t,
 		}
 	default:
 		log.Fatalf("Unknown formatter kind")
-		return BaseFormatter{}
+		return baseFormatter{}
 	}
 }
 
-type BaseFormatter struct {
+type baseFormatter struct {
 	log Logger
 }
 
-func (f BaseFormatter) AppHeader(_, _, _, _ string) (string, bool) {
+func (f baseFormatter) appHeader(_, _, _, _ string) (string, bool) {
 	return "", false
 }
 
-func (f BaseFormatter) SourceHeader(_, _, _, _ string) (string, bool) {
+func (f baseFormatter) sourceHeader(_, _, _, _ string) (string, bool) {
 	return "", false
 }
 
-func (f BaseFormatter) FormatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
+func (f baseFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
 	return "", false
 }
 
-type PrettyFormatter struct {
-	BaseFormatter
+type prettyFormatter struct {
+	baseFormatter
 }
 
-func (f PrettyFormatter) AppHeader(app, org, space, user string) (string, bool) {
+func (f prettyFormatter) appHeader(app, org, space, user string) (string, bool) {
 	return fmt.Sprintf(
 		appHeaderFormat,
 		app,
@@ -87,7 +87,7 @@ func (f PrettyFormatter) AppHeader(app, org, space, user string) (string, bool) 
 	), true
 }
 
-func (f PrettyFormatter) SourceHeader(sourceID, _, _, user string) (string, bool) {
+func (f prettyFormatter) sourceHeader(sourceID, _, _, user string) (string, bool) {
 	return fmt.Sprintf(
 		sourceHeaderFormat,
 		sourceID,
@@ -95,17 +95,17 @@ func (f PrettyFormatter) SourceHeader(sourceID, _, _, user string) (string, bool
 	), true
 }
 
-func (f PrettyFormatter) FormatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
+func (f prettyFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
 	return fmt.Sprintf("%s", envelopeWrapper{e}), true
 }
 
-type JSONFormatter struct {
-	BaseFormatter
+type jsonFormatter struct {
+	baseFormatter
 
 	marshaler jsonpb.Marshaler
 }
 
-func (f JSONFormatter) FormatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
+func (f jsonFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
 	output, err := f.marshaler.MarshalToString(e)
 	if err != nil {
 		log.Printf("failed to marshal envelope: %s", err)
@@ -115,13 +115,13 @@ func (f JSONFormatter) FormatEnvelope(e *loggregator_v2.Envelope) (string, bool)
 	return string(output), true
 }
 
-type TemplateFormatter struct {
-	BaseFormatter
+type templateFormatter struct {
+	baseFormatter
 
 	outputTemplate *template.Template
 }
 
-func (f TemplateFormatter) AppHeader(app, org, space, user string) (string, bool) {
+func (f templateFormatter) appHeader(app, org, space, user string) (string, bool) {
 	return fmt.Sprintf(
 		appHeaderFormat,
 		app,
@@ -131,7 +131,7 @@ func (f TemplateFormatter) AppHeader(app, org, space, user string) (string, bool
 	), true
 }
 
-func (f TemplateFormatter) SourceHeader(sourceID, _, _, user string) (string, bool) {
+func (f templateFormatter) sourceHeader(sourceID, _, _, user string) (string, bool) {
 	return fmt.Sprintf(
 		sourceHeaderFormat,
 		sourceID,
@@ -139,7 +139,7 @@ func (f TemplateFormatter) SourceHeader(sourceID, _, _, user string) (string, bo
 	), true
 }
 
-func (f TemplateFormatter) FormatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
+func (f templateFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
 	b := bytes.Buffer{}
 	if err := f.outputTemplate.Execute(&b, e); err != nil {
 		f.log.Fatalf("Output template parsed, but failed to execute: %s", err)

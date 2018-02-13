@@ -22,6 +22,7 @@ type appsResponse struct {
 	Resources []app `json:"resources"`
 }
 
+// Meta returns the metadata from Log Cache
 func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, tableWriter io.Writer) {
 	logCacheEndpoint, err := logCacheEndpoint(cli)
 	if err != nil {
