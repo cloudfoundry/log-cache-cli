@@ -277,34 +277,6 @@ var _ = Describe("LogCache", func() {
 		Expect(envelopeType).To(Equal("GAUGE"))
 	})
 
-	It("fatally logs if gauge-name and envelope-type flags are both set", func() {
-		args := []string{
-			"--gauge-name", "some-name",
-			"--envelope-type", "LOG",
-			"some-app",
-		}
-		Expect(func() {
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
-		}).To(Panic())
-
-		Expect(logger.fatalfMessage).To(Equal("--gauge-name cannot be used with --envelope-type"))
-	})
-
-	It("errors when envelope-type and type are both present", func() {
-		args := []string{
-			"--type", "metrics",
-			"--envelope-type", "counter",
-			"--json",
-			"app-name",
-		}
-
-		Expect(func() {
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
-		}).To(Panic())
-
-		Expect(logger.fatalfMessage).To(Equal("--envelope-type cannot be used with --type"))
-	})
-
 	It("filters when given counter-name flag", func() {
 		httpClient.responseBody = []string{
 			mixedResponseBody(startTime),
@@ -324,32 +296,6 @@ var _ = Describe("LogCache", func() {
 		Expect(err).ToNot(HaveOccurred())
 		envelopeType := requestURL.Query().Get("envelope_type")
 		Expect(envelopeType).To(Equal("COUNTER"))
-	})
-
-	It("fatally logs if counter-name and envelope-type flags are both set", func() {
-		args := []string{
-			"--counter-name", "some-name",
-			"--envelope-type", "LOG",
-			"some-app",
-		}
-		Expect(func() {
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
-		}).To(Panic())
-
-		Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --envelope-type"))
-	})
-
-	It("fatally logs if counter-name and gauge-name flags are both set", func() {
-		args := []string{
-			"--counter-name", "some-name",
-			"--gauge-name", "some-name",
-			"some-app",
-		}
-		Expect(func() {
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
-		}).To(Panic())
-
-		Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --gauge-name"))
 	})
 
 	It("reports successful results when following", func() {
@@ -504,7 +450,7 @@ var _ = Describe("LogCache", func() {
 		Expect(cliConn.cliCommandArgs[2]).To(Equal("--guid"))
 	})
 
-	It("places the JWT in the 'Authorization' header", func() {
+	It("places the auth token in the 'Authorization' header", func() {
 		args := []string{"some-app"}
 		cliConn.accessToken = "bearer some-token"
 		command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
@@ -526,7 +472,68 @@ var _ = Describe("LogCache", func() {
 		Expect(writer.lines()).To(ContainElement("1 log body"))
 	})
 
-	It("errors if output-format and json flags are given", func() {
+	It("allows for empty end time with populated start time", func() {
+		args := []string{"--start-time", "1000", "app-name"}
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).ToNot(Panic())
+	})
+
+	It("fatally logs if gauge-name and envelope-type flags are both set", func() {
+		args := []string{
+			"--gauge-name", "some-name",
+			"--envelope-type", "LOG",
+			"some-app",
+		}
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("--gauge-name cannot be used with --envelope-type"))
+	})
+
+	It("fatally logs when envelope-type and type are both present", func() {
+		args := []string{
+			"--type", "metrics",
+			"--envelope-type", "counter",
+			"--json",
+			"app-name",
+		}
+
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("--envelope-type cannot be used with --type"))
+	})
+
+	It("fatally logs if counter-name and envelope-type flags are both set", func() {
+		args := []string{
+			"--counter-name", "some-name",
+			"--envelope-type", "LOG",
+			"some-app",
+		}
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --envelope-type"))
+	})
+
+	It("fatally logs if counter-name and gauge-name flags are both set", func() {
+		args := []string{
+			"--counter-name", "some-name",
+			"--gauge-name", "some-name",
+			"some-app",
+		}
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --gauge-name"))
+	})
+
+	It("fatally logs if output-format and json flags are given", func() {
 		httpClient.responseBody = []string{responseBody(time.Unix(0, 1))}
 		args := []string{
 			"--output-format", `{{.Timestamp}} {{printf "%s" .GetLog.GetPayload}}`,
@@ -541,7 +548,7 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("Cannot use output-format and json flags together"))
 	})
 
-	It("errors if an output-format is malformed", func() {
+	It("fatally logs if an output-format is malformed", func() {
 		args := []string{"--output-format", "{{INVALID}}", "app-guid"}
 		Expect(func() {
 			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
@@ -550,7 +557,7 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal(`template: OutputFormat:1: function "INVALID" not defined`))
 	})
 
-	It("errors if an output-format won't execute", func() {
+	It("fatally logs if an output-format won't execute", func() {
 		httpClient.responseBody = []string{`{"envelopes":{"batch":[{"source_id": "a", "timestamp": 1},{"source_id":"b", "timestamp":2}]}}`}
 		args := []string{
 			"--output-format", "{{.invalid 9}}",
@@ -628,13 +635,6 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
 	})
 
-	It("allows for empty end time with populated start time", func() {
-		args := []string{"--start-time", "1000", "app-name"}
-		Expect(func() {
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
-		}).ToNot(Panic())
-	})
-
 	It("fatally logs if too many arguments are given", func() {
 		Expect(func() {
 			command.Tail(context.Background(), cliConn, []string{"one", "two"}, httpClient, logger, writer)
@@ -651,7 +651,7 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("Expected 1 argument, got 0."))
 	})
 
-	It("errors if there is an error while getting API endpoint", func() {
+	It("fatally logs if there is an error while getting API endpoint", func() {
 		cliConn.apiEndpointErr = errors.New("some-error")
 
 		Expect(func() {
@@ -661,7 +661,7 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("some-error"))
 	})
 
-	It("errors if there is no API endpoint", func() {
+	It("fatally logs if there is no API endpoint", func() {
 		cliConn.hasAPIEndpoint = false
 
 		Expect(func() {
@@ -671,7 +671,7 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("No API endpoint targeted."))
 	})
 
-	It("errors if there is an error while checking for API endpoint", func() {
+	It("fatally logs if there is an error while checking for API endpoint", func() {
 		cliConn.hasAPIEndpoint = true
 		cliConn.hasAPIEndpointErr = errors.New("some-error")
 
@@ -682,7 +682,7 @@ var _ = Describe("LogCache", func() {
 		Expect(logger.fatalfMessage).To(Equal("some-error"))
 	})
 
-	It("errors if the request returns an error", func() {
+	It("fatally logs if the request returns an error", func() {
 		httpClient.responseErr = errors.New("some-error")
 
 		Expect(func() {
