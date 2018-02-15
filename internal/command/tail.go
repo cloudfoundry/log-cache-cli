@@ -107,7 +107,7 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	}
 
 	filterAndFormat := func(e *loggregator_v2.Envelope) (string, bool) {
-		if !filter(e, o) {
+		if !nameFilter(e, o) || !typeFilter(e, o) {
 			return "", false
 		}
 
@@ -168,12 +168,21 @@ func (w *lineWriter) Write(line string) error {
 	return err
 }
 
+const (
+	envelopeClassAny envelopeClass = iota
+	envelopeClassMetric
+	envelopeClassLog
+)
+
+type envelopeClass int
+
 type options struct {
-	startTime    time.Time
-	endTime      time.Time
-	envelopeType logcacherpc.EnvelopeTypes
-	lines        int
-	follow       bool
+	startTime     time.Time
+	endTime       time.Time
+	envelopeType  logcacherpc.EnvelopeTypes
+	envelopeClass envelopeClass
+	lines         int
+	follow        bool
 
 	guid           string
 	providedName   string
@@ -195,6 +204,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	jsonOutput := f.Bool("json", false, "")
 	gaugeName := f.String("gauge-name", "", "")
 	counterName := f.String("counter-name", "", "")
+	envelopeClass := f.String("type", "", "")
 
 	err := f.Parse(args)
 	if err != nil {
@@ -221,6 +231,10 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		return options{}, errors.New("--counter-name cannot be used with --gauge-name")
 	}
 
+	if *envelopeType != "" && *envelopeClass != "" {
+		return options{}, errors.New("--envelope-type cannot be used with --type")
+	}
+
 	var outputTemplate *template.Template
 	if *outputFormat != "" {
 		outputTemplate, err = parseOutputFormat(*outputFormat)
@@ -241,9 +255,23 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		jsonOutput:     *jsonOutput,
 		gaugeName:      *gaugeName,
 		counterName:    *counterName,
+		envelopeClass:  toEnvelopeClass(*envelopeClass),
 	}
 
 	return o, o.validate()
+}
+
+func toEnvelopeClass(class string) envelopeClass {
+	switch strings.ToUpper(class) {
+	case "METRICS":
+		return envelopeClassMetric
+	case "LOGS":
+		return envelopeClassLog
+	case "ANY":
+		return envelopeClassAny
+	default:
+		return envelopeClassAny
+	}
 }
 
 func formatterKindFromOptions(o options) formatterKind {
@@ -258,7 +286,7 @@ func formatterKindFromOptions(o options) formatterKind {
 	return prettyFormat
 }
 
-func filter(e *loggregator_v2.Envelope, o options) bool {
+func nameFilter(e *loggregator_v2.Envelope, o options) bool {
 	if o.gaugeName != "" {
 		for name := range e.GetGauge().GetMetrics() {
 			if name == o.gaugeName {
@@ -274,6 +302,21 @@ func filter(e *loggregator_v2.Envelope, o options) bool {
 	}
 
 	return true
+}
+
+func typeFilter(e *loggregator_v2.Envelope, o options) bool {
+	if o.envelopeClass == envelopeClassAny {
+		return true
+	}
+
+	switch e.Message.(type) {
+	case *loggregator_v2.Envelope_Counter, *loggregator_v2.Envelope_Gauge, *loggregator_v2.Envelope_Timer:
+		return o.envelopeClass == envelopeClassMetric
+	case *loggregator_v2.Envelope_Log, *loggregator_v2.Envelope_Event:
+		return o.envelopeClass == envelopeClassLog
+	}
+
+	return false
 }
 
 func (o options) validate() error {

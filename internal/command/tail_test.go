@@ -222,6 +222,39 @@ var _ = Describe("LogCache", func() {
 		))
 	})
 
+	It("only returns timer, gauge, and counter when type=metrics", func() {
+		httpClient.responseBody = []string{
+			mixedResponseBody(startTime),
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
+
+		args := []string{"--type", "metrics", "--json", "app-name"}
+		command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+
+		Expect(writer.lines()).To(ConsistOf(
+			fmt.Sprintf(`{"timestamp":"%d","timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}}`, startTime.UnixNano()),
+			fmt.Sprintf(`{"timestamp":"%d","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
+			fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
+		))
+	})
+
+	It("only returns logs and events when type=logs", func() {
+		httpClient.responseBody = []string{
+			mixedResponseBody(startTime),
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
+
+		args := []string{"--type", "logs", "--json", "app-name"}
+		command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+
+		Expect(writer.lines()).To(ConsistOf(
+			fmt.Sprintf(`{"timestamp":"%d","event":{"title":"some-title","body":"some-body"}}`, startTime.UnixNano()),
+			fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"bG9nIGJvZHk="}}`, startTime.UnixNano()),
+		))
+	})
+
 	It("filters when given gauge-name flag", func() {
 		httpClient.responseBody = []string{
 			mixedResponseBody(startTime),
@@ -255,6 +288,21 @@ var _ = Describe("LogCache", func() {
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("--gauge-name cannot be used with --envelope-type"))
+	})
+
+	It("errors when envelope-type and type are both present", func() {
+		args := []string{
+			"--type", "metrics",
+			"--envelope-type", "counter",
+			"--json",
+			"app-name",
+		}
+
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("--envelope-type cannot be used with --type"))
 	})
 
 	It("filters when given counter-name flag", func() {
