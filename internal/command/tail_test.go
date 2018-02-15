@@ -237,6 +237,12 @@ var _ = Describe("LogCache", func() {
 			fmt.Sprintf(`{"timestamp":"%d","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
 			fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
 		))
+
+		Expect(httpClient.requestURLs).ToNot(BeEmpty())
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		envelopeType := requestURL.Query().Get("envelope_type")
+		Expect(envelopeType).To(Equal("ANY"))
 	})
 
 	It("only returns logs and events when type=logs", func() {
@@ -253,6 +259,12 @@ var _ = Describe("LogCache", func() {
 			fmt.Sprintf(`{"timestamp":"%d","event":{"title":"some-title","body":"some-body"}}`, startTime.UnixNano()),
 			fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"bG9nIGJvZHk="}}`, startTime.UnixNano()),
 		))
+
+		Expect(httpClient.requestURLs).ToNot(BeEmpty())
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		envelopeType := requestURL.Query().Get("envelope_type")
+		Expect(envelopeType).To(Equal("ANY"))
 	})
 
 	It("filters when given gauge-name flag", func() {

@@ -235,6 +235,10 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		return options{}, errors.New("--envelope-type cannot be used with --type")
 	}
 
+	if *envelopeClass != "" {
+		*envelopeType = "ANY"
+	}
+
 	var outputTemplate *template.Template
 	if *outputFormat != "" {
 		outputTemplate, err = parseOutputFormat(*outputFormat)
