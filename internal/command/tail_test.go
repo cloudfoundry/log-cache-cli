@@ -328,7 +328,7 @@ var _ = Describe("LogCache", func() {
 
 		start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(start).To(BeNumerically("~", now.UnixNano(), time.Second))
+		Expect(start).To(BeNumerically("~", now.Add(-5*time.Second).UnixNano(), time.Second))
 
 		_, ok := requestURL.Query()["end_time"]
 		Expect(ok).To(BeFalse())
