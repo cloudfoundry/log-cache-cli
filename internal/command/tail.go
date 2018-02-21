@@ -13,7 +13,7 @@ import (
 
 	"code.cloudfoundry.org/cli/plugin"
 	logcache "code.cloudfoundry.org/go-log-cache"
-	logcacherpc "code.cloudfoundry.org/go-log-cache/rpc/logcache"
+	"code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
 )
 
@@ -99,11 +99,11 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	}
 
 	if o.gaugeName != "" {
-		o.envelopeType = logcacherpc.EnvelopeTypes_GAUGE
+		o.envelopeType = logcache_v1.EnvelopeTypes_GAUGE
 	}
 
 	if o.counterName != "" {
-		o.envelopeType = logcacherpc.EnvelopeTypes_COUNTER
+		o.envelopeType = logcache_v1.EnvelopeTypes_COUNTER
 	}
 
 	filterAndFormat := func(e *loggregator_v2.Envelope) (string, bool) {
@@ -179,7 +179,7 @@ type envelopeClass int
 type options struct {
 	startTime     time.Time
 	endTime       time.Time
-	envelopeType  logcacherpc.EnvelopeTypes
+	envelopeType  logcache_v1.EnvelopeTypes
 	envelopeClass envelopeClass
 	lines         int
 	follow        bool
@@ -344,24 +344,24 @@ func parseOutputFormat(f string) (*template.Template, error) {
 	return templ, nil
 }
 
-func translateEnvelopeType(t string) logcacherpc.EnvelopeTypes {
+func translateEnvelopeType(t string) logcache_v1.EnvelopeTypes {
 	t = strings.ToUpper(t)
 
 	switch t {
 	case "ANY":
-		return logcacherpc.EnvelopeTypes_ANY
+		return logcache_v1.EnvelopeTypes_ANY
 	case "LOG", "":
-		return logcacherpc.EnvelopeTypes_LOG
+		return logcache_v1.EnvelopeTypes_LOG
 	case "COUNTER":
-		return logcacherpc.EnvelopeTypes_COUNTER
+		return logcache_v1.EnvelopeTypes_COUNTER
 	case "GAUGE":
-		return logcacherpc.EnvelopeTypes_GAUGE
+		return logcache_v1.EnvelopeTypes_GAUGE
 	case "TIMER":
-		return logcacherpc.EnvelopeTypes_TIMER
+		return logcache_v1.EnvelopeTypes_TIMER
 	case "EVENT":
-		return logcacherpc.EnvelopeTypes_EVENT
+		return logcache_v1.EnvelopeTypes_EVENT
 	default:
-		return logcacherpc.EnvelopeTypes_LOG
+		return logcache_v1.EnvelopeTypes_LOG
 	}
 }
 

@@ -9,8 +9,8 @@ import (
 	"text/tabwriter"
 
 	"code.cloudfoundry.org/cli/plugin"
-	gologcache "code.cloudfoundry.org/go-log-cache"
-	"code.cloudfoundry.org/go-log-cache/rpc/logcache"
+	logcache "code.cloudfoundry.org/go-log-cache"
+	"code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
 )
 
 type app struct {
@@ -34,9 +34,9 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		getToken: cli.AccessToken,
 	}
 
-	client := gologcache.NewClient(
+	client := logcache.NewClient(
 		logCacheEndpoint,
-		gologcache.WithHTTPClient(tc),
+		logcache.WithHTTPClient(tc),
 	)
 
 	meta, err := client.Meta(ctx)
@@ -84,8 +84,8 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	tw.Flush()
 }
 
-func truncate(count int, entries map[string]*logcache.MetaInfo) map[string]*logcache.MetaInfo {
-	truncated := make(map[string]*logcache.MetaInfo)
+func truncate(count int, entries map[string]*logcache_v1.MetaInfo) map[string]*logcache_v1.MetaInfo {
+	truncated := make(map[string]*logcache_v1.MetaInfo)
 	for k, v := range entries {
 		if len(truncated) >= count {
 			break
@@ -103,7 +103,7 @@ func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
 	return strings.Replace(apiEndpoint, "api", "log-cache", 1), nil
 }
 
-func sourceIDsFromMeta(meta map[string]*logcache.MetaInfo) string {
+func sourceIDsFromMeta(meta map[string]*logcache_v1.MetaInfo) string {
 	var ids []string
 	for id := range meta {
 		ids = append(ids, id)
