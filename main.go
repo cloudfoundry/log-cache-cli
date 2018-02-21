@@ -19,6 +19,11 @@ var commands = map[string]command.Command{
 }
 
 func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
+	if len(args) == 1 && args[0] == "CLI-MESSAGE-UNINSTALL" {
+		// someone's uninstalling the plugin, but we don't need to clean up
+		return
+	}
+
 	if len(args) < 2 {
 		log.Fatalf("Expected at least 2 arguments, but got %d.", len(args))
 	}
