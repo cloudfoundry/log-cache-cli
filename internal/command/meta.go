@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
 	logcache "code.cloudfoundry.org/go-log-cache"
@@ -77,23 +78,30 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		username,
 	))
 
-	tw := tabwriter.NewWriter(tableWriter, 10, 2, 2, ' ', 0)
-	fmt.Fprintf(tw, "%s\t%s\n", "Source ID", "App Name")
+	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
+	fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", "Source ID", "App Name", "Count", "Expired", "Cache Duration")
 
 	for _, app := range resources.Resources {
+		m := meta[app.GUID]
 		delete(meta, app.GUID)
 		if *scope == "applications" || *scope == "all" {
-			fmt.Fprintf(tw, "%s\t%s\n", app.GUID, app.Name)
+			fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\n", app.GUID, app.Name, m.Count, m.Expired, cacheDuration(m))
 		}
 	}
 
 	if *scope == "platform" || *scope == "all" {
-		for sourceID := range meta {
-			fmt.Fprintf(tw, "%s\n", sourceID)
+		for sourceID, m := range meta {
+			fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\n", sourceID, "", m.Count, m.Expired, cacheDuration(m))
 		}
 	}
 
 	tw.Flush()
+}
+
+func cacheDuration(m *logcache_v1.MetaInfo) time.Duration {
+	new := time.Unix(0, m.NewestTimestamp)
+	old := time.Unix(0, m.OldestTimestamp)
+	return new.Sub(old).Truncate(time.Second)
 }
 
 func truncate(count int, entries map[string]*logcache_v1.MetaInfo) map[string]*logcache_v1.MetaInfo {

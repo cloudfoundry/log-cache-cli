@@ -53,8 +53,8 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  App Name",
-			"source-1   app-1",
+			"Source ID  App Name  Count   Expired  Cache Duration",
+			"source-1   app-1     100000  85008    11m45s",
 			"",
 		}))
 
@@ -90,9 +90,9 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  App Name",
-			"source-1   app-1",
-			"source-2",
+			"Source ID  App Name  Count   Expired  Cache Duration",
+			"source-1   app-1     100000  85008    11m45s",
+			"source-2             100000  85008    11m45s",
 			"",
 		}))
 	})
@@ -114,8 +114,8 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  App Name",
-			"source-1   app-1",
+			"Source ID  App Name  Count   Expired  Cache Duration",
+			"source-1   app-1     100000  85008    11m45s",
 			"",
 		}))
 	})
@@ -137,8 +137,8 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  App Name",
-			"source-2",
+			"Source ID  App Name  Count   Expired  Cache Duration",
+			"source-2             100000  85008    11m45s",
 			"",
 		}))
 	})
@@ -247,7 +247,12 @@ var _ = Describe("Meta", func() {
 func metaResponseInfo(sourceIDs ...string) string {
 	var metaInfos []string
 	for _, sourceID := range sourceIDs {
-		metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {}`, sourceID))
+		metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
+		  "count": "100000",
+		  "expired": "85008",
+		  "oldestTimestamp": "1519256157847077020",
+		  "newestTimestamp": "1519256863126668345"
+		}`, sourceID))
 	}
 	return fmt.Sprintf(`{ "meta": { %s }}`, strings.Join(metaInfos, ","))
 }
