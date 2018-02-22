@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"strings"
@@ -24,6 +25,13 @@ type appsResponse struct {
 
 // Meta returns the metadata from Log Cache
 func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, tableWriter io.Writer) {
+	f := flag.NewFlagSet("log-cache", flag.ContinueOnError)
+	scope := f.String("scope", "all", "")
+	err := f.Parse(args)
+	if err != nil {
+		log.Fatalf("Could not parse flags: %s", err)
+	}
+
 	logCacheEndpoint, err := logCacheEndpoint(cli)
 	if err != nil {
 		log.Fatalf("Could not determine Log Cache endpoint: %s", err)
@@ -74,11 +82,15 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 
 	for _, app := range resources.Resources {
 		delete(meta, app.GUID)
-		fmt.Fprintf(tw, "%s\t%s\n", app.GUID, app.Name)
+		if *scope == "applications" || *scope == "all" {
+			fmt.Fprintf(tw, "%s\t%s\n", app.GUID, app.Name)
+		}
 	}
 
-	for sourceID := range meta {
-		fmt.Fprintf(tw, "%s\n", sourceID)
+	if *scope == "platform" || *scope == "all" {
+		for sourceID := range meta {
+			fmt.Fprintf(tw, "%s\n", sourceID)
+		}
 	}
 
 	tw.Flush()

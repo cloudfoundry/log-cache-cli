@@ -97,6 +97,52 @@ var _ = Describe("Meta", func() {
 		}))
 	})
 
+	It("prints meta scoped to apps", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo("source-1", "source-2"),
+		}
+
+		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandErr = nil
+
+		args := []string{"--scope", "applications"}
+		command.Meta(context.Background(), cliConn, args, httpClient, logger, tableWriter)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source ID  App Name",
+			"source-1   app-1",
+			"",
+		}))
+	})
+
+	It("prints meta scoped to platform", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo("source-1", "source-2"),
+		}
+
+		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandErr = nil
+
+		args := []string{"--scope", "platform"}
+		command.Meta(context.Background(), cliConn, args, httpClient, logger, tableWriter)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source ID  App Name",
+			"source-2",
+			"",
+		}))
+	})
+
 	It("does not request more than 50 guids", func() {
 		var guids []string
 		for i := 0; i < 51; i++ {
