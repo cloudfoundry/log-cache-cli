@@ -1,5 +1,6 @@
 Log Cache CLI Plugin
 ====================
+[![GoDoc][go-doc-badge]][go-doc] [![travis][travis-badge]][travis] [![slack.cloudfoundry.org][slack-badge]][loggregator-slack]
 
 The Log Cache CLI Plugin is a [CF CLI](cf-cli) plugin for the [Log
 Cache](log-cache) system.
@@ -47,3 +48,10 @@ USAGE:
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release
 [cf-cli]: https://code.cloudfoundry.org/cli
+
+[slack-badge]:              https://slack.cloudfoundry.org/badge.svg
+[loggregator-slack]:        https://cloudfoundry.slack.com/archives/loggregator
+[go-doc-badge]:             https://godoc.org/code.cloudfoundry.org/log-cache-cli?status.svg
+[go-doc]:                   https://godoc.org/code.cloudfoundry.org/log-cache-cli
+[travis-badge]:             https://travis-ci.org/cloudfoundry-incubator/log-cache-cli.svg?branch=master
+[travis]:                   https://travis-ci.org/cloudfoundry-incubator/log-cache-cli?branch=master
