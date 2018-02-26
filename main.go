@@ -56,9 +56,9 @@ COMMANDS:
     tail: Output logs for an app
         --end-time           End of query range in UNIX nanoseconds.
         --envelope-type      Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
-        --follow             Output appended to stdout as logs are egressed.
+        --follow, -f         Output appended to stdout as logs are egressed.
         --json               Output envelopes in JSON format.
-        --lines              Number of envelopes to return. Default is 10.
+        --lines, -n          Number of envelopes to return. Default is 10.
         --start-time         Start of query range in UNIX nanoseconds.
 
         --counter-name       Counter name filter (implies --envelope-type=counter).

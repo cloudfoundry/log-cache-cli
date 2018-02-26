@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 	logcache "code.cloudfoundry.org/go-log-cache"
 	"code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
+	flags "github.com/jessevdk/go-flags"
 )
 
 const (
@@ -193,73 +193,78 @@ type options struct {
 	counterName string
 }
 
-func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, error) {
-	f := flag.NewFlagSet("log-cache", flag.ContinueOnError)
-	start := f.Int64("start-time", 0, "")
-	end := f.Int64("end-time", time.Now().UnixNano(), "")
-	envelopeType := f.String("envelope-type", "", "")
-	lines := f.Uint("lines", 10, "")
-	follow := f.Bool("follow", false, "")
-	outputFormat := f.String("output-format", "", "")
-	jsonOutput := f.Bool("json", false, "")
-	gaugeName := f.String("gauge-name", "", "")
-	counterName := f.String("counter-name", "", "")
-	envelopeClass := f.String("type", "", "")
+type optionFlags struct {
+	StartTime     int64  `long:"start-time"`
+	EndTime       int64  `long:"end-time"`
+	EnvelopeType  string `long:"envelope-type"`
+	Lines         uint   `long:"lines" short:"n" default:"10"`
+	Follow        bool   `long:"follow" short:"f"`
+	OutputFormat  string `long:"output-format" short:"o"`
+	JSONOutput    bool   `long:"json"`
+	GaugeName     string `long:"gauge-name"`
+	CounterName   string `long:"counter-name"`
+	EnvelopeClass string `long:"type"`
+}
 
-	err := f.Parse(args)
+func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, error) {
+	opts := optionFlags{
+		EndTime: time.Now().UnixNano(),
+	}
+
+	args, err := flags.ParseArgs(&opts, args)
 	if err != nil {
 		return options{}, err
 	}
 
-	if len(f.Args()) != 1 {
-		return options{}, fmt.Errorf("Expected 1 argument, got %d.", len(f.Args()))
+	if len(args) != 1 {
+		return options{}, fmt.Errorf("Expected 1 argument, got %d.", len(args))
 	}
 
-	if *jsonOutput && *outputFormat != "" {
+	if opts.JSONOutput && opts.OutputFormat != "" {
 		return options{}, errors.New("Cannot use output-format and json flags together")
 	}
 
-	if *envelopeType != "" && *counterName != "" {
+	if opts.EnvelopeType != "" && opts.CounterName != "" {
 		return options{}, errors.New("--counter-name cannot be used with --envelope-type")
 	}
 
-	if *envelopeType != "" && *gaugeName != "" {
+	if opts.EnvelopeType != "" && opts.GaugeName != "" {
 		return options{}, errors.New("--gauge-name cannot be used with --envelope-type")
 	}
 
-	if *gaugeName != "" && *counterName != "" {
+	if opts.GaugeName != "" && opts.CounterName != "" {
 		return options{}, errors.New("--counter-name cannot be used with --gauge-name")
 	}
 
-	if *envelopeType != "" && *envelopeClass != "" {
+	if opts.EnvelopeType != "" && opts.EnvelopeClass != "" {
 		return options{}, errors.New("--envelope-type cannot be used with --type")
 	}
 
-	if *envelopeClass != "" {
-		*envelopeType = "ANY"
+	if opts.EnvelopeClass != "" {
+		opts.EnvelopeType = "ANY"
 	}
 
 	var outputTemplate *template.Template
-	if *outputFormat != "" {
-		outputTemplate, err = parseOutputFormat(*outputFormat)
+	if opts.OutputFormat != "" {
+		outputTemplate, err = parseOutputFormat(opts.OutputFormat)
 		if err != nil {
 			log.Fatalf("%s", err)
 		}
 	}
 
 	o := options{
-		startTime:      time.Unix(0, *start),
-		endTime:        time.Unix(0, *end),
-		envelopeType:   translateEnvelopeType(*envelopeType),
-		lines:          int(*lines),
-		guid:           getAppGUID(f.Args()[0], cli, log),
-		providedName:   f.Args()[0],
-		follow:         *follow,
+		startTime:      time.Unix(0, opts.StartTime),
+		endTime:        time.Unix(0, opts.EndTime),
+		envelopeType:   translateEnvelopeType(opts.EnvelopeType),
+		lines:          int(opts.Lines),
+		guid:           getAppGUID(args[0], cli, log),
+		providedName:   args[0],
+		follow:         opts.Follow,
 		outputTemplate: outputTemplate,
-		jsonOutput:     *jsonOutput,
-		gaugeName:      *gaugeName,
-		counterName:    *counterName,
-		envelopeClass:  toEnvelopeClass(*envelopeClass),
+		jsonOutput:     opts.JSONOutput,
+		gaugeName:      opts.GaugeName,
+		counterName:    opts.CounterName,
+		envelopeClass:  toEnvelopeClass(opts.EnvelopeClass),
 	}
 
 	return o, o.validate()

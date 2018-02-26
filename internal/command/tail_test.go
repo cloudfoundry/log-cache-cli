@@ -354,6 +354,50 @@ var _ = Describe("LogCache", func() {
 		))
 	})
 
+	It("respects short flag for following", func() {
+		httpClient.responseBody = []string{
+			responseBodyAsc(startTime),
+			responseBodyAsc(startTime.Add(3 * time.Second)),
+		}
+		logFormat := "   %s [APP/PROC/WEB/0] %s log body"
+
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		defer cancel()
+		command.Tail(ctx, cliConn, []string{"-f", "app-name"}, httpClient, logger, writer)
+
+		Expect(httpClient.requestURLs).ToNot(BeEmpty())
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+
+		now := time.Now()
+
+		start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(start).To(BeNumerically("~", now.Add(-5*time.Second).UnixNano(), time.Second))
+
+		_, ok := requestURL.Query()["end_time"]
+		Expect(ok).To(BeFalse())
+
+		envelopeType := requestURL.Query().Get("envelope_type")
+		Expect(envelopeType).To(Equal("LOG"))
+
+		Expect(writer.lines()).To(ConsistOf(
+			fmt.Sprintf(
+				"Retrieving logs for app %s in org %s / space %s as %s...",
+				"app-name",
+				cliConn.orgName,
+				cliConn.spaceName,
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(logFormat, startTime.Format(timeFormat), "OUT"),
+			fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
+			fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "ERR"),
+			fmt.Sprintf(logFormat, startTime.Add(3*time.Second).Format(timeFormat), "OUT"),
+			fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
+			fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
+		))
+	})
+
 	It("filters when given counter-name flag while following", func() {
 		httpClient.responseBody = []string{
 			mixedResponseBody(startTime),
@@ -440,6 +484,19 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
 	})
 
+	It("accepts lines flags (short)", func() {
+		args := []string{
+			"-n", "99",
+			"app-name",
+		}
+		command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		requestURL, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
+	})
+
 	It("defaults lines flag to 10", func() {
 		args := []string{
 			"app-name",
@@ -476,6 +533,18 @@ var _ = Describe("LogCache", func() {
 		httpClient.responseBody = []string{responseBody(time.Unix(0, 1))}
 		args := []string{
 			"--output-format", `{{.Timestamp}} {{printf "%s" .GetLog.GetPayload}}`,
+			"app-guid",
+		}
+
+		command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+
+		Expect(writer.lines()).To(ContainElement("1 log body"))
+	})
+
+	It("formats the output via text/template (short flag)", func() {
+		httpClient.responseBody = []string{responseBody(time.Unix(0, 1))}
+		args := []string{
+			"-o", `{{.Timestamp}} {{printf "%s" .GetLog.GetPayload}}`,
 			"app-guid",
 		}
 
