@@ -334,7 +334,7 @@ var _ = Describe("LogCache", func() {
 		Expect(ok).To(BeFalse())
 
 		envelopeType := requestURL.Query().Get("envelope_type")
-		Expect(envelopeType).To(Equal("LOG"))
+		Expect(envelopeType).To(Equal("ANY"))
 
 		Expect(writer.lines()).To(ConsistOf(
 			fmt.Sprintf(
@@ -378,7 +378,7 @@ var _ = Describe("LogCache", func() {
 		Expect(ok).To(BeFalse())
 
 		envelopeType := requestURL.Query().Get("envelope_type")
-		Expect(envelopeType).To(Equal("LOG"))
+		Expect(envelopeType).To(Equal("ANY"))
 
 		Expect(writer.lines()).To(ConsistOf(
 			fmt.Sprintf(
@@ -558,6 +558,15 @@ var _ = Describe("LogCache", func() {
 		Expect(func() {
 			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
 		}).ToNot(Panic())
+	})
+
+	It("fatally logs if envelope-type is invalid", func() {
+		args := []string{"--envelope-type", "invalid", "some-app"}
+		Expect(func() {
+			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("--envelope-type must be LOG, COUNTER, GAUGE, TIMER, EVENT or ANY"))
 	})
 
 	It("fatally logs if gauge-name and envelope-type flags are both set", func() {

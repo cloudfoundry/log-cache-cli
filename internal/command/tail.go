@@ -84,11 +84,11 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 
 	formatter := newFormatter(formatterKindFromOptions(o), log, o.outputTemplate)
 
-	guid := o.guid
+	sourceID := o.guid
 	headerPrinter := formatter.appHeader
-	if guid == "" {
+	if sourceID == "" {
 		// fall back to provided name
-		guid = o.providedName
+		sourceID = o.providedName
 		headerPrinter = formatter.sourceHeader
 	}
 
@@ -117,7 +117,7 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	if o.follow {
 		logcache.Walk(
 			ctx,
-			guid,
+			sourceID,
 			logcache.Visitor(func(envelopes []*loggregator_v2.Envelope) bool {
 				for _, e := range envelopes {
 					if formatted, ok := filterAndFormat(e); ok {
@@ -138,7 +138,7 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	// Lines mode
 	envelopes, err := client.Read(
 		context.Background(),
-		guid,
+		sourceID,
 		o.startTime,
 		logcache.WithEndTime(o.endTime),
 		logcache.WithEnvelopeType(o.envelopeType),
@@ -255,7 +255,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	o := options{
 		startTime:      time.Unix(0, opts.StartTime),
 		endTime:        time.Unix(0, opts.EndTime),
-		envelopeType:   translateEnvelopeType(opts.EnvelopeType),
+		envelopeType:   translateEnvelopeType(opts.EnvelopeType, log),
 		lines:          int(opts.Lines),
 		guid:           getAppGUID(args[0], cli, log),
 		providedName:   args[0],
@@ -349,13 +349,13 @@ func parseOutputFormat(f string) (*template.Template, error) {
 	return templ, nil
 }
 
-func translateEnvelopeType(t string) logcache_v1.EnvelopeTypes {
+func translateEnvelopeType(t string, log Logger) logcache_v1.EnvelopeTypes {
 	t = strings.ToUpper(t)
 
 	switch t {
-	case "ANY":
+	case "ANY", "":
 		return logcache_v1.EnvelopeTypes_ANY
-	case "LOG", "":
+	case "LOG":
 		return logcache_v1.EnvelopeTypes_LOG
 	case "COUNTER":
 		return logcache_v1.EnvelopeTypes_COUNTER
@@ -366,7 +366,11 @@ func translateEnvelopeType(t string) logcache_v1.EnvelopeTypes {
 	case "EVENT":
 		return logcache_v1.EnvelopeTypes_EVENT
 	default:
-		return logcache_v1.EnvelopeTypes_LOG
+		log.Fatalf("--envelope-type must be LOG, COUNTER, GAUGE, TIMER, EVENT or ANY")
+
+		// Won't get here, but log.Fatalf isn't obvious to the compiler that
+		// execution will halt.
+		return logcache_v1.EnvelopeTypes_ANY
 	}
 }
 
