@@ -17,33 +17,33 @@ cf install-plugin $GOPATH/bin/log-cache-cli
 ##### `log-cache`
 
 ```
-$ cf log-cache guid --help
+$ cf tail --help
 NAME:
-   log-cache -
+   tail - Output logs for a source-id/app
 
 USAGE:
-   log-cache [options] <app-guid>
+   tail [options] <source-id/app>
 
 OPTIONS:
-   -start-time       Start of query range in UNIX nanoseconds.
-   -end-time         End of query range in UNIX nanoseconds.
-   -envelope-type    Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
-   -lines, -n        Number of envelopes to return. Default is 10.
-   -follow, -f       Output appended to stdout as logs are egressed.
-   -json             Output envelopes in JSON format.
-   -counter-name     Counter name filter (implies --envelope-type=counter).
-   -gauge-name       Gauge name filter (implies --envelope-type=gauge).
+   -envelope-type       Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
+   -follow, -f          Output appended to stdout as logs are egressed.
+   -gauge-name          Gauge name filter (implies --envelope-type=gauge).
+   -json                Output envelopes in JSON format.
+   -lines, -n           Number of envelopes to return. Default is 10.
+   -start-time          Start of query range in UNIX nanoseconds.
+   -counter-name        Counter name filter (implies --envelope-type=counter).
+   -end-time            End of query range in UNIX nanoseconds.
 ```
 
 ##### `log-cache-meta`
 
 ```
-$ cf log-cache-meta --help
+$ cf log-meta --help
 NAME:
-   log-cache-meta -
+   log-meta - Show all available meta information
 
 USAGE:
-   log-cache-meta
+   log-meta
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release
