@@ -99,11 +99,11 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	}
 
 	if o.gaugeName != "" {
-		o.envelopeType = logcache_v1.EnvelopeTypes_GAUGE
+		o.envelopeType = logcache_v1.EnvelopeType_GAUGE
 	}
 
 	if o.counterName != "" {
-		o.envelopeType = logcache_v1.EnvelopeTypes_COUNTER
+		o.envelopeType = logcache_v1.EnvelopeType_COUNTER
 	}
 
 	filterAndFormat := func(e *loggregator_v2.Envelope) (string, bool) {
@@ -179,7 +179,7 @@ type envelopeClass int
 type options struct {
 	startTime     time.Time
 	endTime       time.Time
-	envelopeType  logcache_v1.EnvelopeTypes
+	envelopeType  logcache_v1.EnvelopeType
 	envelopeClass envelopeClass
 	lines         int
 	follow        bool
@@ -349,28 +349,28 @@ func parseOutputFormat(f string) (*template.Template, error) {
 	return templ, nil
 }
 
-func translateEnvelopeType(t string, log Logger) logcache_v1.EnvelopeTypes {
+func translateEnvelopeType(t string, log Logger) logcache_v1.EnvelopeType {
 	t = strings.ToUpper(t)
 
 	switch t {
 	case "ANY", "":
-		return logcache_v1.EnvelopeTypes_ANY
+		return logcache_v1.EnvelopeType_ANY
 	case "LOG":
-		return logcache_v1.EnvelopeTypes_LOG
+		return logcache_v1.EnvelopeType_LOG
 	case "COUNTER":
-		return logcache_v1.EnvelopeTypes_COUNTER
+		return logcache_v1.EnvelopeType_COUNTER
 	case "GAUGE":
-		return logcache_v1.EnvelopeTypes_GAUGE
+		return logcache_v1.EnvelopeType_GAUGE
 	case "TIMER":
-		return logcache_v1.EnvelopeTypes_TIMER
+		return logcache_v1.EnvelopeType_TIMER
 	case "EVENT":
-		return logcache_v1.EnvelopeTypes_EVENT
+		return logcache_v1.EnvelopeType_EVENT
 	default:
 		log.Fatalf("--envelope-type must be LOG, COUNTER, GAUGE, TIMER, EVENT or ANY")
 
 		// Won't get here, but log.Fatalf isn't obvious to the compiler that
 		// execution will halt.
-		return logcache_v1.EnvelopeTypes_ANY
+		return logcache_v1.EnvelopeType_ANY
 	}
 }
 
