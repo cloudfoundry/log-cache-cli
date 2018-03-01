@@ -241,7 +241,7 @@ var _ = Describe("LogCache", func() {
 		Expect(httpClient.requestURLs).ToNot(BeEmpty())
 		requestURL, err := url.Parse(httpClient.requestURLs[0])
 		Expect(err).ToNot(HaveOccurred())
-		envelopeType := requestURL.Query().Get("envelope_type")
+		envelopeType := requestURL.Query().Get("envelope_types")
 		Expect(envelopeType).To(Equal("ANY"))
 	})
 
@@ -263,7 +263,7 @@ var _ = Describe("LogCache", func() {
 		Expect(httpClient.requestURLs).ToNot(BeEmpty())
 		requestURL, err := url.Parse(httpClient.requestURLs[0])
 		Expect(err).ToNot(HaveOccurred())
-		envelopeType := requestURL.Query().Get("envelope_type")
+		envelopeType := requestURL.Query().Get("envelope_types")
 		Expect(envelopeType).To(Equal("ANY"))
 	})
 
@@ -285,7 +285,7 @@ var _ = Describe("LogCache", func() {
 		Expect(httpClient.requestURLs).ToNot(BeEmpty())
 		requestURL, err := url.Parse(httpClient.requestURLs[0])
 		Expect(err).ToNot(HaveOccurred())
-		envelopeType := requestURL.Query().Get("envelope_type")
+		envelopeType := requestURL.Query().Get("envelope_types")
 		Expect(envelopeType).To(Equal("GAUGE"))
 	})
 
@@ -306,7 +306,7 @@ var _ = Describe("LogCache", func() {
 		Expect(httpClient.requestURLs).ToNot(BeEmpty())
 		requestURL, err := url.Parse(httpClient.requestURLs[0])
 		Expect(err).ToNot(HaveOccurred())
-		envelopeType := requestURL.Query().Get("envelope_type")
+		envelopeType := requestURL.Query().Get("envelope_types")
 		Expect(envelopeType).To(Equal("COUNTER"))
 	})
 
@@ -333,7 +333,7 @@ var _ = Describe("LogCache", func() {
 		_, ok := requestURL.Query()["end_time"]
 		Expect(ok).To(BeFalse())
 
-		envelopeType := requestURL.Query().Get("envelope_type")
+		envelopeType := requestURL.Query().Get("envelope_types")
 		Expect(envelopeType).To(Equal("ANY"))
 
 		Expect(writer.lines()).To(ConsistOf(
@@ -377,7 +377,7 @@ var _ = Describe("LogCache", func() {
 		_, ok := requestURL.Query()["end_time"]
 		Expect(ok).To(BeFalse())
 
-		envelopeType := requestURL.Query().Get("envelope_type")
+		envelopeType := requestURL.Query().Get("envelope_types")
 		Expect(envelopeType).To(Equal("ANY"))
 
 		Expect(writer.lines()).To(ConsistOf(
@@ -415,7 +415,7 @@ var _ = Describe("LogCache", func() {
 		Expect(httpClient.requestURLs).ToNot(BeEmpty())
 		requestURL, err := url.Parse(httpClient.requestURLs[0])
 		Expect(err).ToNot(HaveOccurred())
-		envelopeType := requestURL.Query().Get("envelope_type")
+		envelopeType := requestURL.Query().Get("envelope_types")
 		Expect(envelopeType).To(Equal("COUNTER"))
 	})
 
@@ -479,7 +479,7 @@ var _ = Describe("LogCache", func() {
 		Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
 		Expect(requestURL.Query().Get("start_time")).To(Equal("100"))
 		Expect(requestURL.Query().Get("end_time")).To(Equal("123"))
-		Expect(requestURL.Query().Get("envelope_type")).To(Equal("GAUGE"))
+		Expect(requestURL.Query().Get("envelope_types")).To(Equal("GAUGE"))
 		Expect(requestURL.Query().Get("descending")).To(Equal("true"))
 		Expect(requestURL.Query().Get("limit")).To(Equal("99"))
 	})

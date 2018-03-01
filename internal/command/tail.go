@@ -128,7 +128,7 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 			}),
 			client.Read,
 			logcache.WithWalkStartTime(time.Now().Add(-5*time.Second)),
-			logcache.WithWalkEnvelopeType(o.envelopeType),
+			logcache.WithWalkEnvelopeTypes(o.envelopeType),
 			logcache.WithWalkBackoff(logcache.NewAlwaysRetryBackoff(250*time.Millisecond)),
 		)
 
@@ -141,7 +141,7 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		sourceID,
 		o.startTime,
 		logcache.WithEndTime(o.endTime),
-		logcache.WithEnvelopeType(o.envelopeType),
+		logcache.WithEnvelopeTypes(o.envelopeType),
 		logcache.WithLimit(o.lines),
 		logcache.WithDescending(),
 	)
