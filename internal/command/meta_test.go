@@ -175,6 +175,21 @@ var _ = Describe("Meta", func() {
 		Expect(strings.Split(tableWriter.String(), "\n")).To(HaveLen(54))
 	})
 
+	It("fatally logs when it receives too many arguments", func() {
+		Expect(func() {
+			command.Meta(
+				context.Background(),
+				cliConn,
+				[]string{"extra-arg"},
+				httpClient,
+				logger,
+				tableWriter,
+			)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("Invalid arguments, expected 0, got 1."))
+	})
+
 	It("fatally logs when getting ApiEndpoint fails", func() {
 		cliConn.apiEndpointErr = errors.New("some-error")
 

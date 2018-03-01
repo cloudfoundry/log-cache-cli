@@ -33,6 +33,10 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		log.Fatalf("Could not parse flags: %s", err)
 	}
 
+	if len(f.Args()) > 0 {
+		log.Fatalf("Invalid arguments, expected 0, got %d.", len(f.Args()))
+	}
+
 	logCacheEndpoint, err := logCacheEndpoint(cli)
 	if err != nil {
 		log.Fatalf("Could not determine Log Cache endpoint: %s", err)
