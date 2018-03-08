@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -36,6 +37,11 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 
 	if len(f.Args()) > 0 {
 		log.Fatalf("Invalid arguments, expected 0, got %d.", len(f.Args()))
+	}
+
+	*scope = strings.ToLower(*scope)
+	if invalidScope(*scope) {
+		log.Fatalf("Scope must be 'platform', 'applications' or 'all'.")
 	}
 
 	logCacheEndpoint, err := logCacheEndpoint(cli)
@@ -88,6 +94,7 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
 	fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", "Source ID", "App Name", "Count", "Expired", "Cache Duration")
 
+	idRegexp := regexp.MustCompile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 	for _, app := range resources.Resources {
 		m := meta[app.GUID]
 		delete(meta, app.GUID)
@@ -96,9 +103,20 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		}
 	}
 
+	// Apps that do not have a known name from CAPI
+	if *scope == "applications" || *scope == "all" {
+		for sourceID, m := range meta {
+			if idRegexp.MatchString(sourceID) {
+				fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\n", sourceID, "", m.Count, m.Expired, cacheDuration(m))
+			}
+		}
+	}
+
 	if *scope == "platform" || *scope == "all" {
 		for sourceID, m := range meta {
-			fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\n", sourceID, "", m.Count, m.Expired, cacheDuration(m))
+			if !idRegexp.MatchString(sourceID) {
+				fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\n", sourceID, "", m.Count, m.Expired, cacheDuration(m))
+			}
 		}
 	}
 
@@ -143,4 +161,20 @@ func sourceIDsFromMeta(meta map[string]*logcache_v1.MetaInfo) string {
 		ids = append(ids, id)
 	}
 	return strings.Join(ids, ",")
+}
+
+func invalidScope(scope string) bool {
+	validScopes := []string{"platform", "applications", "all"}
+
+	if scope == "" {
+		return false
+	}
+
+	for _, s := range validScopes {
+		if scope == s {
+			return false
+		}
+	}
+
+	return true
 }

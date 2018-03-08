@@ -100,10 +100,16 @@ var _ = Describe("Meta", func() {
 
 	It("prints meta scoped to apps", func() {
 		httpClient.responseBody = []string{
-			metaResponseInfo("source-1", "source-2"),
+			metaResponseInfo(
+				"deadbeef-dead-dead-dead-deaddeafbeef",
+				"source-2",
+				"f26fb323-6884-4978-a45f-da188dbf8ecd",
+			),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = []string{capiResponse(map[string]string{
+			"deadbeef-dead-dead-dead-deaddeafbeef": "app-1",
+		})}
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--scope", "applications"}
@@ -115,21 +121,26 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  App Name  Count   Expired  Cache Duration",
-			"source-1   app-1     100000  85008    11m45s",
+			"Source ID                             App Name  Count   Expired  Cache Duration",
+			"deadbeef-dead-dead-dead-deaddeafbeef  app-1     100000  85008    11m45s",
+			"f26fb323-6884-4978-a45f-da188dbf8ecd            100000  85008    11m45s",
 			"",
 		}))
 	})
 
 	It("prints meta scoped to platform", func() {
 		httpClient.responseBody = []string{
-			metaResponseInfo("source-1", "source-2"),
+			metaResponseInfo(
+				"source-1",
+				"source-2",
+				"deadbeef-dead-dead-dead-deaddeafbeef",
+			),
 		}
 
 		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
 		cliConn.cliCommandErr = nil
 
-		args := []string{"--scope", "platform"}
+		args := []string{"--scope", "PLATFORM"}
 		command.Meta(context.Background(), cliConn, args, httpClient, logger, tableWriter)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
@@ -225,6 +236,15 @@ var _ = Describe("Meta", func() {
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("Invalid arguments, expected 0, got 1."))
+	})
+
+	It("fatally logs when scope is not 'platform', 'applications' or 'all'", func() {
+		args := []string{"--scope", "invalid"}
+		Expect(func() {
+			command.Meta(context.Background(), cliConn, args, httpClient, logger, tableWriter)
+		}).To(Panic())
+
+		Expect(logger.fatalfMessage).To(Equal("Scope must be 'platform', 'applications' or 'all'."))
 	})
 
 	It("fatally logs when getting ApiEndpoint fails", func() {
