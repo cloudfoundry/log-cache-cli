@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/log-cache-cli/internal/command"
@@ -26,6 +29,38 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 
 	if len(args) < 1 {
 		log.Fatalf("Expected at least 1 argument, but got %d.", len(args))
+	}
+
+	commands["log-query"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c command.HTTPClient, log command.Logger, tableWriter io.Writer) {
+		command.Query(
+			ctx,
+			cli,
+			func(sourceID string, start, end time.Time) []string {
+				var buf linesWriter
+				command.Tail(
+					ctx,
+					cli,
+					[]string{
+						sourceID,
+						"--start-time",
+						strconv.FormatInt(start.UnixNano(), 10),
+						"--end-time",
+						strconv.FormatInt(end.UnixNano(), 10),
+						"--json",
+						"--lines", "1000",
+					},
+					c,
+					log,
+					&buf,
+				)
+
+				return buf.lines
+			},
+			args,
+			c,
+			log,
+			tableWriter,
+		)
 	}
 
 	skipSSL, err := conn.IsSSLDisabled()
@@ -65,6 +100,17 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 				},
 			},
 			{
+				Name:     "log-query",
+				HelpText: "Output results for a PromQL",
+				UsageDetails: plugin.Usage{
+					Usage: `log-query [options] <promQL>`,
+					Options: map[string]string{
+						"end-time":   "End of query range in UNIX nanoseconds.",
+						"start-time": "Start of query range in UNIX nanoseconds.",
+					},
+				},
+			},
+			{
 				Name:     "log-meta",
 				HelpText: "Show all available meta information",
 				UsageDetails: plugin.Usage{
@@ -77,4 +123,13 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 
 func main() {
 	plugin.Start(&LogCacheCLI{})
+}
+
+type linesWriter struct {
+	lines []string
+}
+
+func (w *linesWriter) Write(data []byte) (int, error) {
+	w.lines = append(w.lines, string(data))
+	return len(data), nil
 }

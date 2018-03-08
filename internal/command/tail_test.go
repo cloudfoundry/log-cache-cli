@@ -20,12 +20,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("LogCache", func() {
+var _ = Describe("tail", func() {
 	var (
 		logger     *stubLogger
 		writer     *stubWriter
 		httpClient *stubHTTPClient
-		cliConn    *stubCliConnection
+		cliConn    *spyCliConnection
 		startTime  time.Time
 		timeFormat string
 	)
@@ -39,8 +39,8 @@ var _ = Describe("LogCache", func() {
 		httpClient = newStubHTTPClient()
 		httpClient.responseBody = []string{responseBody(startTime)}
 
-		cliConn = newStubCliConnection()
-		cliConn.cliCommandResult = []string{"app-guid"}
+		cliConn = newSpyCliConnection()
+		cliConn.cliCommandResult = [][]string{{"app-guid"}}
 		cliConn.usernameResp = "a-user"
 		cliConn.orgName = "organization"
 		cliConn.spaceName = "space"
@@ -513,10 +513,11 @@ var _ = Describe("LogCache", func() {
 		args := []string{"some-app"}
 		command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
 
-		Expect(cliConn.cliCommandArgs).To(HaveLen(3))
-		Expect(cliConn.cliCommandArgs[0]).To(Equal("app"))
-		Expect(cliConn.cliCommandArgs[1]).To(Equal("some-app"))
-		Expect(cliConn.cliCommandArgs[2]).To(Equal("--guid"))
+		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(3))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("app"))
+		Expect(cliConn.cliCommandArgs[0][1]).To(Equal("some-app"))
+		Expect(cliConn.cliCommandArgs[0][2]).To(Equal("--guid"))
 	})
 
 	It("places the auth token in the 'Authorization' header", func() {
@@ -856,7 +857,7 @@ func (s *stubHTTPClient) requestCount() int {
 	return len(s.requestURLs)
 }
 
-type stubCliConnection struct {
+type spyCliConnection struct {
 	plugin.CliConnection
 
 	apiEndpointErr error
@@ -864,8 +865,8 @@ type stubCliConnection struct {
 	hasAPIEndpoint    bool
 	hasAPIEndpointErr error
 
-	cliCommandArgs   []string
-	cliCommandResult []string
+	cliCommandArgs   [][]string
+	cliCommandResult [][]string
 	cliCommandErr    error
 
 	usernameResp string
@@ -879,30 +880,37 @@ type stubCliConnection struct {
 	accessTokenErr error
 }
 
-func newStubCliConnection() *stubCliConnection {
-	return &stubCliConnection{
+func newSpyCliConnection() *spyCliConnection {
+	return &spyCliConnection{
 		hasAPIEndpoint: true,
 	}
 }
 
-func (s *stubCliConnection) ApiEndpoint() (string, error) {
+func (s *spyCliConnection) ApiEndpoint() (string, error) {
 	return "https://api.some-system.com", s.apiEndpointErr
 }
 
-func (s *stubCliConnection) HasAPIEndpoint() (bool, error) {
+func (s *spyCliConnection) HasAPIEndpoint() (bool, error) {
 	return s.hasAPIEndpoint, s.hasAPIEndpointErr
 }
 
-func (s *stubCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]string, error) {
-	s.cliCommandArgs = args
-	return s.cliCommandResult, s.cliCommandErr
+func (s *spyCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]string, error) {
+	s.cliCommandArgs = append(s.cliCommandArgs, args)
+	if len(s.cliCommandResult) == 0 {
+		return nil, s.cliCommandErr
+	}
+
+	result := s.cliCommandResult[0]
+	s.cliCommandResult = s.cliCommandResult[1:]
+
+	return result, s.cliCommandErr
 }
 
-func (s *stubCliConnection) Username() (string, error) {
+func (s *spyCliConnection) Username() (string, error) {
 	return s.usernameResp, s.usernameErr
 }
 
-func (s *stubCliConnection) GetCurrentOrg() (plugin_models.Organization, error) {
+func (s *spyCliConnection) GetCurrentOrg() (plugin_models.Organization, error) {
 	return plugin_models.Organization{
 		plugin_models.OrganizationFields{
 			Name: s.orgName,
@@ -910,7 +918,7 @@ func (s *stubCliConnection) GetCurrentOrg() (plugin_models.Organization, error) 
 	}, s.orgErr
 }
 
-func (s *stubCliConnection) GetCurrentSpace() (plugin_models.Space, error) {
+func (s *spyCliConnection) GetCurrentSpace() (plugin_models.Space, error) {
 	return plugin_models.Space{
 		plugin_models.SpaceFields{
 			Name: s.spaceName,
@@ -918,7 +926,7 @@ func (s *stubCliConnection) GetCurrentSpace() (plugin_models.Space, error) {
 	}, s.spaceErr
 }
 
-func (s *stubCliConnection) AccessToken() (string, error) {
+func (s *spyCliConnection) AccessToken() (string, error) {
 	return s.accessToken, s.accessTokenErr
 }
 

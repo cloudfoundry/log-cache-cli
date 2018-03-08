@@ -18,15 +18,15 @@ var _ = Describe("Meta", func() {
 	var (
 		logger      *stubLogger
 		httpClient  *stubHTTPClient
-		cliConn     *stubCliConnection
+		cliConn     *spyCliConnection
 		tableWriter *bytes.Buffer
 	)
 
 	BeforeEach(func() {
 		logger = &stubLogger{}
 		httpClient = newStubHTTPClient()
-		cliConn = newStubCliConnection()
-		cliConn.cliCommandResult = []string{"app-guid"}
+		cliConn = newSpyCliConnection()
+		cliConn.cliCommandResult = [][]string{{"app-guid"}}
 		cliConn.usernameResp = "a-user"
 		cliConn.orgName = "organization"
 		cliConn.spaceName = "space"
@@ -38,14 +38,15 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{{capiResponse(map[string]string{"source-1": "app-1"})}}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 
-		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[0]).To(Equal("curl"))
-		Expect(cliConn.cliCommandArgs[1]).To(Equal("/v3/apps?guids=source-1"))
+		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
+		Expect(cliConn.cliCommandArgs[0][1]).To(Equal("/v3/apps?guids=source-1"))
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
@@ -66,15 +67,16 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1", "source-2"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{{capiResponse(map[string]string{"source-1": "app-1"})}}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 
-		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[0]).To(Equal("curl"))
+		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
 
-		uri, err := url.Parse(cliConn.cliCommandArgs[1])
+		uri, err := url.Parse(cliConn.cliCommandArgs[0][1])
 		Expect(err).ToNot(HaveOccurred())
 		Expect(uri.Path).To(Equal("/v3/apps"))
 
@@ -102,7 +104,7 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1", "source-2"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{{capiResponse(map[string]string{"source-1": "app-1"})}}
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--scope", "applications"}
@@ -125,7 +127,7 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1", "source-2"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{{capiResponse(map[string]string{"source-1": "app-1"})}}
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--scope", "platform"}
@@ -153,15 +155,16 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo(guids...),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{})}
+		cliConn.cliCommandResult = [][]string{{capiResponse(map[string]string{})}}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
 
-		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[0]).To(Equal("curl"))
+		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
 
-		uri, err := url.Parse(cliConn.cliCommandArgs[1])
+		uri, err := url.Parse(cliConn.cliCommandArgs[0][1])
 		Expect(err).ToNot(HaveOccurred())
 		Expect(uri.Path).To(Equal("/v3/apps"))
 
@@ -220,7 +223,7 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{{capiResponse(map[string]string{"source-1": "app-1"})}}
 		cliConn.cliCommandErr = nil
 
 		cliConn.usernameErr = errors.New("some-error")
@@ -237,7 +240,7 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1", "source-2"),
 		}
 
-		cliConn.cliCommandResult = []string{"invalid"}
+		cliConn.cliCommandResult = [][]string{{"invalid"}}
 		cliConn.cliCommandErr = nil
 
 		Expect(func() {
