@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	"code.cloudfoundry.org/log-cache-cli/internal/command"
@@ -173,6 +174,42 @@ var _ = Describe("Meta", func() {
 		// 50 entries, 2 blank lines, "Retrieving..." preamble and table
 		// header comes to 54 lines.
 		Expect(strings.Split(tableWriter.String(), "\n")).To(HaveLen(54))
+	})
+
+	It("uses the LOG_CACHE_ADDR environment variable", func() {
+		os.Setenv("LOG_CACHE_ADDR", "https://different-log-cache:8080")
+		defer os.Unsetenv("LOG_CACHE_ADDR")
+
+		httpClient.responseBody = []string{
+			metaResponseInfo("source-1"),
+		}
+
+		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandErr = nil
+
+		command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
+
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+		u, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		Expect(u.Scheme).To(Equal("https"))
+		Expect(u.Host).To(Equal("different-log-cache:8080"))
+	})
+
+	It("does not send Authorization header with LOG_CACHE_SKIP_AUTH", func() {
+		os.Setenv("LOG_CACHE_SKIP_AUTH", "true")
+		defer os.Unsetenv("LOG_CACHE_SKIP_AUTH")
+
+		httpClient.responseBody = []string{
+			metaResponseInfo("source-1"),
+		}
+
+		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandErr = nil
+
+		command.Meta(context.Background(), cliConn, nil, httpClient, logger, tableWriter)
+
+		Expect(httpClient.requestHeaders[0]).To(BeEmpty())
 	})
 
 	It("fatally logs when it receives too many arguments", func() {

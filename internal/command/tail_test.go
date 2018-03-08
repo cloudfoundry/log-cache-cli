@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -417,6 +418,27 @@ var _ = Describe("LogCache", func() {
 		Expect(err).ToNot(HaveOccurred())
 		envelopeType := requestURL.Query().Get("envelope_types")
 		Expect(envelopeType).To(Equal("COUNTER"))
+	})
+
+	It("uses the LOG_CACHE_ADDR environment variable", func() {
+		os.Setenv("LOG_CACHE_ADDR", "https://different-log-cache:8080")
+		defer os.Unsetenv("LOG_CACHE_ADDR")
+
+		command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+		Expect(httpClient.requestURLs).To(HaveLen(1))
+
+		u, err := url.Parse(httpClient.requestURLs[0])
+		Expect(err).ToNot(HaveOccurred())
+		Expect(u.Scheme).To(Equal("https"))
+		Expect(u.Host).To(Equal("different-log-cache:8080"))
+	})
+
+	It("does not send Authorization header with LOG_CACHE_SKIP_AUTH", func() {
+		os.Setenv("LOG_CACHE_SKIP_AUTH", "true")
+		defer os.Unsetenv("LOG_CACHE_SKIP_AUTH")
+
+		command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+		Expect(httpClient.requestHeaders[0]).To(BeEmpty())
 	})
 
 	It("follow retries for empty responses", func() {

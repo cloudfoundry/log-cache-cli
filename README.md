@@ -24,6 +24,10 @@ NAME:
 USAGE:
    tail [options] <source-id/app>
 
+ENVIRONMENT VARIABLES:
+   LOG_CACHE_ADDR       Overrides the default location of log-cache.
+   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
+
 OPTIONS:
    -envelope-type       Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
    -follow, -f          Output appended to stdout as logs are egressed.
@@ -43,7 +47,14 @@ NAME:
    log-meta - Show all available meta information
 
 USAGE:
-   log-meta
+   log-meta [options]
+
+ENVIRONMENT VARIABLES:
+   LOG_CACHE_ADDR       Overrides the default location of log-cache.
+   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
+
+OPTIONS:
+   -scope               Scope of meta information to show. Available: 'all', 'applications', and 'platform'.
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release

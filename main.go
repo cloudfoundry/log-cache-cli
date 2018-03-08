@@ -51,7 +51,11 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 				Name:     "tail",
 				HelpText: "Output logs for a source-id/app",
 				UsageDetails: plugin.Usage{
-					Usage: `tail [options] <source-id/app>`,
+					Usage: `tail [options] <source-id/app>
+
+ENVIRONMENT VARIABLES:
+   LOG_CACHE_ADDR       Overrides the default location of log-cache.
+   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
 					Options: map[string]string{
 						"end-time":      "End of query range in UNIX nanoseconds.",
 						"envelope-type": "Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.",
@@ -68,7 +72,11 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 				Name:     "log-meta",
 				HelpText: "Show all available meta information",
 				UsageDetails: plugin.Usage{
-					Usage: "log-meta",
+					Usage: `log-meta [options]
+
+ENVIRONMENT VARIABLES:
+   LOG_CACHE_ADDR       Overrides the default location of log-cache.
+   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
 					Options: map[string]string{
 						"scope": "Scope of meta information to show. Available: 'all', 'applications', and 'platform'.",
 					},

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -37,65 +38,67 @@ type HTTPClient interface {
 // Tail will fetch the logs for a given application guid and write them to
 // stdout.
 func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, w io.Writer) {
-	hasAPI, err := cli.HasAPIEndpoint()
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	if !hasAPI {
-		log.Fatalf("No API endpoint targeted.")
-	}
-
-	tokenURL, err := cli.ApiEndpoint()
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
 	o, err := newOptions(cli, args, log)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
 
-	user, err := cli.Username()
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	org, err := cli.GetCurrentOrg()
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	space, err := cli.GetCurrentSpace()
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
+	sourceID := o.guid
+	formatter := newFormatter(formatterKindFromOptions(o), log, o.outputTemplate)
 	lw := lineWriter{w: w}
 
-	tc := &tokenHTTPClient{
-		c:        c,
-		getToken: cli.AccessToken,
+	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
+		c = &tokenHTTPClient{
+			c:        c,
+			getToken: cli.AccessToken,
+		}
 	}
 
-	client := logcache.NewClient(strings.Replace(tokenURL, "api", "log-cache", 1),
-		logcache.WithHTTPClient(tc),
-	)
+	logCacheAddr := os.Getenv("LOG_CACHE_ADDR")
+	if logCacheAddr == "" {
+		hasAPI, err := cli.HasAPIEndpoint()
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
 
-	formatter := newFormatter(formatterKindFromOptions(o), log, o.outputTemplate)
+		if !hasAPI {
+			log.Fatalf("No API endpoint targeted.")
+		}
 
-	sourceID := o.guid
-	headerPrinter := formatter.appHeader
-	if sourceID == "" {
-		// fall back to provided name
-		sourceID = o.providedName
-		headerPrinter = formatter.sourceHeader
-	}
+		tokenURL, err := cli.ApiEndpoint()
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
 
-	header, ok := headerPrinter(o.providedName, org.Name, space.Name, user)
-	if ok {
-		lw.Write(header)
-		lw.Write("")
+		user, err := cli.Username()
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+
+		org, err := cli.GetCurrentOrg()
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+
+		space, err := cli.GetCurrentSpace()
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+
+		logCacheAddr = strings.Replace(tokenURL, "api", "log-cache", 1)
+
+		headerPrinter := formatter.appHeader
+		if sourceID == "" {
+			// fall back to provided name
+			sourceID = o.providedName
+			headerPrinter = formatter.sourceHeader
+		}
+
+		header, ok := headerPrinter(o.providedName, org.Name, space.Name, user)
+		if ok {
+			lw.Write(header)
+			lw.Write("")
+		}
 	}
 
 	if o.gaugeName != "" {
@@ -114,6 +117,7 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		return formatter.formatEnvelope(e)
 	}
 
+	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
 	if o.follow {
 		logcache.Walk(
 			ctx,

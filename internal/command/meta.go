@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -42,14 +43,16 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		log.Fatalf("Could not determine Log Cache endpoint: %s", err)
 	}
 
-	tc := &tokenHTTPClient{
-		c:        c,
-		getToken: cli.AccessToken,
+	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
+		c = &tokenHTTPClient{
+			c:        c,
+			getToken: cli.AccessToken,
+		}
 	}
 
 	client := logcache.NewClient(
 		logCacheEndpoint,
-		logcache.WithHTTPClient(tc),
+		logcache.WithHTTPClient(c),
 	)
 
 	meta, err := client.Meta(ctx)
@@ -120,10 +123,17 @@ func truncate(count int, entries map[string]*logcache_v1.MetaInfo) map[string]*l
 }
 
 func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
+	logCacheAddr := os.Getenv("LOG_CACHE_ADDR")
+
+	if logCacheAddr != "" {
+		return logCacheAddr, nil
+	}
+
 	apiEndpoint, err := cli.ApiEndpoint()
 	if err != nil {
 		return "", err
 	}
+
 	return strings.Replace(apiEndpoint, "api", "log-cache", 1), nil
 }
 
