@@ -1,2 +1,3 @@
 log-cache-cli
 *.test
+.idea/
