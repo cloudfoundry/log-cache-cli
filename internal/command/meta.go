@@ -26,10 +26,14 @@ type appsResponse struct {
 	Resources []app `json:"resources"`
 }
 
+type Tailer func(sourceID string, start, end time.Time) []string
+
 // Meta returns the metadata from Log Cache
-func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, tableWriter io.Writer) {
+func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []string, c HTTPClient, log Logger, tableWriter io.Writer) {
 	f := flag.NewFlagSet("log-cache", flag.ContinueOnError)
 	scope := f.String("scope", "all", "")
+	enableNoise := f.Bool("noise", false, "")
+
 	err := f.Parse(args)
 	if err != nil {
 		log.Fatalf("Could not parse flags: %s", err)
@@ -91,23 +95,47 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		username,
 	))
 
-	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
-	fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", "Source ID", "App Name", "Count", "Expired", "Cache Duration")
+	headerArgs := []interface{}{"Source ID", "App Name", "Count", "Expired", "Cache Duration"}
+	headerFormat := "%s\t%s\t%s\t%s\t%s\n"
+	tableFormat := "%s\t%s\t%d\t%d\t%s\n"
 
-	idRegexp := regexp.MustCompile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+	if *enableNoise {
+		headerArgs = append(headerArgs, "Rate")
+		headerFormat = strings.Replace(headerFormat, "\n", "\t%s\n", 1)
+		tableFormat = strings.Replace(tableFormat, "\n", "\t%d\n", 1)
+	}
+
+	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
+	fmt.Fprintf(tw, headerFormat, headerArgs...)
+
 	for _, app := range resources.Resources {
 		m := meta[app.GUID]
 		delete(meta, app.GUID)
 		if *scope == "applications" || *scope == "all" {
-			fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\n", app.GUID, app.Name, m.Count, m.Expired, cacheDuration(m))
+			args := []interface{}{app.GUID, app.Name, m.Count, m.Expired, cacheDuration(m)}
+			if *enableNoise {
+				end := time.Now()
+				start := end.Add(-time.Minute)
+				args = append(args, len(tailer(app.GUID, start, end)))
+			}
+
+			fmt.Fprintf(tw, tableFormat, args...)
 		}
 	}
+
+	idRegexp := regexp.MustCompile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 	// Apps that do not have a known name from CAPI
 	if *scope == "applications" || *scope == "all" {
 		for sourceID, m := range meta {
 			if idRegexp.MatchString(sourceID) {
-				fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\n", sourceID, "", m.Count, m.Expired, cacheDuration(m))
+				args := []interface{}{sourceID, "", m.Count, m.Expired, cacheDuration(m)}
+				if *enableNoise {
+					end := time.Now()
+					start := end.Add(-time.Minute)
+					args = append(args, len(tailer(sourceID, start, end)))
+				}
+				fmt.Fprintf(tw, tableFormat, args...)
 			}
 		}
 	}
@@ -115,7 +143,14 @@ func Meta(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	if *scope == "platform" || *scope == "all" {
 		for sourceID, m := range meta {
 			if !idRegexp.MatchString(sourceID) {
-				fmt.Fprintf(tw, "%s\t%s\t%d\t%d\t%s\n", sourceID, "", m.Count, m.Expired, cacheDuration(m))
+				args := []interface{}{sourceID, "", m.Count, m.Expired, cacheDuration(m)}
+				if *enableNoise {
+					end := time.Now()
+					start := end.Add(-time.Minute)
+					args = append(args, len(tailer(sourceID, start, end)))
+				}
+
+				fmt.Fprintf(tw, tableFormat, args...)
 			}
 		}
 	}

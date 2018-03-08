@@ -55,6 +55,7 @@ ENVIRONMENT VARIABLES:
 
 OPTIONS:
    -scope               Scope of meta information to show. Available: 'all', 'applications', and 'platform'.
+   -noise               Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release
