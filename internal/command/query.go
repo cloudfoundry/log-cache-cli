@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/promql"
 	"github.com/prometheus/prometheus/storage"
@@ -36,15 +36,14 @@ func Query(
 		log.Fatalf("%s", err)
 	}
 
-	promql.LookbackDelta = 0
-
 	interval := time.Second
 	e := promql.NewEngine(&logCacheQueryable{
 		log:      log,
 		interval: interval,
 		tailer:   tailer,
 	}, nil)
-	q, err := e.NewRangeQuery(o.query, o.startTime, o.endTime, interval)
+
+	q, err := e.NewInstantQuery(o.query, o.endTime)
 	if err != nil {
 		log.Fatalf("Invalid query: %s", err)
 	}
@@ -54,19 +53,16 @@ func Query(
 }
 
 type queryOptions struct {
-	startTime time.Time
 	endTime   time.Time
 	query     string
 }
 
 type queryOptionFlags struct {
-	StartTime int64 `long:"start-time"`
 	EndTime   int64 `long:"end-time"`
 }
 
 func newQueryOptions(cli plugin.CliConnection, args []string, log Logger) (queryOptions, error) {
 	opts := queryOptionFlags{
-		StartTime: time.Now().Add(-5 * time.Minute).UnixNano(),
 		EndTime:   time.Now().UnixNano(),
 	}
 	args, err := flags.ParseArgs(&opts, args)
@@ -79,7 +75,6 @@ func newQueryOptions(cli plugin.CliConnection, args []string, log Logger) (query
 	}
 
 	o := queryOptions{
-		startTime: time.Unix(0, opts.StartTime).Truncate(time.Second),
 		endTime:   time.Unix(0, opts.EndTime).Truncate(time.Second),
 		query:     args[0],
 	}
@@ -140,7 +135,7 @@ func (l *LogCacheQuerier) Select(ll ...*labels.Matcher) (storage.SeriesSet, erro
 
 	output := l.tailer(sourceID, l.start, l.end)
 
-	var es []sample
+	builder := newSeriesBuilder()
 	for _, line := range output {
 		var e loggregator_v2.Envelope
 		if err := jsonpb.Unmarshal(strings.NewReader(line), &e); err != nil {
@@ -165,13 +160,24 @@ func (l *LogCacheQuerier) Select(ll ...*labels.Matcher) (storage.SeriesSet, erro
 			f = e.GetGauge().GetMetrics()[metric].GetValue()
 		}
 
-		es = append(es, sample{
+		builder.add(e.Tags, sample{
 			t: e.GetTimestamp() / int64(time.Millisecond),
 			v: f,
 		})
 	}
 
-	return fromEnvelopes(es, ls), nil
+	return builder.buildSeriesSet(), nil
+}
+
+func convertToLabels(tags map[string]string) []labels.Label {
+	ls := make([]labels.Label, 0, len(tags))
+	for n, v := range tags {
+		ls = append(ls, labels.Label{
+			Name:  n,
+			Value: v,
+		})
+	}
+	return ls
 }
 
 func (l *LogCacheQuerier) hasLabels(tags map[string]string, ls []labels.Label) bool {
@@ -194,17 +200,6 @@ func (l *LogCacheQuerier) LabelValues(name string) ([]string, error) {
 
 func (l *LogCacheQuerier) Close() error {
 	return nil
-}
-
-func fromEnvelopes(es []sample, ls []labels.Label) storage.SeriesSet {
-	return &concreteSeriesSet{
-		series: []storage.Series{
-			&concreteSeries{
-				labels:  ls,
-				samples: es,
-			},
-		},
-	}
 }
 
 // concreteSeriesSet implements storage.SeriesSet.
@@ -282,4 +277,67 @@ func (c *concreteSeriesIterator) Next() bool {
 // Err implements storage.SeriesIterator.
 func (c *concreteSeriesIterator) Err() error {
 	return nil
+}
+
+type seriesData struct {
+	tags    map[string]string
+	samples []sample
+}
+
+func newSeriesBuilder() *seriesSetBuilder {
+	return &seriesSetBuilder{
+		data: make(map[string]seriesData),
+	}
+}
+
+type seriesSetBuilder struct {
+	data map[string]seriesData
+}
+
+func (b *seriesSetBuilder) add(tags map[string]string, s sample) {
+	seriesID := b.getSeriesID(tags)
+	d, ok := b.data[seriesID]
+
+	if !ok {
+		b.data[seriesID] = seriesData{
+			tags:    tags,
+			samples: make([]sample, 0),
+		}
+
+		d = b.data[seriesID]
+	}
+
+	d.samples = append(d.samples, s)
+	b.data[seriesID] = d
+}
+
+func (b *seriesSetBuilder) getSeriesID(tags map[string]string) string {
+	keys := make([]string, 0, len(tags))
+	for k := range tags {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	var seriesID string
+	for _, k := range keys {
+		seriesID = seriesID + "-" + k + "-" + tags[k]
+	}
+
+	return seriesID
+}
+
+func (b *seriesSetBuilder) buildSeriesSet() storage.SeriesSet {
+	set := &concreteSeriesSet{
+		series: []storage.Series{},
+	}
+
+	for _, v := range b.data {
+		set.series = append(set.series, &concreteSeries{
+			labels:  convertToLabels(v.tags),
+			samples: v.samples,
+		})
+	}
+
+	return set
 }

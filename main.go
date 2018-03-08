@@ -37,18 +37,21 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 			cli,
 			func(sourceID string, start, end time.Time) []string {
 				var buf linesWriter
+
+				args := []string{
+					sourceID,
+					"--start-time",
+					strconv.FormatInt(start.UnixNano(), 10),
+					"--end-time",
+					strconv.FormatInt(end.UnixNano(), 10),
+					"--json",
+					"--lines", "1000",
+				}
+
 				command.Tail(
 					ctx,
 					cli,
-					[]string{
-						sourceID,
-						"--start-time",
-						strconv.FormatInt(start.UnixNano(), 10),
-						"--end-time",
-						strconv.FormatInt(end.UnixNano(), 10),
-						"--json",
-						"--lines", "1000",
-					},
+					args,
 					c,
 					log,
 					&buf,
@@ -106,7 +109,6 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 					Usage: `log-query [options] <promQL>`,
 					Options: map[string]string{
 						"end-time":   "End of query range in UNIX nanoseconds.",
-						"start-time": "Start of query range in UNIX nanoseconds.",
 					},
 				},
 			},
