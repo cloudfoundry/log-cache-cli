@@ -69,6 +69,9 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 				HelpText: "Show all available meta information",
 				UsageDetails: plugin.Usage{
 					Usage: "log-meta",
+					Options: map[string]string{
+						"scope": "Scope of meta information to show. Available: 'all', 'applications', and 'platform'.",
+					},
 				},
 			},
 		},
