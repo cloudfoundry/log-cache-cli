@@ -61,21 +61,21 @@ var _ = Describe("Query", func() {
 		Expect(strings.Join(writer.lines(), " ")).To(Equal("{} => 11 @[300000] 15 @[400000]"))
 	})
 
-	It("executes the tail command with specified start and end time", func() {
+	It("executes the tail command with specified start and end time for each metric", func() {
 		var (
 			sourceIDs []string
 			starts    []time.Time
 			ends      []time.Time
 		)
 
-		f := func(sourceID string, start, end time.Time) []string {
+		tailer := func(sourceID string, start, end time.Time) []string {
 			sourceIDs = append(sourceIDs, sourceID)
 			starts = append(starts, start)
 			ends = append(ends, end)
 			return nil
 		}
 		args := []string{`x{source_id="source-x"} + y{source_id="source-y"}`, "--start-time", "300000000000", "--end-time", "600000000000"}
-		command.Query(context.Background(), cliConn, f, args, httpClient, logger, writer)
+		command.Query(context.Background(), cliConn, tailer, args, httpClient, logger, writer)
 
 		Expect(sourceIDs).To(ConsistOf("source-x", "source-y"))
 		Expect(starts).To(ConsistOf(
