@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"code.cloudfoundry.org/cli/plugin"
 	logcache "code.cloudfoundry.org/go-log-cache"
 	"code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
+	flags "github.com/jessevdk/go-flags"
 )
 
 type app struct {
@@ -28,23 +28,29 @@ type appsResponse struct {
 
 type Tailer func(sourceID string, start, end time.Time) []string
 
+type optionsFlags struct {
+	Scope       string `long:"scope"`
+	EnableNoise bool   `long:"noise"`
+}
+
 // Meta returns the metadata from Log Cache
 func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []string, c HTTPClient, log Logger, tableWriter io.Writer) {
-	f := flag.NewFlagSet("log-cache", flag.ContinueOnError)
-	scope := f.String("scope", "all", "")
-	enableNoise := f.Bool("noise", false, "")
+	opts := optionsFlags{
+		Scope:       "all",
+		EnableNoise: false,
+	}
 
-	err := f.Parse(args)
+	args, err := flags.ParseArgs(&opts, args)
 	if err != nil {
 		log.Fatalf("Could not parse flags: %s", err)
 	}
 
-	if len(f.Args()) > 0 {
-		log.Fatalf("Invalid arguments, expected 0, got %d.", len(f.Args()))
+	if len(args) > 0 {
+		log.Fatalf("Invalid arguments, expected 0, got %d.", len(args))
 	}
 
-	*scope = strings.ToLower(*scope)
-	if invalidScope(*scope) {
+	scope := strings.ToLower(opts.Scope)
+	if invalidScope(scope) {
 		log.Fatalf("Scope must be 'platform', 'applications' or 'all'.")
 	}
 
@@ -99,7 +105,7 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	headerFormat := "%s\t%s\t%s\t%s\t%s\n"
 	tableFormat := "%s\t%s\t%d\t%d\t%s\n"
 
-	if *enableNoise {
+	if opts.EnableNoise {
 		headerArgs = append(headerArgs, "Rate")
 		headerFormat = strings.Replace(headerFormat, "\n", "\t%s\n", 1)
 		tableFormat = strings.Replace(tableFormat, "\n", "\t%d\n", 1)
@@ -111,9 +117,9 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	for _, app := range resources.Resources {
 		m := meta[app.GUID]
 		delete(meta, app.GUID)
-		if *scope == "applications" || *scope == "all" {
+		if scope == "applications" || scope == "all" {
 			args := []interface{}{app.GUID, app.Name, m.Count, m.Expired, cacheDuration(m)}
-			if *enableNoise {
+			if opts.EnableNoise {
 				end := time.Now()
 				start := end.Add(-time.Minute)
 				args = append(args, len(tailer(app.GUID, start, end)))
@@ -126,11 +132,11 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	idRegexp := regexp.MustCompile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 	// Apps that do not have a known name from CAPI
-	if *scope == "applications" || *scope == "all" {
+	if scope == "applications" || scope == "all" {
 		for sourceID, m := range meta {
 			if idRegexp.MatchString(sourceID) {
 				args := []interface{}{sourceID, "", m.Count, m.Expired, cacheDuration(m)}
-				if *enableNoise {
+				if opts.EnableNoise {
 					end := time.Now()
 					start := end.Add(-time.Minute)
 					args = append(args, len(tailer(sourceID, start, end)))
@@ -140,11 +146,11 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 		}
 	}
 
-	if *scope == "platform" || *scope == "all" {
+	if scope == "platform" || scope == "all" {
 		for sourceID, m := range meta {
 			if !idRegexp.MatchString(sourceID) {
 				args := []interface{}{sourceID, "", m.Count, m.Expired, cacheDuration(m)}
-				if *enableNoise {
+				if opts.EnableNoise {
 					end := time.Now()
 					start := end.Add(-time.Minute)
 					args = append(args, len(tailer(sourceID, start, end)))
