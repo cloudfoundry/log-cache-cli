@@ -82,7 +82,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 
 func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
-		Name: "Log Cache CLI Plugin",
+		Name:    "log-cache",
 		Commands: []plugin.Command{
 			{
 				Name:     "tail",
