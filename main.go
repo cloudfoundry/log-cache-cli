@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +14,11 @@ import (
 	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/log-cache-cli/internal/command"
 )
+
+// version is set via ldflags at compile time. It should be JSON encoded
+// plugin.VersionType. If it does not unmarshal, the plugin version will be
+// left empty.
+var version string
 
 type LogCacheCLI struct{}
 
@@ -81,8 +87,14 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 }
 
 func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
+	var v plugin.VersionType
+	// Ignore the error. If this doesn't unmarshal, then we want the default
+	// VersionType.
+	_ = json.Unmarshal([]byte(version), &v)
+
 	return plugin.PluginMetadata{
 		Name:    "log-cache",
+		Version: v,
 		Commands: []plugin.Command{
 			{
 				Name:     "tail",
