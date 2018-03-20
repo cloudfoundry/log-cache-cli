@@ -65,5 +65,5 @@ OPTIONS:
 [loggregator-slack]:        https://cloudfoundry.slack.com/archives/loggregator
 [go-doc-badge]:             https://godoc.org/code.cloudfoundry.org/log-cache-cli?status.svg
 [go-doc]:                   https://godoc.org/code.cloudfoundry.org/log-cache-cli
-[travis-badge]:             https://travis-ci.org/cloudfoundry-incubator/log-cache-cli.svg?branch=master
-[travis]:                   https://travis-ci.org/cloudfoundry-incubator/log-cache-cli?branch=master
+[travis-badge]:             https://travis-ci.org/cloudfoundry/log-cache-cli.svg?branch=master
+[travis]:                   https://travis-ci.org/cloudfoundry/log-cache-cli?branch=master
