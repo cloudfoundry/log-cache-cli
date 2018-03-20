@@ -76,19 +76,9 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 		log.Fatalf("Failed to read Meta information: %s", err)
 	}
 
-	meta = truncate(50, meta)
-	lines, err := cli.CliCommandWithoutTerminalOutput(
-		"curl",
-		"/v3/apps?guids="+sourceIDsFromMeta(meta),
-	)
+	resources, err := getAppInfo(meta, cli)
 	if err != nil {
-		log.Fatalf("Failed to make CAPI request: %s", err)
-	}
-
-	var resources appsResponse
-	err = json.NewDecoder(strings.NewReader(strings.Join(lines, ""))).Decode(&resources)
-	if err != nil {
-		log.Fatalf("Could not decode CAPI response: %s", err)
+		log.Fatalf("Failed to read application information: %s", err)
 	}
 
 	username, err := cli.Username()
@@ -164,6 +154,45 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	tw.Flush()
 }
 
+func getAppInfo(meta map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection) (appsResponse, error) {
+	var (
+		responseBodies []string
+		resources      appsResponse
+	)
+
+	sourceIDs := sourceIDsFromMeta(meta)
+
+	for len(sourceIDs) > 0 {
+		n := 50
+		if len(sourceIDs) < 50 {
+			n = len(sourceIDs)
+		}
+
+		lines, err := cli.CliCommandWithoutTerminalOutput(
+			"curl",
+			"/v3/apps?guids="+strings.Join(sourceIDs[0:n], ","),
+		)
+		if err != nil {
+			return appsResponse{}, err
+		}
+
+		sourceIDs = sourceIDs[n:]
+		responseBodies = append(responseBodies, strings.Join(lines, ""))
+	}
+
+	for _, rb := range responseBodies {
+		var r appsResponse
+		err := json.NewDecoder(strings.NewReader(rb)).Decode(&r)
+		if err != nil {
+			return appsResponse{}, err
+		}
+
+		resources.Resources = append(resources.Resources, r.Resources...)
+	}
+
+	return resources, nil
+}
+
 func cacheDuration(m *logcache_v1.MetaInfo) time.Duration {
 	new := time.Unix(0, m.NewestTimestamp)
 	old := time.Unix(0, m.OldestTimestamp)
@@ -196,12 +225,13 @@ func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
 	return strings.Replace(apiEndpoint, "api", "log-cache", 1), nil
 }
 
-func sourceIDsFromMeta(meta map[string]*logcache_v1.MetaInfo) string {
+func sourceIDsFromMeta(meta map[string]*logcache_v1.MetaInfo) []string {
 	var ids []string
 	for id := range meta {
 		ids = append(ids, id)
 	}
-	return strings.Join(ids, ",")
+
+	return ids
 }
 
 func invalidScope(scope string) bool {

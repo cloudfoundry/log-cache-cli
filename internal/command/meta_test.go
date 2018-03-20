@@ -45,9 +45,10 @@ var _ = Describe("Meta", func() {
 
 		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
 
-		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[0]).To(Equal("curl"))
-		Expect(cliConn.cliCommandArgs[1]).To(Equal("/v3/apps?guids=source-1"))
+		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
+		Expect(cliConn.cliCommandArgs[0][1]).To(Equal("/v3/apps?guids=source-1"))
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
@@ -128,10 +129,11 @@ var _ = Describe("Meta", func() {
 
 		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
 
-		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[0]).To(Equal("curl"))
+		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
 
-		uri, err := url.Parse(cliConn.cliCommandArgs[1])
+		uri, err := url.Parse(cliConn.cliCommandArgs[0][1])
 		Expect(err).ToNot(HaveOccurred())
 		Expect(uri.Path).To(Equal("/v3/apps"))
 
@@ -211,7 +213,7 @@ var _ = Describe("Meta", func() {
 		}))
 	})
 
-	It("does not request more than 50 guids", func() {
+	It("does not request more than 50 guids at a time", func() {
 		var guids []string
 		for i := 0; i < 51; i++ {
 			guids = append(guids, fmt.Sprintf("source-%d", i))
@@ -227,20 +229,24 @@ var _ = Describe("Meta", func() {
 		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[0]).To(Equal("curl"))
 
-		uri, err := url.Parse(cliConn.cliCommandArgs[1])
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
+		uri, err := url.Parse(cliConn.cliCommandArgs[0][1])
 		Expect(err).ToNot(HaveOccurred())
 		Expect(uri.Path).To(Equal("/v3/apps"))
+		Expect(strings.Split(uri.Query().Get("guids"), ",")).To(HaveLen(50))
 
-		guidsParam, ok := uri.Query()["guids"]
-		Expect(ok).To(BeTrue())
-		Expect(len(guidsParam)).To(Equal(1))
-		Expect(strings.Split(guidsParam[0], ",")).To(HaveLen(50))
+		Expect(cliConn.cliCommandArgs[1]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[1][0]).To(Equal("curl"))
+		uri, err = url.Parse(cliConn.cliCommandArgs[1][1])
+		Expect(err).ToNot(HaveOccurred())
+		Expect(uri.Path).To(Equal("/v3/apps"))
+		Expect(strings.Split(uri.Query().Get("guids"), ",")).To(HaveLen(1))
 
-		// 50 entries, 2 blank lines, "Retrieving..." preamble and table
-		// header comes to 54 lines.
-		Expect(strings.Split(tableWriter.String(), "\n")).To(HaveLen(54))
+		// 51 entries, 2 blank lines, "Retrieving..." preamble and table
+		// header comes to 55 lines.
+		Expect(strings.Split(tableWriter.String(), "\n")).To(HaveLen(55))
 	})
 
 	It("uses the LOG_CACHE_ADDR environment variable", func() {
@@ -326,7 +332,7 @@ var _ = Describe("Meta", func() {
 			command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(HavePrefix(`Failed to make CAPI request: some-error`))
+		Expect(logger.fatalfMessage).To(HavePrefix(`Failed to read application information: some-error`))
 	})
 
 	It("fatally logs when username cannot be found", func() {
@@ -358,7 +364,7 @@ var _ = Describe("Meta", func() {
 			command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(HavePrefix(`Could not decode CAPI response: `))
+		Expect(logger.fatalfMessage).To(HavePrefix(`Failed to read application information: `))
 	})
 
 	It("fatally logs when Meta fails", func() {

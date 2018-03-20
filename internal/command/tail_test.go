@@ -535,10 +535,11 @@ var _ = Describe("LogCache", func() {
 		args := []string{"some-app"}
 		command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
 
-		Expect(cliConn.cliCommandArgs).To(HaveLen(3))
-		Expect(cliConn.cliCommandArgs[0]).To(Equal("app"))
-		Expect(cliConn.cliCommandArgs[1]).To(Equal("some-app"))
-		Expect(cliConn.cliCommandArgs[2]).To(Equal("--guid"))
+		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(3))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("app"))
+		Expect(cliConn.cliCommandArgs[0][1]).To(Equal("some-app"))
+		Expect(cliConn.cliCommandArgs[0][2]).To(Equal("--guid"))
 	})
 
 	It("places the auth token in the 'Authorization' header", func() {
@@ -886,7 +887,7 @@ type stubCliConnection struct {
 	hasAPIEndpoint    bool
 	hasAPIEndpointErr error
 
-	cliCommandArgs   []string
+	cliCommandArgs   [][]string
 	cliCommandResult []string
 	cliCommandErr    error
 
@@ -916,7 +917,7 @@ func (s *stubCliConnection) HasAPIEndpoint() (bool, error) {
 }
 
 func (s *stubCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]string, error) {
-	s.cliCommandArgs = args
+	s.cliCommandArgs = append(s.cliCommandArgs, args)
 	return s.cliCommandResult, s.cliCommandErr
 }
 
