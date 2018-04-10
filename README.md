@@ -29,14 +29,14 @@ ENVIRONMENT VARIABLES:
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
 
 OPTIONS:
-   -envelope-type       Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
-   -follow, -f          Output appended to stdout as logs are egressed.
-   -gauge-name          Gauge name filter (implies --envelope-type=gauge).
-   -json                Output envelopes in JSON format.
-   -lines, -n           Number of envelopes to return. Default is 10.
-   -start-time          Start of query range in UNIX nanoseconds.
-   -counter-name        Counter name filter (implies --envelope-type=counter).
-   -end-time            End of query range in UNIX nanoseconds.
+   --follow, -f          Output appended to stdout as logs are egressed.
+   --gauge-name          Gauge name filter (implies --envelope-type=gauge).
+   --json                Output envelopes in JSON format.
+   --lines, -n           Number of envelopes to return. Default is 10.
+   --start-time          Start of query range in UNIX nanoseconds.
+   --counter-name        Counter name filter (implies --envelope-type=counter).
+   --end-time            End of query range in UNIX nanoseconds.
+   --envelope-type       Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
 ```
 
 ##### `log-cache-meta`
@@ -54,8 +54,8 @@ ENVIRONMENT VARIABLES:
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
 
 OPTIONS:
-   -scope               Scope of meta information to show. Available: 'all', 'applications', and 'platform'.
-   -noise               Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...
+   --noise       Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...
+   --scope       Scope of meta information to show. Available: 'all', 'applications', and 'platform'.
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release
