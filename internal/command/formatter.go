@@ -20,14 +20,16 @@ const (
 )
 
 const (
-	appHeaderFormat    = "Retrieving logs for app %s in org %s / space %s as %s..."
-	sourceHeaderFormat = "Retrieving logs for %s as %s..."
+	appHeaderFormat     = "Retrieving logs for app %s in org %s / space %s as %s..."
+	serviceHeaderFormat = "Retrieving logs for service %s in org %s / space %s as %s..."
+	sourceHeaderFormat  = "Retrieving logs for source %s as %s..."
 )
 
 type formatterKind int
 
 type formatter interface {
 	appHeader(app, org, space, user string) (string, bool)
+	serviceHeader(service, org, space, user string) (string, bool)
 	sourceHeader(sourceID, _, _, user string) (string, bool)
 	formatEnvelope(e *loggregator_v2.Envelope) (string, bool)
 }
@@ -65,6 +67,10 @@ func (f baseFormatter) appHeader(_, _, _, _ string) (string, bool) {
 	return "", false
 }
 
+func (f baseFormatter) serviceHeader(_, _, _, _ string) (string, bool) {
+	return "", false
+}
+
 func (f baseFormatter) sourceHeader(_, _, _, _ string) (string, bool) {
 	return "", false
 }
@@ -81,6 +87,16 @@ func (f prettyFormatter) appHeader(app, org, space, user string) (string, bool) 
 	return fmt.Sprintf(
 		appHeaderFormat,
 		app,
+		org,
+		space,
+		user,
+	), true
+}
+
+func (f prettyFormatter) serviceHeader(service, org, space, user string) (string, bool) {
+	return fmt.Sprintf(
+		serviceHeaderFormat,
+		service,
 		org,
 		space,
 		user,
@@ -131,6 +147,16 @@ func (f templateFormatter) appHeader(app, org, space, user string) (string, bool
 	), true
 }
 
+func (f templateFormatter) serviceHeader(service, org, space, user string) (string, bool) {
+	return fmt.Sprintf(
+		serviceHeaderFormat,
+		service,
+		org,
+		space,
+		user,
+	), true
+}
+
 func (f templateFormatter) sourceHeader(sourceID, _, _, user string) (string, bool) {
 	return fmt.Sprintf(
 		sourceHeaderFormat,
@@ -158,7 +184,6 @@ type envelopeWrapper struct {
 
 func (e envelopeWrapper) String() string {
 	ts := time.Unix(0, e.Timestamp)
-
 	switch e.Message.(type) {
 	case *loggregator_v2.Envelope_Log:
 		return fmt.Sprintf("   %s [%s/%s] %s %s",

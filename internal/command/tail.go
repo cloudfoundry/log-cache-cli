@@ -28,6 +28,7 @@ type Command func(ctx context.Context, cli plugin.CliConnection, args []string, 
 // Logger is used for outputting log-cache results and errors
 type Logger interface {
 	Fatalf(format string, args ...interface{})
+	Printf(format string, args ...interface{})
 }
 
 // HTTPClient is the client used for HTTP requests
@@ -88,6 +89,9 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		logCacheAddr = strings.Replace(tokenURL, "api", "log-cache", 1)
 
 		headerPrinter := formatter.appHeader
+		if o.isService {
+			headerPrinter = formatter.serviceHeader
+		}
 		if sourceID == "" {
 			// fall back to provided name
 			sourceID = o.providedName
@@ -116,7 +120,6 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 
 		return formatter.formatEnvelope(e)
 	}
-
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
 	if o.follow {
 		logcache.Walk(
@@ -189,6 +192,7 @@ type options struct {
 	follow        bool
 
 	guid           string
+	isService      bool
 	providedName   string
 	outputTemplate *template.Template
 	jsonOutput     bool
@@ -256,12 +260,14 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		}
 	}
 
+	id, isService := getGUID(args[0], cli, log)
 	o := options{
 		startTime:      time.Unix(0, opts.StartTime),
 		endTime:        time.Unix(0, opts.EndTime),
 		envelopeType:   translateEnvelopeType(opts.EnvelopeType, log),
 		lines:          int(opts.Lines),
-		guid:           getAppGUID(args[0], cli, log),
+		guid:           id,
+		isService:      isService,
 		providedName:   args[0],
 		follow:         opts.Follow,
 		outputTemplate: outputTemplate,
@@ -378,13 +384,42 @@ func translateEnvelopeType(t string, log Logger) logcache_v1.EnvelopeType {
 	}
 }
 
+func getGUID(name string, cli plugin.CliConnection, log Logger) (string, bool) {
+	var id string
+	if id = getAppGUID(name, cli, log); id == "" {
+		return getServiceGUID(name, cli, log), true
+	}
+	return id, false
+}
+
 func getAppGUID(appName string, cli plugin.CliConnection, log Logger) string {
 	r, err := cli.CliCommandWithoutTerminalOutput(
 		"app",
 		appName,
 		"--guid",
 	)
+
 	if err != nil {
+		if err.Error() != "App "+appName+" not found" {
+			log.Printf("%s", err)
+		}
+		return ""
+	}
+
+	return strings.Join(r, "")
+}
+
+func getServiceGUID(serviceName string, cli plugin.CliConnection, log Logger) string {
+	r, err := cli.CliCommandWithoutTerminalOutput(
+		"service",
+		serviceName,
+		"--guid",
+	)
+
+	if err != nil {
+		if err.Error() != "Service instance "+serviceName+" not found" {
+			log.Printf("%s", err)
+		}
 		return ""
 	}
 

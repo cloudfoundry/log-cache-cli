@@ -28,7 +28,7 @@ var _ = Describe("Meta", func() {
 		logger = &stubLogger{}
 		httpClient = newStubHTTPClient()
 		cliConn = newStubCliConnection()
-		cliConn.cliCommandResult = []string{"app-guid"}
+		cliConn.cliCommandResult = [][]string{{"app-guid"}}
 		cliConn.usernameResp = "a-user"
 		cliConn.orgName = "organization"
 		cliConn.spaceName = "space"
@@ -40,7 +40,11 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{"source-1": "app-1"}),
+			},
+		}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
@@ -98,7 +102,11 @@ var _ = Describe("Meta", func() {
 			),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{"source-1": "app-1"}),
+			},
+		}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, tailer, []string{"--noise"}, httpClient, logger, tableWriter)
@@ -124,7 +132,11 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1", "source-2"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{"source-1": "app-1"}),
+			},
+		}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
@@ -165,9 +177,13 @@ var _ = Describe("Meta", func() {
 			),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{
-			"deadbeef-dead-dead-dead-deaddeafbeef": "app-1",
-		})}
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{
+					"deadbeef-dead-dead-dead-deaddeafbeef": "app-1",
+				}),
+			},
+		}
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--scope", "applications"}
@@ -195,7 +211,11 @@ var _ = Describe("Meta", func() {
 			),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{"source-1": "app-1"}),
+			},
+		}
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--scope", "PLATFORM"}
@@ -223,7 +243,14 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo(guids...),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{})}
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{}),
+			},
+			{
+				capiResponse(map[string]string{}),
+			},
+		}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
@@ -257,7 +284,11 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{"source-1": "app-1"}),
+			},
+		}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
@@ -277,7 +308,11 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{"source-1": "app-1"}),
+			},
+		}
 		cliConn.cliCommandErr = nil
 
 		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
@@ -325,8 +360,8 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1", "source-2"),
 		}
 
-		cliConn.cliCommandResult = nil
-		cliConn.cliCommandErr = errors.New("some-error")
+		cliConn.cliCommandResult = [][]string{nil}
+		cliConn.cliCommandErr = []error{errors.New("some-error")}
 
 		Expect(func() {
 			command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
@@ -340,7 +375,11 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1"),
 		}
 
-		cliConn.cliCommandResult = []string{capiResponse(map[string]string{"source-1": "app-1"})}
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{"source-1": "app-1"}),
+			},
+		}
 		cliConn.cliCommandErr = nil
 
 		cliConn.usernameErr = errors.New("some-error")
@@ -357,7 +396,7 @@ var _ = Describe("Meta", func() {
 			metaResponseInfo("source-1", "source-2"),
 		}
 
-		cliConn.cliCommandResult = []string{"invalid"}
+		cliConn.cliCommandResult = [][]string{{"invalid"}}
 		cliConn.cliCommandErr = nil
 
 		Expect(func() {
