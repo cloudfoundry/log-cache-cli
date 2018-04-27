@@ -60,9 +60,14 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	}
 
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
+		token, err := cli.AccessToken()
+		if err != nil {
+			log.Fatalf("Unable to get Access Token: %s", err)
+		}
+
 		c = &tokenHTTPClient{
-			c:        c,
-			getToken: cli.AccessToken,
+			c:           c,
+			accessToken: token,
 		}
 	}
 

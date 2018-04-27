@@ -331,6 +331,8 @@ var _ = Describe("LogCache", func() {
 				fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
 			))
+
+			Expect(cliConn.accessTokenCount).To(Equal(1))
 		})
 
 		It("respects short flag for following", func() {
@@ -1006,8 +1008,9 @@ type stubCliConnection struct {
 	spaceName    string
 	spaceErr     error
 
-	accessToken    string
-	accessTokenErr error
+	accessTokenCount int
+	accessToken      string
+	accessTokenErr   error
 }
 
 func newStubCliConnection() *stubCliConnection {
@@ -1059,6 +1062,7 @@ func (s *stubCliConnection) GetCurrentSpace() (plugin_models.Space, error) {
 }
 
 func (s *stubCliConnection) AccessToken() (string, error) {
+	s.accessTokenCount++
 	return s.accessToken, s.accessTokenErr
 }
 

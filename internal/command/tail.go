@@ -49,9 +49,14 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	lw := lineWriter{w: w}
 
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
+		token, err := cli.AccessToken()
+		if err != nil {
+			log.Fatalf("Unable to get Access Token: %s", err)
+		}
+
 		c = &tokenHTTPClient{
-			c:        c,
-			getToken: cli.AccessToken,
+			c:           c,
+			accessToken: token,
 		}
 	}
 
@@ -442,16 +447,12 @@ func (b backoff) OnErr(err error) bool {
 }
 
 type tokenHTTPClient struct {
-	c        HTTPClient
-	getToken func() (string, error)
+	c           HTTPClient
+	accessToken string
 }
 
 func (c *tokenHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	token, err := c.getToken()
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", token)
+	req.Header.Set("Authorization", c.accessToken)
 
 	return c.c.Do(req)
 }
