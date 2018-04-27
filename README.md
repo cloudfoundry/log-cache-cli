@@ -54,8 +54,9 @@ ENVIRONMENT VARIABLES:
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
 
 OPTIONS:
-   --noise       Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...
-   --scope       Scope of meta information to show. Available: 'all', 'applications', and 'platform'.
+   --guid       Display raw source GUIDs
+   --noise      Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...
+   --scope      Scope of meta information to show. Available: 'all', 'applications', and 'platform'.
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release
