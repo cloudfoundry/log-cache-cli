@@ -17,13 +17,26 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
-type app struct {
+type source struct {
 	GUID string `json:"guid"`
 	Name string `json:"name"`
 }
 
-type appsResponse struct {
-	Resources []app `json:"resources"`
+type sourceInfo struct {
+	Resources []source `json:"resources"`
+}
+
+type serviceInstance struct {
+	Metadata struct {
+		GUID string `json:"guid"`
+	} `json:"metadata"`
+	Entity struct {
+		Name string `json:"name"`
+	} `json:"entity"`
+}
+
+type servicesResponse struct {
+	Resources []serviceInstance `json:"resources"`
 }
 
 type Tailer func(sourceID string, start, end time.Time) []string
@@ -31,6 +44,7 @@ type Tailer func(sourceID string, start, end time.Time) []string
 type optionsFlags struct {
 	Scope       string `long:"scope"`
 	EnableNoise bool   `long:"noise"`
+	ShowGUID    bool   `long:"guid"`
 }
 
 // Meta returns the metadata from Log Cache
@@ -38,6 +52,7 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	opts := optionsFlags{
 		Scope:       "all",
 		EnableNoise: false,
+		ShowGUID:    false,
 	}
 
 	args, err := flags.ParseArgs(&opts, args)
@@ -81,7 +96,7 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 		log.Fatalf("Failed to read Meta information: %s", err)
 	}
 
-	resources, err := getAppInfo(meta, cli)
+	resources, err := getSourceInfo(meta, cli)
 	if err != nil {
 		log.Fatalf("Failed to read application information: %s", err)
 	}
@@ -96,9 +111,15 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 		username,
 	))
 
-	headerArgs := []interface{}{"Source ID", "App Name", "Count", "Expired", "Cache Duration"}
-	headerFormat := "%s\t%s\t%s\t%s\t%s\n"
-	tableFormat := "%s\t%s\t%d\t%d\t%s\n"
+	headerArgs := []interface{}{"Source", "Count", "Expired", "Cache Duration"}
+	headerFormat := "%s\t%s\t%s\t%s\n"
+	tableFormat := "%s\t%d\t%d\t%s\n"
+
+	if opts.ShowGUID {
+		headerArgs = append([]interface{}{"Source ID"}, headerArgs...)
+		headerFormat = "%s\t" + headerFormat
+		tableFormat = "%s\t" + tableFormat
+	}
 
 	if opts.EnableNoise {
 		headerArgs = append(headerArgs, "Rate")
@@ -109,11 +130,17 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
 	fmt.Fprintf(tw, headerFormat, headerArgs...)
 
-	for _, app := range resources.Resources {
-		m := meta[app.GUID]
+	for _, app := range resources {
+		m, ok := meta[app.GUID]
+		if !ok {
+			continue
+		}
 		delete(meta, app.GUID)
 		if scope == "applications" || scope == "all" {
-			args := []interface{}{app.GUID, app.Name, m.Count, m.Expired, cacheDuration(m)}
+			args := []interface{}{app.Name, m.Count, m.Expired, cacheDuration(m)}
+			if opts.ShowGUID {
+				args = append([]interface{}{app.GUID}, args...)
+			}
 			if opts.EnableNoise {
 				end := time.Now()
 				start := end.Add(-time.Minute)
@@ -130,7 +157,10 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	if scope == "applications" || scope == "all" {
 		for sourceID, m := range meta {
 			if idRegexp.MatchString(sourceID) {
-				args := []interface{}{sourceID, "", m.Count, m.Expired, cacheDuration(m)}
+				args := []interface{}{sourceID, m.Count, m.Expired, cacheDuration(m)}
+				if opts.ShowGUID {
+					args = append([]interface{}{sourceID}, args...)
+				}
 				if opts.EnableNoise {
 					end := time.Now()
 					start := end.Add(-time.Minute)
@@ -144,7 +174,10 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	if scope == "platform" || scope == "all" {
 		for sourceID, m := range meta {
 			if !idRegexp.MatchString(sourceID) {
-				args := []interface{}{sourceID, "", m.Count, m.Expired, cacheDuration(m)}
+				args := []interface{}{sourceID, m.Count, m.Expired, cacheDuration(m)}
+				if opts.ShowGUID {
+					args = append([]interface{}{sourceID}, args...)
+				}
 				if opts.EnableNoise {
 					end := time.Now()
 					start := end.Add(-time.Minute)
@@ -159,15 +192,18 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	tw.Flush()
 }
 
-func getAppInfo(meta map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection) (appsResponse, error) {
-	var (
-		responseBodies []string
-		resources      appsResponse
-	)
+func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection) ([]source, error) {
+	var resources []source
+	var sourceIDs []string
 
-	sourceIDs := sourceIDsFromMeta(meta)
+	meta := make(map[string]int)
+	for k := range metaInfo {
+		meta[k] = 1
+		sourceIDs = append(sourceIDs, k)
+	}
 
 	for len(sourceIDs) > 0 {
+		var r sourceInfo
 		n := 50
 		if len(sourceIDs) < 50 {
 			n = len(sourceIDs)
@@ -178,7 +214,54 @@ func getAppInfo(meta map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection)
 			"/v3/apps?guids="+strings.Join(sourceIDs[0:n], ","),
 		)
 		if err != nil {
-			return appsResponse{}, err
+			return nil, err
+		}
+
+		sourceIDs = sourceIDs[n:]
+		rb := strings.Join(lines, "")
+		err = json.NewDecoder(strings.NewReader(rb)).Decode(&r)
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, r.Resources...)
+	}
+
+	for _, res := range resources {
+		delete(meta, res.GUID)
+	}
+	var s []string
+	for id := range meta {
+		s = append(s, id)
+	}
+
+	services, err := getServiceInfo(s, cli)
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, services...)
+
+	return resources, nil
+}
+
+func getServiceInfo(sourceIDs []string, cli plugin.CliConnection) ([]source, error) {
+	var (
+		responseBodies []string
+		resources      []source
+	)
+
+	for len(sourceIDs) > 0 {
+		n := 50
+		if len(sourceIDs) < 50 {
+			n = len(sourceIDs)
+		}
+
+		lines, err := cli.CliCommandWithoutTerminalOutput(
+			"curl",
+			"/v2/service_instances?guids="+strings.Join(sourceIDs[0:n], ","),
+		)
+		if err != nil {
+			return nil, err
 		}
 
 		sourceIDs = sourceIDs[n:]
@@ -186,13 +269,17 @@ func getAppInfo(meta map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection)
 	}
 
 	for _, rb := range responseBodies {
-		var r appsResponse
+		var r servicesResponse
 		err := json.NewDecoder(strings.NewReader(rb)).Decode(&r)
 		if err != nil {
-			return appsResponse{}, err
+			return nil, err
 		}
-
-		resources.Resources = append(resources.Resources, r.Resources...)
+		for _, res := range r.Resources {
+			resources = append(resources, source{
+				GUID: res.Metadata.GUID,
+				Name: res.Entity.Name,
+			})
+		}
 	}
 
 	return resources, nil
@@ -228,15 +315,6 @@ func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
 	}
 
 	return strings.Replace(apiEndpoint, "api", "log-cache", 1), nil
-}
-
-func sourceIDsFromMeta(meta map[string]*logcache_v1.MetaInfo) []string {
-	var ids []string
-	for id := range meta {
-		ids = append(ids, id)
-	}
-
-	return ids
 }
 
 func invalidScope(scope string) bool {
