@@ -31,6 +31,7 @@ type Tailer func(sourceID string, start, end time.Time) []string
 type optionsFlags struct {
 	Scope       string `long:"scope"`
 	EnableNoise bool   `long:"noise"`
+	ShowGUID    bool   `long:"guid"`
 }
 
 // Meta returns the metadata from Log Cache
@@ -38,6 +39,7 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	opts := optionsFlags{
 		Scope:       "all",
 		EnableNoise: false,
+		ShowGUID:    false,
 	}
 
 	args, err := flags.ParseArgs(&opts, args)
@@ -91,9 +93,15 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 		username,
 	))
 
-	headerArgs := []interface{}{"Source ID", "App Name", "Count", "Expired", "Cache Duration"}
-	headerFormat := "%s\t%s\t%s\t%s\t%s\n"
-	tableFormat := "%s\t%s\t%d\t%d\t%s\n"
+	headerArgs := []interface{}{"Source", "Count", "Expired", "Cache Duration"}
+	headerFormat := "%s\t%s\t%s\t%s\n"
+	tableFormat := "%s\t%d\t%d\t%s\n"
+
+	if opts.ShowGUID {
+		headerArgs = append([]interface{}{"Source ID"}, headerArgs...)
+		headerFormat = "%s\t" + headerFormat
+		tableFormat = "%s\t" + tableFormat
+	}
 
 	if opts.EnableNoise {
 		headerArgs = append(headerArgs, "Rate")
@@ -108,7 +116,10 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 		m := meta[app.GUID]
 		delete(meta, app.GUID)
 		if scope == "applications" || scope == "all" {
-			args := []interface{}{app.GUID, app.Name, m.Count, m.Expired, cacheDuration(m)}
+			args := []interface{}{app.Name, m.Count, m.Expired, cacheDuration(m)}
+			if opts.ShowGUID {
+				args = append([]interface{}{app.GUID}, args...)
+			}
 			if opts.EnableNoise {
 				end := time.Now()
 				start := end.Add(-time.Minute)
@@ -125,7 +136,10 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	if scope == "applications" || scope == "all" {
 		for sourceID, m := range meta {
 			if idRegexp.MatchString(sourceID) {
-				args := []interface{}{sourceID, "", m.Count, m.Expired, cacheDuration(m)}
+				args := []interface{}{sourceID, m.Count, m.Expired, cacheDuration(m)}
+				if opts.ShowGUID {
+					args = append([]interface{}{sourceID}, args...)
+				}
 				if opts.EnableNoise {
 					end := time.Now()
 					start := end.Add(-time.Minute)
@@ -139,7 +153,10 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	if scope == "platform" || scope == "all" {
 		for sourceID, m := range meta {
 			if !idRegexp.MatchString(sourceID) {
-				args := []interface{}{sourceID, "", m.Count, m.Expired, cacheDuration(m)}
+				args := []interface{}{sourceID, m.Count, m.Expired, cacheDuration(m)}
+				if opts.ShowGUID {
+					args = append([]interface{}{sourceID}, args...)
+				}
 				if opts.EnableNoise {
 					end := time.Now()
 					start := end.Add(-time.Minute)

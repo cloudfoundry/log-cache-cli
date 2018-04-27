@@ -47,6 +47,79 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
+		command.Meta(context.Background(), cliConn, nil, []string{"--guid"}, httpClient, logger, tableWriter)
+
+		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
+		Expect(cliConn.cliCommandArgs[0][1]).To(Equal("/v3/apps?guids=source-1"))
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source ID  Source  Count   Expired  Cache Duration",
+			"source-1   app-1   100000  85008    11m45s",
+			"",
+		}))
+
+		Expect(httpClient.requestCount()).To(Equal(1))
+	})
+
+	FIt("returns service instance names with service source guids", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo("source-1"),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(nil),
+			},
+			{
+				capiResponse(map[string]string{"source-1": "service-1"}),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
+		command.Meta(context.Background(), cliConn, nil, []string{"--guid"}, httpClient, logger, tableWriter)
+
+		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
+		Expect(cliConn.cliCommandArgs[0][1]).To(Equal("/v3/apps?guids=source-1"))
+
+		Expect(cliConn.cliCommandArgs[1]).To(HaveLen(2))
+		Expect(cliConn.cliCommandArgs[1][0]).To(Equal("curl"))
+		Expect(cliConn.cliCommandArgs[1][1]).To(Equal("/v2/service_instances?guids=source-1"))
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source ID  Source  Count   Expired  Cache Duration",
+			"source-1   app-1   100000  85008    11m45s",
+			"",
+		}))
+
+		Expect(httpClient.requestCount()).To(Equal(1))
+	})
+
+	It("does not display the Source ID column by default", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo("source-1"),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{"source-1": "app-1"}),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
 		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
@@ -60,8 +133,8 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  App Name  Count   Expired  Cache Duration",
-			"source-1   app-1     100000  85008    11m45s",
+			"Source  Count   Expired  Cache Duration",
+			"app-1   100000  85008    11m45s",
 			"",
 		}))
 
@@ -117,10 +190,10 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID                             App Name  Count   Expired  Cache Duration  Rate",
-			"source-1                              app-1     100000  85008    11m45s          5",
-			"deadbeef-dead-dead-dead-deaddeafbeef            100000  85008    11m45s          1",
-			"source-2                                        100000  85008    11m45s          3",
+			"Source                                Count   Expired  Cache Duration  Rate",
+			"app-1                                 100000  85008    11m45s          5",
+			"deadbeef-dead-dead-dead-deaddeafbeef  100000  85008    11m45s          1",
+			"source-2                              100000  85008    11m45s          3",
 			"",
 		}))
 
@@ -161,9 +234,9 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  App Name  Count   Expired  Cache Duration",
-			"source-1   app-1     100000  85008    11m45s",
-			"source-2             100000  85008    11m45s",
+			"Source    Count   Expired  Cache Duration",
+			"app-1     100000  85008    11m45s",
+			"source-2  100000  85008    11m45s",
 			"",
 		}))
 	})
@@ -195,9 +268,9 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID                             App Name  Count   Expired  Cache Duration",
-			"deadbeef-dead-dead-dead-deaddeafbeef  app-1     100000  85008    11m45s",
-			"f26fb323-6884-4978-a45f-da188dbf8ecd            100000  85008    11m45s",
+			"Source                                Count   Expired  Cache Duration",
+			"app-1                                 100000  85008    11m45s",
+			"f26fb323-6884-4978-a45f-da188dbf8ecd  100000  85008    11m45s",
 			"",
 		}))
 	})
@@ -227,8 +300,39 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  App Name  Count   Expired  Cache Duration",
-			"source-2             100000  85008    11m45s",
+			"Source    Count   Expired  Cache Duration",
+			"source-2  100000  85008    11m45s",
+			"",
+		}))
+	})
+
+	It("prints meta scoped to platform with source GUIDs", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo(
+				"source-1",
+				"source-2",
+				"deadbeef-dead-dead-dead-deaddeafbeef",
+			),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiResponse(map[string]string{"source-1": "app-1"}),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
+		args := []string{"--scope", "PLATFORM", "--guid"}
+		command.Meta(context.Background(), cliConn, nil, args, httpClient, logger, tableWriter)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source ID  Source    Count   Expired  Cache Duration",
+			"source-2   source-2  100000  85008    11m45s",
 			"",
 		}))
 	})
