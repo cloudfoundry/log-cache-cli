@@ -39,6 +39,7 @@ type servicesResponse struct {
 	Resources []serviceInstance `json:"resources"`
 }
 
+// Tailer defines our interface for querying Log Cache
 type Tailer func(sourceID string, start, end time.Time) []string
 
 type optionsFlags struct {
@@ -130,21 +131,21 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
 	fmt.Fprintf(tw, headerFormat, headerArgs...)
 
-	for _, app := range resources {
-		m, ok := meta[app.GUID]
+	for _, source := range resources {
+		m, ok := meta[source.GUID]
 		if !ok {
 			continue
 		}
-		delete(meta, app.GUID)
+		delete(meta, source.GUID)
 		if scope == "applications" || scope == "all" {
-			args := []interface{}{app.Name, m.Count, m.Expired, cacheDuration(m)}
+			args := []interface{}{source.Name, m.Count, m.Expired, cacheDuration(m)}
 			if opts.ShowGUID {
-				args = append([]interface{}{app.GUID}, args...)
+				args = append([]interface{}{source.GUID}, args...)
 			}
 			if opts.EnableNoise {
 				end := time.Now()
 				start := end.Add(-time.Minute)
-				args = append(args, len(tailer(app.GUID, start, end)))
+				args = append(args, len(tailer(source.GUID, start, end)))
 			}
 
 			fmt.Fprintf(tw, tableFormat, args...)
@@ -189,12 +190,16 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 		}
 	}
 
-	tw.Flush()
+	if err = tw.Flush(); err != nil {
+		log.Fatalf("Error writing results")
+	}
 }
 
 func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection) ([]source, error) {
-	var resources []source
-	var sourceIDs []string
+	var (
+		resources []source
+		sourceIDs []string
+	)
 
 	meta := make(map[string]int)
 	for k := range metaInfo {
@@ -202,24 +207,13 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 		sourceIDs = append(sourceIDs, k)
 	}
 
-	for len(sourceIDs) > 0 {
+	appInfo, err := getSourceInfoFromCAPI(sourceIDs, "/v3/apps", cli)
+	if err != nil {
+		return nil, err
+	}
+	for _, rb := range appInfo {
 		var r sourceInfo
-		n := 50
-		if len(sourceIDs) < 50 {
-			n = len(sourceIDs)
-		}
-
-		lines, err := cli.CliCommandWithoutTerminalOutput(
-			"curl",
-			"/v3/apps?guids="+strings.Join(sourceIDs[0:n], ","),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		sourceIDs = sourceIDs[n:]
-		rb := strings.Join(lines, "")
-		err = json.NewDecoder(strings.NewReader(rb)).Decode(&r)
+		err := json.NewDecoder(strings.NewReader(rb)).Decode(&r)
 		if err != nil {
 			return nil, err
 		}
@@ -235,40 +229,12 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 		s = append(s, id)
 	}
 
-	services, err := getServiceInfo(s, cli)
+	serviceInfo, err := getSourceInfoFromCAPI(s, "/v2/service_instances", cli)
 	if err != nil {
 		return nil, err
 	}
-	resources = append(resources, services...)
 
-	return resources, nil
-}
-
-func getServiceInfo(sourceIDs []string, cli plugin.CliConnection) ([]source, error) {
-	var (
-		responseBodies []string
-		resources      []source
-	)
-
-	for len(sourceIDs) > 0 {
-		n := 50
-		if len(sourceIDs) < 50 {
-			n = len(sourceIDs)
-		}
-
-		lines, err := cli.CliCommandWithoutTerminalOutput(
-			"curl",
-			"/v2/service_instances?guids="+strings.Join(sourceIDs[0:n], ","),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		sourceIDs = sourceIDs[n:]
-		responseBodies = append(responseBodies, strings.Join(lines, ""))
-	}
-
-	for _, rb := range responseBodies {
+	for _, rb := range serviceInfo {
 		var r servicesResponse
 		err := json.NewDecoder(strings.NewReader(rb)).Decode(&r)
 		if err != nil {
@@ -283,6 +249,29 @@ func getServiceInfo(sourceIDs []string, cli plugin.CliConnection) ([]source, err
 	}
 
 	return resources, nil
+}
+
+func getSourceInfoFromCAPI(sourceIDs []string, endpoint string, cli plugin.CliConnection) ([]string, error) {
+	var responses []string
+	for len(sourceIDs) > 0 {
+		n := 50
+		if len(sourceIDs) < 50 {
+			n = len(sourceIDs)
+		}
+
+		lines, err := cli.CliCommandWithoutTerminalOutput(
+			"curl",
+			endpoint+"?guids="+strings.Join(sourceIDs[0:n], ","),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		sourceIDs = sourceIDs[n:]
+		rb := strings.Join(lines, "")
+		responses = append(responses, rb)
+	}
+	return responses, nil
 }
 
 func cacheDuration(m *logcache_v1.MetaInfo) time.Duration {

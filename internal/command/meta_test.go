@@ -427,8 +427,8 @@ var _ = Describe("Meta", func() {
 	})
 
 	It("uses the LOG_CACHE_ADDR environment variable", func() {
-		os.Setenv("LOG_CACHE_ADDR", "https://different-log-cache:8080")
-		defer os.Unsetenv("LOG_CACHE_ADDR")
+		_ = os.Setenv("LOG_CACHE_ADDR", "https://different-log-cache:8080")
+		defer func() { _ = os.Unsetenv("LOG_CACHE_ADDR") }()
 
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1"),
@@ -451,8 +451,8 @@ var _ = Describe("Meta", func() {
 	})
 
 	It("does not send Authorization header with LOG_CACHE_SKIP_AUTH", func() {
-		os.Setenv("LOG_CACHE_SKIP_AUTH", "true")
-		defer os.Unsetenv("LOG_CACHE_SKIP_AUTH")
+		_ = os.Setenv("LOG_CACHE_SKIP_AUTH", "true")
+		defer func() { _ = os.Unsetenv("LOG_CACHE_SKIP_AUTH") }()
 
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1"),
