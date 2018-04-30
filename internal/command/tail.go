@@ -45,7 +45,7 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	}
 
 	sourceID := o.guid
-	formatter := newFormatter(formatterKindFromOptions(o), log, o.outputTemplate)
+	formatter := newFormatter(o.providedName, formatterKindFromOptions(o), log, o.outputTemplate)
 	lw := lineWriter{w: w}
 
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {

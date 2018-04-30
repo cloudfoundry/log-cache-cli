@@ -34,7 +34,7 @@ type formatter interface {
 	formatEnvelope(e *loggregator_v2.Envelope) (string, bool)
 }
 
-func newFormatter(kind formatterKind, log Logger, t *template.Template) formatter {
+func newFormatter(sourceID string, kind formatterKind, log Logger, t *template.Template) formatter {
 	bf := baseFormatter{
 		log: log,
 	}
@@ -43,6 +43,7 @@ func newFormatter(kind formatterKind, log Logger, t *template.Template) formatte
 	case prettyFormat:
 		return prettyFormatter{
 			baseFormatter: bf,
+			sourceID:      sourceID,
 		}
 	case jsonFormat:
 		return jsonFormatter{
@@ -81,6 +82,7 @@ func (f baseFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool)
 
 type prettyFormatter struct {
 	baseFormatter
+	sourceID string
 }
 
 func (f prettyFormatter) appHeader(app, org, space, user string) (string, bool) {
@@ -112,7 +114,7 @@ func (f prettyFormatter) sourceHeader(sourceID, _, _, user string) (string, bool
 }
 
 func (f prettyFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
-	return fmt.Sprintf("%s", envelopeWrapper{e}), true
+	return fmt.Sprintf("%s", envelopeWrapper{sourceID: f.sourceID, Envelope: e}), true
 }
 
 type jsonFormatter struct {
@@ -180,6 +182,7 @@ func (f templateFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, b
 
 type envelopeWrapper struct {
 	*loggregator_v2.Envelope
+	sourceID string
 }
 
 func (e envelopeWrapper) String() string {
@@ -194,8 +197,10 @@ func (e envelopeWrapper) String() string {
 			e.GetLog().GetPayload(),
 		)
 	case *loggregator_v2.Envelope_Counter:
-		return fmt.Sprintf("   %s COUNTER %s:%d",
+		return fmt.Sprintf("   %s [%s/%s] COUNTER %s:%d",
 			ts.Format(timeFormat),
+			e.sourceID,
+			e.GetInstanceId(),
 			e.GetCounter().GetName(),
 			e.GetCounter().GetTotal(),
 		)
@@ -207,19 +212,25 @@ func (e envelopeWrapper) String() string {
 
 		sort.Sort(sort.StringSlice(values))
 
-		return fmt.Sprintf("   %s GAUGE %s",
+		return fmt.Sprintf("   %s [%s/%s] GAUGE %s",
 			ts.Format(timeFormat),
+			e.sourceID,
+			e.GetInstanceId(),
 			strings.Join(values, " "),
 		)
 	case *loggregator_v2.Envelope_Timer:
-		return fmt.Sprintf("   %s TIMER start=%d stop=%d",
+		return fmt.Sprintf("   %s [%s/%s] TIMER start=%d stop=%d",
 			ts.Format(timeFormat),
+			e.sourceID,
+			e.GetInstanceId(),
 			e.GetTimer().GetStart(),
 			e.GetTimer().GetStop(),
 		)
 	case *loggregator_v2.Envelope_Event:
-		return fmt.Sprintf("   %s EVENT %s:%s",
+		return fmt.Sprintf("   %s [%s/%s] EVENT %s:%s",
 			ts.Format(timeFormat),
+			e.sourceID,
+			e.GetInstanceId(),
 			e.GetEvent().GetTitle(),
 			e.GetEvent().GetBody(),
 		)
