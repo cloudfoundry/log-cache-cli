@@ -49,6 +49,10 @@ type optionsFlags struct {
 	ShowGUID    bool   `long:"guid"`
 }
 
+var (
+	idRegexp = regexp.MustCompile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+)
+
 // Meta returns the metadata from Log Cache
 func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []string, c HTTPClient, log Logger, tableWriter io.Writer) {
 	opts := optionsFlags{
@@ -156,8 +160,6 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 			rows = append(rows, args)
 		}
 	}
-
-	idRegexp := regexp.MustCompile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 	// Apps that do not have a known name from CAPI
 	if scope == "applications" || scope == "all" {
@@ -350,7 +352,29 @@ func (s *rowSorter) Len() int {
 }
 
 func (s *rowSorter) Less(i, j int) bool {
-	return s.rows[i][s.colToSortOn].(string) < s.rows[j][s.colToSortOn].(string)
+	sourceI := s.rows[i][s.colToSortOn].(string)
+	sourceJ := s.rows[j][s.colToSortOn].(string)
+
+	isGuidI := idRegexp.MatchString(sourceI)
+	isGuidJ := idRegexp.MatchString(sourceJ)
+
+	// Both are guids
+	if isGuidI && isGuidJ {
+		return sourceI < sourceJ
+	}
+
+	// Only sourceI is guid
+	if isGuidI {
+		return false
+	}
+
+	// Only sourceJ is guid
+	if isGuidJ {
+		return true
+	}
+
+	// Neither sourceI or sourceJ are guids
+	return sourceI < sourceJ
 }
 
 func (s *rowSorter) Swap(i, j int) {

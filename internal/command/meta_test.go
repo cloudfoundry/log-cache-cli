@@ -222,8 +222,8 @@ var _ = Describe("Meta", func() {
 			"",
 			"Source                                Count   Expired  Cache Duration  Rate",
 			"app-1                                 100000  85008    11m45s          5",
-			"deadbeef-dead-dead-dead-deaddeafbeef  100000  85008    11m45s          1",
 			"source-2                              100000  85008    11m45s          3",
+			"deadbeef-dead-dead-dead-deaddeafbeef  100000  85008    11m45s          1",
 			"",
 		}))
 
@@ -277,12 +277,12 @@ var _ = Describe("Meta", func() {
 		}))
 	})
 
-	It("prints meta scoped to apps", func() {
+	It("prints meta scoped to apps with guids after names", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo(
 				"deadbeef-dead-dead-dead-deaddeafbeef",
 				"source-2",
-				"f26fb323-6884-4978-a45f-da188dbf8ecd",
+				"026fb323-6884-4978-a45f-da188dbf8ecd",
 			),
 		}
 
@@ -309,7 +309,7 @@ var _ = Describe("Meta", func() {
 			"",
 			"Source                                Count   Expired  Cache Duration",
 			"app-1                                 100000  85008    11m45s",
-			"f26fb323-6884-4978-a45f-da188dbf8ecd  100000  85008    11m45s",
+			"026fb323-6884-4978-a45f-da188dbf8ecd  100000  85008    11m45s",
 			"",
 		}))
 	})
