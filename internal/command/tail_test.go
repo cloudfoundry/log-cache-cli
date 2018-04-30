@@ -110,7 +110,7 @@ var _ = Describe("LogCache", func() {
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
-			logFormat := "   %s COUNTER %s:%d"
+			logFormat := "   %s [%s/%s] COUNTER %s:%d"
 			Expect(writer.lines()).To(Equal([]string{
 				fmt.Sprintf(
 					"Retrieving logs for app %s in org %s / space %s as %s...",
@@ -120,7 +120,7 @@ var _ = Describe("LogCache", func() {
 					cliConn.usernameResp,
 				),
 				"",
-				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "some-name", 99),
+				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "app-name", "0", "some-name", 99),
 			}))
 		})
 
@@ -135,7 +135,7 @@ var _ = Describe("LogCache", func() {
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
-			logFormat := "   %s GAUGE %s:%f %s %s:%f %s"
+			logFormat := "   %s [%s/%s] GAUGE %s:%f %s %s:%f %s"
 			Expect(writer.lines()).To(Equal([]string{
 				fmt.Sprintf(
 					"Retrieving logs for app %s in org %s / space %s as %s...",
@@ -145,7 +145,7 @@ var _ = Describe("LogCache", func() {
 					cliConn.usernameResp,
 				),
 				"",
-				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "some-name", 99.0, "my-unit", "some-other-name", 101.0, "my-unit"),
+				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "app-name", "0", "some-name", 99.0, "my-unit", "some-other-name", 101.0, "my-unit"),
 			}))
 		})
 
@@ -229,8 +229,8 @@ var _ = Describe("LogCache", func() {
 			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
 
 			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","event":{"title":"some-title","body":"some-body"}}`, startTime.UnixNano()),
-				fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"bG9nIGJvZHk="}}`, startTime.UnixNano()),
+				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","event":{"title":"some-title","body":"some-body"}}`, startTime.UnixNano()),
+				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","instanceId":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"bG9nIGJvZHk="}}`, startTime.UnixNano()),
 			))
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
@@ -252,7 +252,7 @@ var _ = Describe("LogCache", func() {
 			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
 
 			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
+				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
 			))
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
@@ -273,7 +273,7 @@ var _ = Describe("LogCache", func() {
 			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
 
 			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
+				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
 			))
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
@@ -384,7 +384,7 @@ var _ = Describe("LogCache", func() {
 			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
 
 			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
+				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
 			))
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
@@ -800,7 +800,7 @@ var _ = Describe("LogCache", func() {
 			args := []string{"service-name"}
 			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
 
-			logFormat := "   %s GAUGE %s:%f %s %s:%f %s"
+			logFormat := "   %s [%s/%s] GAUGE %s:%f %s %s:%f %s"
 			Expect(writer.lines()).To(Equal([]string{
 				fmt.Sprintf(
 					"Retrieving logs for service %s in org %s / space %s as %s...",
@@ -810,7 +810,7 @@ var _ = Describe("LogCache", func() {
 					cliConn.usernameResp,
 				),
 				"",
-				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "some-name", 99.0, "my-unit", "some-other-name", 101.0, "my-unit"),
+				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "app-name", "0", "some-name", 99.0, "my-unit", "some-other-name", 101.0, "my-unit"),
 			}))
 		})
 
@@ -818,20 +818,20 @@ var _ = Describe("LogCache", func() {
 			cliConn.cliCommandResult = [][]string{{"not", "an", "app"}, {"service-guid"}}
 			cliConn.cliCommandErr = []error{errors.New("catch this instead")}
 
-			args := []string{"service-name"}
+			args := []string{"app-name"}
 			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
 
-			logFormat := "   %s GAUGE %s:%f %s %s:%f %s"
+			logFormat := "   %s [%s/%s] GAUGE %s:%f %s %s:%f %s"
 			Expect(writer.lines()).To(Equal([]string{
 				fmt.Sprintf(
 					"Retrieving logs for service %s in org %s / space %s as %s...",
-					"service-name",
+					"app-name",
 					cliConn.orgName,
 					cliConn.spaceName,
 					cliConn.usernameResp,
 				),
 				"",
-				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "some-name", 99.0, "my-unit", "some-other-name", 101.0, "my-unit"),
+				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "app-name", "0", "some-name", 99.0, "my-unit", "some-other-name", 101.0, "my-unit"),
 			}))
 
 			Expect(logger.printfMessages).To(ContainElement("catch this instead"))
@@ -875,7 +875,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.cliCommandResult = [][]string{{""}, {""}}
 			cliConn.cliCommandErr = []error{errors.New("app not found"), errors.New("service not found")}
 
-			args := []string{"component-name"}
+			args := []string{"app-name"}
 			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
@@ -885,17 +885,17 @@ var _ = Describe("LogCache", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
 
-			Expect(requestURL.Path).To(Equal("/v1/read/component-name"))
+			Expect(requestURL.Path).To(Equal("/v1/read/app-name"))
 
-			counterFormat := "   %s COUNTER %s:%d"
+			counterFormat := "   %s [%s/%s] COUNTER %s:%d"
 			Expect(writer.lines()).To(Equal([]string{
 				fmt.Sprintf(
 					"Retrieving logs for source %s as %s...",
-					"component-name",
+					"app-name",
 					cliConn.usernameResp,
 				),
 				"",
-				fmt.Sprintf(counterFormat, startTime.Format(timeFormat), "some-name", 99),
+				fmt.Sprintf(counterFormat, startTime.Format(timeFormat), "app-name", "0", "some-name", 99),
 			}))
 
 			Expect(logger.printfMessages).To(ContainElement("app not found"))
@@ -970,6 +970,7 @@ var responseTemplate = `{
 		"batch": [
 			{
 				"timestamp":"%d",
+				"source_id": "app-name",
 				"instance_id":"0",
 				"tags":{
 					"source_type":"APP/PROC/WEB"
@@ -980,6 +981,7 @@ var responseTemplate = `{
 			},
 			{
 				"timestamp":"%d",
+				"source_id": "app-name",
 				"instance_id":"0",
 				"tags":{
 					"source_type":"APP/PROC/WEB"
@@ -990,6 +992,7 @@ var responseTemplate = `{
 			},
 			{
 				"timestamp":"%d",
+				"source_id": "app-name",
 				"instance_id":"0",
 				"tags":{
 					"source_type":"APP/PROC/WEB"
@@ -1038,6 +1041,8 @@ var counterResponseTemplate = `{
 	"envelopes": {
 		"batch": [
 			{
+				"source_id": "app-name",
+				"instance_id":"0",
 				"timestamp":"%d",
 				"instance_id":"0",
 				"counter":{"name":"some-name","total":99}
@@ -1050,6 +1055,8 @@ var gaugeResponseTemplate = `{
 	"envelopes": {
 		"batch": [
 			{
+				"source_id": "app-name",
+				"instance_id":"0",
 				"timestamp": "%d",
 				"gauge": {
 				  "metrics": {
@@ -1072,7 +1079,9 @@ var timerResponseTemplate = `{
 	"envelopes": {
 		"batch": [
 			{
+				"source_id": "app-name",
 				"timestamp": "%d",
+				"instance_id":"0",
 				"timer": {
 					"name": "http",
 					"start": "%d",
@@ -1087,6 +1096,8 @@ var eventResponseTemplate = `{
 	"envelopes": {
 		"batch": [
 			{
+				"source_id": "app-name",
+				"instance_id":"0",
 				"timestamp": "%d",
 				"event": {
 					"title": "some-title",
@@ -1101,6 +1112,7 @@ var invalidTimestampResponse = `{
 	"envelopes": {
 		"batch": [
 			{
+				"source_id": "app-name",
 				"timestamp":"not-a-timestamp",
 				"instance_id":"0",
 				"deprecated_tags": {
@@ -1116,6 +1128,7 @@ var invalidPayloadResponse = `{
 	"envelopes": {
 		"batch": [
 			{
+				"source_id": "app-name",
 				"timestamp":"0",
 				"instance_id":"0",
 				"deprecated_tags": {
@@ -1131,6 +1144,7 @@ var mixedResponseTemplate = `{
 	"envelopes": {
 		"batch": [
 			{
+				"source_id": "app-name",
 				"timestamp":"%[1]d",
 				"instance_id":"0",
 				"tags":{
@@ -1141,11 +1155,15 @@ var mixedResponseTemplate = `{
 				}
 			},
 			{
+				"source_id": "app-name",
+				"instance_id":"0",
 				"timestamp":"%[1]d",
 				"instance_id":"0",
 				"counter":{"name":"some-name","total":99}
 			},
 			{
+				"source_id": "app-name",
+				"instance_id":"0",
 				"timestamp":"%[1]d",
 				"gauge": {
 					"metrics": {
@@ -1157,6 +1175,8 @@ var mixedResponseTemplate = `{
 				}
 			},
 			{
+				"source_id": "app-name",
+				"instance_id":"0",
 				"timestamp":"%[1]d",
 				"timer": {
 					"name": "http",
@@ -1165,6 +1185,8 @@ var mixedResponseTemplate = `{
 				}
 			},
 			{
+				"source_id": "app-name",
+				"instance_id":"0",
 				"timestamp":"%[1]d",
 				"event": {
 					"title": "some-title",

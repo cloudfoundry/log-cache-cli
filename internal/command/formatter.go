@@ -194,8 +194,10 @@ func (e envelopeWrapper) String() string {
 			e.GetLog().GetPayload(),
 		)
 	case *loggregator_v2.Envelope_Counter:
-		return fmt.Sprintf("   %s COUNTER %s:%d",
+		return fmt.Sprintf("   %s [%s/%s] COUNTER %s:%d",
 			ts.Format(timeFormat),
+			e.GetSourceId(),
+			e.GetInstanceId(),
 			e.GetCounter().GetName(),
 			e.GetCounter().GetTotal(),
 		)
@@ -207,8 +209,10 @@ func (e envelopeWrapper) String() string {
 
 		sort.Sort(sort.StringSlice(values))
 
-		return fmt.Sprintf("   %s GAUGE %s",
+		return fmt.Sprintf("   %s [%s/%s] GAUGE %s",
 			ts.Format(timeFormat),
+			e.GetSourceId(),
+			e.GetInstanceId(),
 			strings.Join(values, " "),
 		)
 	case *loggregator_v2.Envelope_Timer:
