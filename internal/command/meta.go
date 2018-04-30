@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -115,11 +116,13 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	headerArgs := []interface{}{"Source", "Count", "Expired", "Cache Duration"}
 	headerFormat := "%s\t%s\t%s\t%s\n"
 	tableFormat := "%s\t%d\t%d\t%s\n"
+	colToSortOn := 0
 
 	if opts.ShowGUID {
 		headerArgs = append([]interface{}{"Source ID"}, headerArgs...)
 		headerFormat = "%s\t" + headerFormat
 		tableFormat = "%s\t" + tableFormat
+		colToSortOn = 1
 	}
 
 	if opts.EnableNoise {
@@ -130,6 +133,8 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 
 	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
 	fmt.Fprintf(tw, headerFormat, headerArgs...)
+
+	var rows [][]interface{}
 
 	for _, source := range resources {
 		m, ok := meta[source.GUID]
@@ -148,7 +153,7 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 				args = append(args, len(tailer(source.GUID, start, end)))
 			}
 
-			fmt.Fprintf(tw, tableFormat, args...)
+			rows = append(rows, args)
 		}
 	}
 
@@ -167,7 +172,8 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 					start := end.Add(-time.Minute)
 					args = append(args, len(tailer(sourceID, start, end)))
 				}
-				fmt.Fprintf(tw, tableFormat, args...)
+
+				rows = append(rows, args)
 			}
 		}
 	}
@@ -185,9 +191,15 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 					args = append(args, len(tailer(sourceID, start, end)))
 				}
 
-				fmt.Fprintf(tw, tableFormat, args...)
+				rows = append(rows, args)
 			}
 		}
+	}
+
+	sort.Sort(&rowSorter{colToSortOn: colToSortOn, rows: rows})
+
+	for _, r := range rows {
+		fmt.Fprintf(tw, tableFormat, r...)
 	}
 
 	if err = tw.Flush(); err != nil {
@@ -320,4 +332,29 @@ func invalidScope(scope string) bool {
 	}
 
 	return true
+}
+
+type rowSorter struct {
+	colToSortOn int
+	rows        [][]interface{}
+}
+
+func newRowSorter(colToSortOn int) *rowSorter {
+	return &rowSorter{
+		colToSortOn: colToSortOn,
+	}
+}
+
+func (s *rowSorter) Len() int {
+	return len(s.rows)
+}
+
+func (s *rowSorter) Less(i, j int) bool {
+	return s.rows[i][s.colToSortOn].(string) < s.rows[j][s.colToSortOn].(string)
+}
+
+func (s *rowSorter) Swap(i, j int) {
+	t := s.rows[i]
+	s.rows[i] = s.rows[j]
+	s.rows[j] = t
 }

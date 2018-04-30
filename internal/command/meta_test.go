@@ -35,14 +35,14 @@ var _ = Describe("Meta", func() {
 		tableWriter = bytes.NewBuffer(nil)
 	})
 
-	It("returns app names with app source guids", func() {
+	It("returns app names with app source guids in alphabetical order", func() {
 		httpClient.responseBody = []string{
-			metaResponseInfo("source-1"),
+			metaResponseInfo("source-1", "source-2"),
 		}
 
 		cliConn.cliCommandResult = [][]string{
 			{
-				capiAppsResponse(map[string]string{"source-1": "app-1"}),
+				capiAppsResponse(map[string]string{"source-1": "app-2", "source-2": "app-1"}),
 			},
 		}
 		cliConn.cliCommandErr = nil
@@ -52,7 +52,13 @@ var _ = Describe("Meta", func() {
 		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
 		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
 		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
-		Expect(cliConn.cliCommandArgs[0][1]).To(Equal("/v3/apps?guids=source-1"))
+
+		// Or is required because we don't know the order the keys will come
+		// out of the map.
+		Expect(cliConn.cliCommandArgs[0][1]).To(Or(
+			Equal("/v3/apps?guids=source-1,source-2"),
+			Equal("/v3/apps?guids=source-2,source-1"),
+		))
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
@@ -61,7 +67,8 @@ var _ = Describe("Meta", func() {
 			),
 			"",
 			"Source ID  Source  Count   Expired  Cache Duration",
-			"source-1   app-1   100000  85008    11m45s",
+			"source-2   app-1   100000  85008    11m45s",
+			"source-1   app-2   100000  85008    11m45s",
 			"",
 		}))
 
@@ -70,7 +77,7 @@ var _ = Describe("Meta", func() {
 
 	It("returns service instance names with service source guids", func() {
 		httpClient.responseBody = []string{
-			metaResponseInfo("source-1", "source-2"),
+			metaResponseInfo("source-1", "source-2", "source-3"),
 		}
 
 		cliConn.cliCommandResult = [][]string{
@@ -78,7 +85,12 @@ var _ = Describe("Meta", func() {
 				capiAppsResponse(map[string]string{"source-1": "app-1"}),
 			},
 			{
-				capiServiceInstancesResponse(map[string]string{"source-2": "service-2"}),
+				// The prefix in the service name is to help test alphabetical
+				// ordering.
+				capiServiceInstancesResponse(map[string]string{
+					"source-2": "aa-service-2",
+					"source-3": "ab-service-3",
+				}),
 			},
 		}
 		cliConn.cliCommandErr = nil
@@ -99,7 +111,13 @@ var _ = Describe("Meta", func() {
 
 		Expect(cliConn.cliCommandArgs[1]).To(HaveLen(2))
 		Expect(cliConn.cliCommandArgs[1][0]).To(Equal("curl"))
-		Expect(cliConn.cliCommandArgs[1][1]).To(Equal("/v2/service_instances?guids=source-2"))
+
+		// Or is required because we don't know the order the keys will come
+		// out of the map.
+		Expect(cliConn.cliCommandArgs[1][1]).To(Or(
+			Equal("/v2/service_instances?guids=source-2,source-3"),
+			Equal("/v2/service_instances?guids=source-3,source-2"),
+		))
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
@@ -107,9 +125,10 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  Source     Count   Expired  Cache Duration",
-			"source-1   app-1      100000  85008    11m45s",
-			"source-2   service-2  100000  85008    11m45s",
+			"Source ID  Source        Count   Expired  Cache Duration",
+			"source-2   aa-service-2  100000  85008    11m45s",
+			"source-3   ab-service-3  100000  85008    11m45s",
+			"source-1   app-1         100000  85008    11m45s",
 			"",
 		}))
 
