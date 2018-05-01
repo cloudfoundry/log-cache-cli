@@ -1,4 +1,4 @@
-package command_test
+package cf_test
 
 import (
 	"errors"

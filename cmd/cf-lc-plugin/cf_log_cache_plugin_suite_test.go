@@ -9,5 +9,5 @@ import (
 
 func TestLogCacheCli(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "LogCacheCli Suite")
+	RunSpecs(t, "CF Log Cache Plugin Suite")
 }

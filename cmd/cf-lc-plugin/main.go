@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
-	"code.cloudfoundry.org/log-cache-cli/internal/command"
+	"code.cloudfoundry.org/log-cache-cli/pkg/command/cf"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -23,7 +23,7 @@ var version string
 
 type LogCacheCLI struct{}
 
-var commands = make(map[string]command.Command)
+var commands = make(map[string]cf.Command)
 
 func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 	if len(args) == 1 && args[0] == "CLI-MESSAGE-UNINSTALL" {
@@ -37,20 +37,20 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 
 	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
 
-	commands["tail"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c command.HTTPClient, log command.Logger, tableWriter io.Writer) {
-		var opts []command.TailOption
+	commands["tail"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c cf.HTTPClient, log cf.Logger, tableWriter io.Writer) {
+		var opts []cf.TailOption
 		if !isTerminal {
-			opts = append(opts, command.WithTailNoHeaders())
+			opts = append(opts, cf.WithTailNoHeaders())
 		}
-		command.Tail(ctx, cli, args, c, log, tableWriter, opts...)
+		cf.Tail(ctx, cli, args, c, log, tableWriter, opts...)
 	}
 
-	commands["log-meta"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c command.HTTPClient, log command.Logger, tableWriter io.Writer) {
-		var opts []command.MetaOption
+	commands["log-meta"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c cf.HTTPClient, log cf.Logger, tableWriter io.Writer) {
+		var opts []cf.MetaOption
 		if !isTerminal {
-			opts = append(opts, command.WithMetaNoHeaders())
+			opts = append(opts, cf.WithMetaNoHeaders())
 		}
-		command.Meta(
+		cf.Meta(
 			ctx,
 			cli,
 			func(sourceID string, start, end time.Time) []string {
@@ -66,7 +66,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 					"--lines", "1000",
 				}
 
-				command.Tail(
+				cf.Tail(
 					ctx,
 					cli,
 					args,

@@ -1,4 +1,4 @@
-package command
+package cf
 
 import (
 	"bytes"

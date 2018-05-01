@@ -1,4 +1,4 @@
-package command_test
+package cf_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/log-cache-cli/internal/command"
+	"code.cloudfoundry.org/log-cache-cli/pkg/command/cf"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -50,7 +50,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -101,7 +101,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -109,7 +109,7 @@ var _ = Describe("Meta", func() {
 			httpClient,
 			logger,
 			tableWriter,
-			command.WithMetaNoHeaders(),
+			cf.WithMetaNoHeaders(),
 		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
@@ -139,7 +139,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -199,7 +199,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -272,7 +272,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			tailer,
@@ -313,7 +313,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -375,7 +375,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "application"}
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -417,7 +417,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "service"}
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -459,7 +459,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "PLATFORM"}
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -500,7 +500,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "all"}
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -543,7 +543,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "PLATFORM", "--guid"}
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -591,7 +591,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -651,7 +651,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -683,7 +683,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(
+		cf.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -698,7 +698,7 @@ var _ = Describe("Meta", func() {
 
 	It("fatally logs when it receives too many arguments", func() {
 		Expect(func() {
-			command.Meta(
+			cf.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -715,7 +715,7 @@ var _ = Describe("Meta", func() {
 	It("fatally logs when scope is not 'platform', 'application' or 'all'", func() {
 		args := []string{"--source-type", "invalid"}
 		Expect(func() {
-			command.Meta(
+			cf.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -733,7 +733,7 @@ var _ = Describe("Meta", func() {
 		cliConn.apiEndpointErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(
+			cf.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -756,7 +756,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = []error{errors.New("some-error")}
 
 		Expect(func() {
-			command.Meta(
+			cf.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -785,7 +785,7 @@ var _ = Describe("Meta", func() {
 		cliConn.usernameErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(
+			cf.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -808,7 +808,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		Expect(func() {
-			command.Meta(
+			cf.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -826,7 +826,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(
+			cf.Meta(
 				context.Background(),
 				cliConn,
 				nil,

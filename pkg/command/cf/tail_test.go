@@ -1,4 +1,4 @@
-package command_test
+package cf_test
 
 import (
 	"context"
@@ -9,8 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/log-cache-cli/internal/command"
-
+	"code.cloudfoundry.org/log-cache-cli/pkg/command/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -38,14 +37,14 @@ var _ = Describe("LogCache", func() {
 	})
 
 	It("removes headers when not printing to a tty", func() {
-		command.Tail(
+		cf.Tail(
 			context.Background(),
 			cliConn,
 			[]string{"app-name"},
 			httpClient,
 			logger,
 			writer,
-			command.WithTailNoHeaders(),
+			cf.WithTailNoHeaders(),
 		)
 
 		logFormat := "   %s [APP/PROC/WEB/0] %s log body"
@@ -67,7 +66,7 @@ var _ = Describe("LogCache", func() {
 		})
 
 		It("reports successful results", func() {
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -102,7 +101,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				deprecatedTagsResponseBody(startTime),
 			}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -136,7 +135,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				counterResponseBody(startTime),
 			}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -168,7 +167,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				gaugeResponseBody(startTime),
 			}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -203,7 +202,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				[]string{"app-name"},
@@ -238,7 +237,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				[]string{"app-name"},
@@ -264,7 +263,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--envelope-type", "any", "--json", "app-name"}
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -290,7 +289,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--type", "metrics", "--json", "app-name"}
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -320,7 +319,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--type", "logs", "--json", "app-name"}
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -350,7 +349,7 @@ var _ = Describe("LogCache", func() {
 
 			args := []string{"--gauge-name", "some-name", "--json", "app-name"}
 
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -378,7 +377,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--counter-name", "some-name", "--json", "app-name"}
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -411,7 +410,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				[]string{"--follow", "app-name"},
@@ -475,7 +474,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				[]string{"-f", "app-name"},
@@ -534,7 +533,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			args := []string{"--counter-name", "some-name", "--json", "--follow", "app-name"}
-			command.Tail(
+			cf.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -558,7 +557,7 @@ var _ = Describe("LogCache", func() {
 			os.Setenv("LOG_CACHE_ADDR", "https://different-log-cache:8080")
 			defer os.Unsetenv("LOG_CACHE_ADDR")
 
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -578,7 +577,7 @@ var _ = Describe("LogCache", func() {
 			os.Setenv("LOG_CACHE_SKIP_AUTH", "true")
 			defer os.Unsetenv("LOG_CACHE_SKIP_AUTH")
 
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -592,7 +591,7 @@ var _ = Describe("LogCache", func() {
 		It("follow retries for empty responses", func() {
 			httpClient.responseBody = []string{emptyResponseBody()}
 
-			go command.Tail(
+			go cf.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"--follow", "app-name"},
@@ -608,7 +607,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = nil
 			httpClient.responseErr = errors.New("some-error")
 
-			go command.Tail(
+			go cf.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"--follow", "app-name"},
@@ -624,7 +623,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				eventResponseBody(startTime),
 			}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -660,7 +659,7 @@ var _ = Describe("LogCache", func() {
 				"--lines", "99",
 				"app-name",
 			}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -687,7 +686,7 @@ var _ = Describe("LogCache", func() {
 				"-n", "99",
 				"app-name",
 			}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -706,7 +705,7 @@ var _ = Describe("LogCache", func() {
 			args := []string{
 				"app-name",
 			}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -723,7 +722,7 @@ var _ = Describe("LogCache", func() {
 
 		It("requests the app guid", func() {
 			args := []string{"some-app"}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -742,7 +741,7 @@ var _ = Describe("LogCache", func() {
 		It("places the auth token in the 'Authorization' header", func() {
 			args := []string{"some-app"}
 			cliConn.accessToken = "bearer some-token"
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -763,7 +762,7 @@ var _ = Describe("LogCache", func() {
 				"app-guid",
 			}
 
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -782,7 +781,7 @@ var _ = Describe("LogCache", func() {
 				"app-guid",
 			}
 
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -797,7 +796,7 @@ var _ = Describe("LogCache", func() {
 		It("allows for empty end time with populated start time", func() {
 			args := []string{"--start-time", "1000", "app-name"}
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -811,7 +810,7 @@ var _ = Describe("LogCache", func() {
 		It("fatally logs if envelope-type is invalid", func() {
 			args := []string{"--envelope-type", "invalid", "some-app"}
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -831,7 +830,7 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -853,7 +852,7 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -873,7 +872,7 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -893,7 +892,7 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -915,7 +914,7 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -931,7 +930,7 @@ var _ = Describe("LogCache", func() {
 		It("fatally logs if an output-format is malformed", func() {
 			args := []string{"--output-format", "{{INVALID}}", "app-guid"}
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -952,7 +951,7 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -971,7 +970,7 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -990,7 +989,7 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1006,7 +1005,7 @@ var _ = Describe("LogCache", func() {
 			args := []string{"app-name"}
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1024,7 +1023,7 @@ var _ = Describe("LogCache", func() {
 			args := []string{"app-name"}
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1042,7 +1041,7 @@ var _ = Describe("LogCache", func() {
 			args := []string{"app-name"}
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1058,7 +1057,7 @@ var _ = Describe("LogCache", func() {
 		It("fatally logs if the start > end", func() {
 			args := []string{"--start-time", "1000", "--end-time", "100", "app-name"}
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1073,7 +1072,7 @@ var _ = Describe("LogCache", func() {
 
 		It("fatally logs if too many arguments are given", func() {
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"one", "two"},
@@ -1088,7 +1087,7 @@ var _ = Describe("LogCache", func() {
 
 		It("fatally logs if not enough arguments are given", func() {
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					[]string{},
@@ -1105,7 +1104,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.apiEndpointErr = errors.New("some-error")
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"app-name"},
@@ -1122,7 +1121,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.hasAPIEndpoint = false
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"app-name"},
@@ -1140,7 +1139,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.hasAPIEndpointErr = errors.New("some-error")
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"app-name"},
@@ -1157,7 +1156,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseErr = errors.New("some-error")
 
 			Expect(func() {
-				command.Tail(
+				cf.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"app-name"},
@@ -1189,7 +1188,7 @@ var _ = Describe("LogCache", func() {
 				{"service-guid"},
 			}
 			args := []string{"service-name"}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1217,7 +1216,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.cliCommandErr = []error{errors.New("catch this instead")}
 
 			args := []string{"app-name"}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1244,7 +1243,7 @@ var _ = Describe("LogCache", func() {
 
 		It("calls the log cache api", func() {
 			args := []string{"service-name"}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1266,7 +1265,7 @@ var _ = Describe("LogCache", func() {
 
 		It("requests the service guid", func() {
 			args := []string{"some-service"}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1295,7 +1294,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.cliCommandErr = []error{errors.New("app not found"), errors.New("service not found")}
 
 			args := []string{"app-name"}
-			command.Tail(
+			cf.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1327,9 +1326,7 @@ var _ = Describe("LogCache", func() {
 			Expect(logger.printfMessages).To(ContainElement("app not found"))
 			Expect(logger.printfMessages).To(ContainElement("service not found"))
 		})
-
 	})
-
 })
 
 func responseBody(startTime time.Time) string {
@@ -1482,7 +1479,6 @@ var counterResponseTemplate = `{
 				"source_id": "app-name",
 				"instance_id":"0",
 				"timestamp":"%d",
-				"instance_id":"0",
 				"counter":{"name":"some-name","total":99}
 			}
 		]
