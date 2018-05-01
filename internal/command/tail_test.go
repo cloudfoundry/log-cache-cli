@@ -683,7 +683,7 @@ var _ = Describe("LogCache", func() {
 			Expect(logger.fatalfMessage).To(Equal(`Output template parsed, but failed to execute: template: OutputFormat:1:2: executing "OutputFormat" at <.invalid>: can't evaluate field invalid in type *loggregator_v2.Envelope`))
 		})
 
-		It("fatally logs if lines is greater than 1000 or less than 1", func() {
+		It("fatally logs if lines is greater than 1000", func() {
 			args := []string{
 				"--lines", "1001",
 				"some-app",
@@ -692,17 +692,17 @@ var _ = Describe("LogCache", func() {
 				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Lines must be 1 to 1000."))
+			Expect(logger.fatalfMessage).To(Equal("Lines cannot be greater than 1000."))
+		})
 
-			args = []string{
+		It("accepts 0 for --lines", func() {
+			args := []string{
 				"--lines", "0",
 				"some-app",
 			}
 			Expect(func() {
 				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
-			}).To(Panic())
-
-			Expect(logger.fatalfMessage).To(Equal("Lines must be 1 to 1000."))
+			}).ToNot(Panic())
 		})
 
 		It("fatally logs if username cannot be fetched", func() {

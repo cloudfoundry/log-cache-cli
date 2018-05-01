@@ -127,27 +127,28 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 	}
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
 
-	// Lines mode
-	envelopes, err := client.Read(
-		context.Background(),
-		sourceID,
-		o.startTime,
-		logcache.WithEndTime(o.endTime),
-		logcache.WithEnvelopeTypes(o.envelopeType),
-		logcache.WithLimit(o.lines),
-		logcache.WithDescending(),
-	)
-
-	if err != nil && !o.follow {
-		log.Fatalf("%s", err)
-	}
-
 	walkStartTime := time.Now().Add(-5 * time.Second).UnixNano()
-	// we get envelopes in descending order but want to print them ascending
-	for i := len(envelopes) - 1; i >= 0; i-- {
-		walkStartTime = envelopes[i].Timestamp + 1
-		if formatted, ok := filterAndFormat(envelopes[i]); ok {
-			lw.Write(formatted)
+	if o.lines > 0 {
+		envelopes, err := client.Read(
+			context.Background(),
+			sourceID,
+			o.startTime,
+			logcache.WithEndTime(o.endTime),
+			logcache.WithEnvelopeTypes(o.envelopeType),
+			logcache.WithLimit(o.lines),
+			logcache.WithDescending(),
+		)
+
+		if err != nil && !o.follow {
+			log.Fatalf("%s", err)
+		}
+
+		// we get envelopes in descending order but want to print them ascending
+		for i := len(envelopes) - 1; i >= 0; i-- {
+			walkStartTime = envelopes[i].Timestamp + 1
+			if formatted, ok := filterAndFormat(envelopes[i]); ok {
+				lw.Write(formatted)
+			}
 		}
 	}
 
@@ -351,8 +352,8 @@ func (o options) validate() error {
 		return errors.New("Invalid date/time range. Ensure your start time is prior or equal the end time.")
 	}
 
-	if o.lines > 1000 || o.lines < 1 {
-		return errors.New("Lines must be 1 to 1000.")
+	if o.lines > 1000 || o.lines < 0 {
+		return errors.New("Lines cannot be greater than 1000.")
 	}
 
 	return nil
