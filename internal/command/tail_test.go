@@ -124,7 +124,7 @@ var _ = Describe("LogCache", func() {
 			}))
 		})
 
-		It("reports successful results with guage envelopes", func() {
+		It("reports successful results with gauge envelopes", func() {
 			httpClient.responseBody = []string{
 				gaugeResponseBody(startTime),
 			}
@@ -286,6 +286,9 @@ var _ = Describe("LogCache", func() {
 
 		It("reports successful results when following", func() {
 			httpClient.responseBody = []string{
+				// Lines mode requests WithDescending
+				responseBody(startTime.Add(-30 * time.Second)),
+				// Walk uses ascending order
 				responseBodyAsc(startTime),
 				responseBodyAsc(startTime.Add(3 * time.Second)),
 			}
@@ -293,22 +296,27 @@ var _ = Describe("LogCache", func() {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
+			now := time.Now()
 			command.Tail(ctx, cliConn, []string{"--follow", "app-name"}, httpClient, logger, writer)
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
 
-			now := time.Now()
-
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(start).To(BeNumerically("~", now.Add(-5*time.Second).UnixNano(), time.Second))
+			Expect(start).To(Equal(int64(0)))
 
-			_, ok := requestURL.Query()["end_time"]
-			Expect(ok).To(BeFalse())
+			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(end).To(BeNumerically("~", now.UnixNano(), time.Second))
 
 			envelopeType := requestURL.Query().Get("envelope_types")
 			Expect(envelopeType).To(Equal("ANY"))
+
+			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
 
 			Expect(writer.lines()).To(ConsistOf(
 				fmt.Sprintf(
@@ -319,6 +327,9 @@ var _ = Describe("LogCache", func() {
 					cliConn.usernameResp,
 				),
 				"",
+				fmt.Sprintf(logFormat, startTime.Add(-30*time.Second).Format(timeFormat), "ERR"),
+				fmt.Sprintf(logFormat, startTime.Add(-29*time.Second).Format(timeFormat), "OUT"),
+				fmt.Sprintf(logFormat, startTime.Add(-28*time.Second).Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "ERR"),
@@ -332,6 +343,9 @@ var _ = Describe("LogCache", func() {
 
 		It("respects short flag for following", func() {
 			httpClient.responseBody = []string{
+				// Lines mode requests WithDescending
+				responseBody(startTime.Add(-30 * time.Second)),
+				// Walk uses ascending order
 				responseBodyAsc(startTime),
 				responseBodyAsc(startTime.Add(3 * time.Second)),
 			}
@@ -339,22 +353,27 @@ var _ = Describe("LogCache", func() {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
+			now := time.Now()
 			command.Tail(ctx, cliConn, []string{"-f", "app-name"}, httpClient, logger, writer)
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
 
-			now := time.Now()
-
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(start).To(BeNumerically("~", now.Add(-5*time.Second).UnixNano(), time.Second))
+			Expect(start).To(Equal(int64(0)))
 
-			_, ok := requestURL.Query()["end_time"]
-			Expect(ok).To(BeFalse())
+			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(end).To(BeNumerically("~", now.UnixNano(), time.Second))
 
 			envelopeType := requestURL.Query().Get("envelope_types")
 			Expect(envelopeType).To(Equal("ANY"))
+
+			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
 
 			Expect(writer.lines()).To(ConsistOf(
 				fmt.Sprintf(
@@ -365,6 +384,9 @@ var _ = Describe("LogCache", func() {
 					cliConn.usernameResp,
 				),
 				"",
+				fmt.Sprintf(logFormat, startTime.Add(-30*time.Second).Format(timeFormat), "ERR"),
+				fmt.Sprintf(logFormat, startTime.Add(-29*time.Second).Format(timeFormat), "OUT"),
+				fmt.Sprintf(logFormat, startTime.Add(-28*time.Second).Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "ERR"),
@@ -372,6 +394,8 @@ var _ = Describe("LogCache", func() {
 				fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
 			))
+
+			Expect(cliConn.accessTokenCount).To(Equal(1))
 		})
 
 		It("filters when given counter-name flag while following", func() {
@@ -417,11 +441,11 @@ var _ = Describe("LogCache", func() {
 		})
 
 		It("follow retries for empty responses", func() {
-			httpClient.responseBody = nil
+			httpClient.responseBody = []string{emptyResponseBody()}
 
 			go command.Tail(context.Background(), cliConn, []string{"--follow", "app-name"}, httpClient, logger, writer)
 
-			Eventually(httpClient.requestCount).Should(BeNumerically(">", 2))
+			Eventually(httpClient.requestCount).Should(BeNumerically(">", 3))
 		})
 
 		It("follow retries for an error", func() {
@@ -917,7 +941,7 @@ func responseBody(startTime time.Time) string {
 }
 
 func responseBodyAsc(startTime time.Time) string {
-	// NOTE: These are in descending order.
+	// NOTE: These are in ascending order.
 	return fmt.Sprintf(responseTemplate,
 		startTime.UnixNano(),
 		startTime.Add(1*time.Second).UnixNano(),
@@ -964,6 +988,10 @@ func mixedResponseBody(startTime time.Time) string {
 	return fmt.Sprintf(mixedResponseTemplate,
 		startTime.UnixNano(),
 	)
+}
+
+func emptyResponseBody() string {
+	return `{ "envelopes": { "batch": [] } }`
 }
 
 var responseTemplate = `{

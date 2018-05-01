@@ -126,6 +126,31 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 		return formatter.formatEnvelope(e)
 	}
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
+
+	// Lines mode
+	envelopes, err := client.Read(
+		context.Background(),
+		sourceID,
+		o.startTime,
+		logcache.WithEndTime(o.endTime),
+		logcache.WithEnvelopeTypes(o.envelopeType),
+		logcache.WithLimit(o.lines),
+		logcache.WithDescending(),
+	)
+
+	if err != nil && !o.follow {
+		log.Fatalf("%s", err)
+	}
+
+	walkStartTime := time.Now().Add(-5 * time.Second).UnixNano()
+	// we get envelopes in descending order but want to print them ascending
+	for i := len(envelopes) - 1; i >= 0; i-- {
+		walkStartTime = envelopes[i].Timestamp + 1
+		if formatted, ok := filterAndFormat(envelopes[i]); ok {
+			lw.Write(formatted)
+		}
+	}
+
 	if o.follow {
 		logcache.Walk(
 			ctx,
@@ -139,34 +164,12 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 				return true
 			}),
 			client.Read,
-			logcache.WithWalkStartTime(time.Now().Add(-5*time.Second)),
+			logcache.WithWalkStartTime(time.Unix(0, walkStartTime)),
 			logcache.WithWalkEnvelopeTypes(o.envelopeType),
 			logcache.WithWalkBackoff(logcache.NewAlwaysRetryBackoff(250*time.Millisecond)),
 		)
 
 		return
-	}
-
-	// Lines mode
-	envelopes, err := client.Read(
-		context.Background(),
-		sourceID,
-		o.startTime,
-		logcache.WithEndTime(o.endTime),
-		logcache.WithEnvelopeTypes(o.envelopeType),
-		logcache.WithLimit(o.lines),
-		logcache.WithDescending(),
-	)
-
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	// we get envelopes in descending order but want to print them ascending
-	for i := len(envelopes) - 1; i >= 0; i-- {
-		if formatted, ok := filterAndFormat(envelopes[i]); ok {
-			lw.Write(formatted)
-		}
 	}
 }
 
