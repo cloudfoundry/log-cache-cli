@@ -47,14 +47,33 @@ type optionsFlags struct {
 	Scope       string `long:"scope"`
 	EnableNoise bool   `long:"noise"`
 	ShowGUID    bool   `long:"guid"`
+
+	noHeaders bool
 }
 
 var (
 	idRegexp = regexp.MustCompile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 )
 
+type MetaOption func(*optionsFlags)
+
+func WithMetaNoHeaders() MetaOption {
+	return func(o *optionsFlags) {
+		o.noHeaders = true
+	}
+}
+
 // Meta returns the metadata from Log Cache
-func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []string, c HTTPClient, log Logger, tableWriter io.Writer) {
+func Meta(
+	ctx context.Context,
+	cli plugin.CliConnection,
+	tailer Tailer,
+	args []string,
+	c HTTPClient,
+	log Logger,
+	tableWriter io.Writer,
+	mopts ...MetaOption,
+) {
 	opts := optionsFlags{
 		Scope:       "all",
 		EnableNoise: false,
@@ -64,6 +83,10 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	args, err := flags.ParseArgs(&opts, args)
 	if err != nil {
 		log.Fatalf("Could not parse flags: %s", err)
+	}
+
+	for _, o := range mopts {
+		o(&opts)
 	}
 
 	if len(args) > 0 {
@@ -112,10 +135,12 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 		log.Fatalf("Could not get username: %s", err)
 	}
 
-	fmt.Fprintf(tableWriter, fmt.Sprintf(
-		"Retrieving log cache metadata as %s...\n\n",
-		username,
-	))
+	if !opts.noHeaders {
+		fmt.Fprintf(tableWriter, fmt.Sprintf(
+			"Retrieving log cache metadata as %s...\n\n",
+			username,
+		))
+	}
 
 	headerArgs := []interface{}{"Source", "Count", "Expired", "Cache Duration"}
 	headerFormat := "%s\t%s\t%s\t%s\n"
@@ -136,8 +161,9 @@ func Meta(ctx context.Context, cli plugin.CliConnection, tailer Tailer, args []s
 	}
 
 	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
-	fmt.Fprintf(tw, headerFormat, headerArgs...)
-
+	if !opts.noHeaders {
+		fmt.Fprintf(tw, headerFormat, headerArgs...)
+	}
 	var rows [][]interface{}
 
 	for _, source := range resources {

@@ -42,12 +42,23 @@ var _ = Describe("Meta", func() {
 
 		cliConn.cliCommandResult = [][]string{
 			{
-				capiAppsResponse(map[string]string{"source-1": "app-2", "source-2": "app-1"}),
+				capiAppsResponse(map[string]string{
+					"source-1": "app-2",
+					"source-2": "app-1",
+				}),
 			},
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, nil, []string{"--guid"}, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			[]string{"--guid"},
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
 		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
@@ -75,6 +86,39 @@ var _ = Describe("Meta", func() {
 		Expect(httpClient.requestCount()).To(Equal(1))
 	})
 
+	It("removes headers when not printing to a tty", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo("source-1", "source-2"),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiAppsResponse(map[string]string{
+					"source-1": "app-2",
+					"source-2": "app-1",
+				}),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			[]string{"--guid"},
+			httpClient,
+			logger,
+			tableWriter,
+			command.WithMetaNoHeaders(),
+		)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			"source-2  app-1  100000  85008  11m45s",
+			"source-1  app-2  100000  85008  11m45s",
+			"",
+		}))
+	})
+
 	It("returns service instance names with service source guids", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1", "source-2", "source-3"),
@@ -95,7 +139,15 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, nil, []string{"--guid"}, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			[]string{"--guid"},
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
 		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
@@ -147,7 +199,15 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			nil,
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
 		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
@@ -212,7 +272,15 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, tailer, []string{"--noise"}, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			tailer,
+			[]string{"--noise"},
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
@@ -245,7 +313,15 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			nil,
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
 
@@ -299,7 +375,15 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--scope", "applications"}
-		command.Meta(context.Background(), cliConn, nil, args, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			args,
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
@@ -334,7 +418,15 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--scope", "PLATFORM"}
-		command.Meta(context.Background(), cliConn, nil, args, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			args,
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
@@ -368,7 +460,15 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--scope", "PLATFORM", "--guid"}
-		command.Meta(context.Background(), cliConn, nil, args, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			args,
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
@@ -408,7 +508,15 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			nil,
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(cliConn.cliCommandArgs).To(HaveLen(4))
 
@@ -460,7 +568,15 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			nil,
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(httpClient.requestURLs).To(HaveLen(1))
 		u, err := url.Parse(httpClient.requestURLs[0])
@@ -484,7 +600,15 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			nil,
+			httpClient,
+			logger,
+			tableWriter,
+		)
 
 		Expect(httpClient.requestHeaders[0]).To(BeEmpty())
 	})
@@ -508,7 +632,15 @@ var _ = Describe("Meta", func() {
 	It("fatally logs when scope is not 'platform', 'applications' or 'all'", func() {
 		args := []string{"--scope", "invalid"}
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, nil, args, httpClient, logger, tableWriter)
+			command.Meta(
+				context.Background(),
+				cliConn,
+				nil,
+				args,
+				httpClient,
+				logger,
+				tableWriter,
+			)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal("Scope must be 'platform', 'applications' or 'all'."))
@@ -518,7 +650,15 @@ var _ = Describe("Meta", func() {
 		cliConn.apiEndpointErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+			command.Meta(
+				context.Background(),
+				cliConn,
+				nil,
+				nil,
+				httpClient,
+				logger,
+				tableWriter,
+			)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(HavePrefix(`Could not determine Log Cache endpoint: some-error`))
@@ -533,7 +673,15 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = []error{errors.New("some-error")}
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+			command.Meta(
+				context.Background(),
+				cliConn,
+				nil,
+				nil,
+				httpClient,
+				logger,
+				tableWriter,
+			)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(HavePrefix(`Failed to read application information: some-error`))
@@ -554,7 +702,15 @@ var _ = Describe("Meta", func() {
 		cliConn.usernameErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+			command.Meta(
+				context.Background(),
+				cliConn,
+				nil,
+				nil,
+				httpClient,
+				logger,
+				tableWriter,
+			)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal(`Could not get username: some-error`))
@@ -569,7 +725,15 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+			command.Meta(
+				context.Background(),
+				cliConn,
+				nil,
+				nil,
+				httpClient,
+				logger,
+				tableWriter,
+			)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(HavePrefix(`Failed to read application information: `))
@@ -579,12 +743,19 @@ var _ = Describe("Meta", func() {
 		httpClient.responseErr = errors.New("some-error")
 
 		Expect(func() {
-			command.Meta(context.Background(), cliConn, nil, nil, httpClient, logger, tableWriter)
+			command.Meta(
+				context.Background(),
+				cliConn,
+				nil,
+				nil,
+				httpClient,
+				logger,
+				tableWriter,
+			)
 		}).To(Panic())
 
 		Expect(logger.fatalfMessage).To(Equal(`Failed to read Meta information: some-error`))
 	})
-
 })
 
 func metaResponseInfo(sourceIDs ...string) string {

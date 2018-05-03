@@ -36,12 +36,32 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+type TailOption func(*options)
+
+func WithTailNoHeaders() TailOption {
+	return func(o *options) {
+		o.noHeaders = true
+	}
+}
+
 // Tail will fetch the logs for a given application guid and write them to
 // stdout.
-func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, w io.Writer) {
+func Tail(
+	ctx context.Context,
+	cli plugin.CliConnection,
+	args []string,
+	c HTTPClient,
+	log Logger,
+	w io.Writer,
+	opts ...TailOption,
+) {
 	o, err := newOptions(cli, args, log)
 	if err != nil {
 		log.Fatalf("%s", err)
+	}
+
+	for _, opt := range opts {
+		opt(&o)
 	}
 
 	sourceID := o.guid
@@ -103,10 +123,12 @@ func Tail(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPCl
 			headerPrinter = formatter.sourceHeader
 		}
 
-		header, ok := headerPrinter(o.providedName, org.Name, space.Name, user)
-		if ok {
-			lw.Write(header)
-			lw.Write("")
+		if !o.noHeaders {
+			header, ok := headerPrinter(o.providedName, org.Name, space.Name, user)
+			if ok {
+				lw.Write(header)
+				lw.Write("")
+			}
 		}
 	}
 
@@ -208,6 +230,8 @@ type options struct {
 
 	gaugeName   string
 	counterName string
+
+	noHeaders bool
 }
 
 type optionFlags struct {

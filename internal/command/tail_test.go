@@ -37,6 +37,25 @@ var _ = Describe("LogCache", func() {
 		cliConn = newStubCliConnection()
 	})
 
+	It("removes headers when not printing to a tty", func() {
+		command.Tail(
+			context.Background(),
+			cliConn,
+			[]string{"app-name"},
+			httpClient,
+			logger,
+			writer,
+			command.WithTailNoHeaders(),
+		)
+
+		logFormat := "   %s [APP/PROC/WEB/0] %s log body"
+		Expect(writer.lines()).To(Equal([]string{
+			fmt.Sprintf(logFormat, startTime.Format(timeFormat), "ERR"),
+			fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
+			fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "OUT"),
+		}))
+	})
+
 	Context("when the source is an app", func() {
 		BeforeEach(func() {
 			cliConn.cliCommandResult = [][]string{
@@ -48,7 +67,14 @@ var _ = Describe("LogCache", func() {
 		})
 
 		It("reports successful results", func() {
-			command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -76,7 +102,14 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				deprecatedTagsResponseBody(startTime),
 			}
-			command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -103,7 +136,14 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				counterResponseBody(startTime),
 			}
-			command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -128,7 +168,14 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				gaugeResponseBody(startTime),
 			}
-			command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -156,7 +203,14 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
-			command.Tail(ctx, cliConn, []string{"app-name"}, httpClient, logger, writer)
+			command.Tail(
+				ctx,
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -185,7 +239,14 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--envelope-type", "any", "--json", "app-name"}
-			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				ctx,
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(writer.lines()).To(ConsistOf(
 				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","event":{"title":"some-title","body":"some-body"}}`, startTime.UnixNano()),
@@ -204,7 +265,14 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--type", "metrics", "--json", "app-name"}
-			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				ctx,
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(writer.lines()).To(ConsistOf(
 				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}}`, startTime.UnixNano()),
@@ -227,7 +295,14 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--type", "logs", "--json", "app-name"}
-			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				ctx,
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(writer.lines()).To(ConsistOf(
 				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","event":{"title":"some-title","body":"some-body"}}`, startTime.UnixNano()),
@@ -250,7 +325,14 @@ var _ = Describe("LogCache", func() {
 
 			args := []string{"--gauge-name", "some-name", "--json", "app-name"}
 
-			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				ctx,
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(writer.lines()).To(ConsistOf(
 				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
@@ -271,7 +353,14 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--counter-name", "some-name", "--json", "app-name"}
-			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				ctx,
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(writer.lines()).To(ConsistOf(
 				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
@@ -297,7 +386,14 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			command.Tail(ctx, cliConn, []string{"--follow", "app-name"}, httpClient, logger, writer)
+			command.Tail(
+				ctx,
+				cliConn,
+				[]string{"--follow", "app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -354,7 +450,14 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			command.Tail(ctx, cliConn, []string{"-f", "app-name"}, httpClient, logger, writer)
+			command.Tail(
+				ctx,
+				cliConn,
+				[]string{"-f", "app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -406,7 +509,14 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			args := []string{"--counter-name", "some-name", "--json", "--follow", "app-name"}
-			command.Tail(ctx, cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				ctx,
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(writer.lines()).To(ConsistOf(
 				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
@@ -423,7 +533,14 @@ var _ = Describe("LogCache", func() {
 			os.Setenv("LOG_CACHE_ADDR", "https://different-log-cache:8080")
 			defer os.Unsetenv("LOG_CACHE_ADDR")
 
-			command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 
 			u, err := url.Parse(httpClient.requestURLs[0])
@@ -436,14 +553,28 @@ var _ = Describe("LogCache", func() {
 			os.Setenv("LOG_CACHE_SKIP_AUTH", "true")
 			defer os.Unsetenv("LOG_CACHE_SKIP_AUTH")
 
-			command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 			Expect(httpClient.requestHeaders[0]).To(BeEmpty())
 		})
 
 		It("follow retries for empty responses", func() {
 			httpClient.responseBody = []string{emptyResponseBody()}
 
-			go command.Tail(context.Background(), cliConn, []string{"--follow", "app-name"}, httpClient, logger, writer)
+			go command.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"--follow", "app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Eventually(httpClient.requestCount).Should(BeNumerically(">", 3))
 		})
@@ -452,7 +583,14 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = nil
 			httpClient.responseErr = errors.New("some-error")
 
-			go command.Tail(context.Background(), cliConn, []string{"--follow", "app-name"}, httpClient, logger, writer)
+			go command.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"--follow", "app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Eventually(httpClient.requestCount).Should(BeNumerically(">", 2))
 		})
@@ -461,7 +599,14 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				eventResponseBody(startTime),
 			}
-			command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -490,7 +635,14 @@ var _ = Describe("LogCache", func() {
 				"--lines", "99",
 				"app-name",
 			}
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -510,7 +662,14 @@ var _ = Describe("LogCache", func() {
 				"-n", "99",
 				"app-name",
 			}
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -522,7 +681,14 @@ var _ = Describe("LogCache", func() {
 			args := []string{
 				"app-name",
 			}
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -532,7 +698,14 @@ var _ = Describe("LogCache", func() {
 
 		It("requests the app guid", func() {
 			args := []string{"some-app"}
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(cliConn.cliCommandArgs).To(HaveLen(1))
 			Expect(cliConn.cliCommandArgs[0]).To(HaveLen(3))
@@ -544,7 +717,14 @@ var _ = Describe("LogCache", func() {
 		It("places the auth token in the 'Authorization' header", func() {
 			args := []string{"some-app"}
 			cliConn.accessToken = "bearer some-token"
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestHeaders).To(HaveLen(1))
 			Expect(httpClient.requestHeaders[0]).To(HaveLen(1))
@@ -558,7 +738,14 @@ var _ = Describe("LogCache", func() {
 				"app-guid",
 			}
 
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(writer.lines()).To(ContainElement("1 log body"))
 		})
@@ -570,7 +757,14 @@ var _ = Describe("LogCache", func() {
 				"app-guid",
 			}
 
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(writer.lines()).To(ContainElement("1 log body"))
 		})
@@ -578,14 +772,28 @@ var _ = Describe("LogCache", func() {
 		It("allows for empty end time with populated start time", func() {
 			args := []string{"--start-time", "1000", "app-name"}
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).ToNot(Panic())
 		})
 
 		It("fatally logs if envelope-type is invalid", func() {
 			args := []string{"--envelope-type", "invalid", "some-app"}
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("--envelope-type must be LOG, COUNTER, GAUGE, TIMER, EVENT or ANY"))
@@ -598,7 +806,14 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("--gauge-name cannot be used with --envelope-type"))
@@ -613,7 +828,14 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("--envelope-type cannot be used with --type"))
@@ -626,7 +848,14 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --envelope-type"))
@@ -639,7 +868,14 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --gauge-name"))
@@ -654,7 +890,14 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("Cannot use output-format and json flags together"))
@@ -663,7 +906,14 @@ var _ = Describe("LogCache", func() {
 		It("fatally logs if an output-format is malformed", func() {
 			args := []string{"--output-format", "{{INVALID}}", "app-guid"}
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal(`template: OutputFormat:1: function "INVALID" not defined`))
@@ -677,7 +927,14 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal(`Output template parsed, but failed to execute: template: OutputFormat:1:2: executing "OutputFormat" at <.invalid>: can't evaluate field invalid in type *loggregator_v2.Envelope`))
@@ -689,7 +946,14 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("Lines cannot be greater than 1000."))
@@ -701,7 +965,14 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).ToNot(Panic())
 		})
 
@@ -710,7 +981,14 @@ var _ = Describe("LogCache", func() {
 			args := []string{"app-name"}
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("unknown user"))
@@ -721,7 +999,14 @@ var _ = Describe("LogCache", func() {
 			args := []string{"app-name"}
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("Organization could not be fetched"))
@@ -732,7 +1017,14 @@ var _ = Describe("LogCache", func() {
 			args := []string{"app-name"}
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("unknown space"))
@@ -741,7 +1033,14 @@ var _ = Describe("LogCache", func() {
 		It("fatally logs if the start > end", func() {
 			args := []string{"--start-time", "1000", "--end-time", "100", "app-name"}
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
@@ -749,7 +1048,14 @@ var _ = Describe("LogCache", func() {
 
 		It("fatally logs if too many arguments are given", func() {
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, []string{"one", "two"}, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					[]string{"one", "two"},
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("Expected 1 argument, got 2."))
@@ -757,7 +1063,14 @@ var _ = Describe("LogCache", func() {
 
 		It("fatally logs if not enough arguments are given", func() {
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, []string{}, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					[]string{},
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("Expected 1 argument, got 0."))
@@ -767,7 +1080,14 @@ var _ = Describe("LogCache", func() {
 			cliConn.apiEndpointErr = errors.New("some-error")
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					[]string{"app-name"},
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("some-error"))
@@ -777,7 +1097,14 @@ var _ = Describe("LogCache", func() {
 			cliConn.hasAPIEndpoint = false
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					[]string{"app-name"},
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("No API endpoint targeted."))
@@ -788,7 +1115,14 @@ var _ = Describe("LogCache", func() {
 			cliConn.hasAPIEndpointErr = errors.New("some-error")
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					[]string{"app-name"},
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("some-error"))
@@ -798,7 +1132,14 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseErr = errors.New("some-error")
 
 			Expect(func() {
-				command.Tail(context.Background(), cliConn, []string{"app-name"}, httpClient, logger, writer)
+				command.Tail(
+					context.Background(),
+					cliConn,
+					[]string{"app-name"},
+					httpClient,
+					logger,
+					writer,
+				)
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("some-error"))
@@ -823,7 +1164,14 @@ var _ = Describe("LogCache", func() {
 				{"service-guid"},
 			}
 			args := []string{"service-name"}
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			logFormat := "   %s [%s/%s] GAUGE %s:%f %s %s:%f %s"
 			Expect(writer.lines()).To(Equal([]string{
@@ -844,7 +1192,14 @@ var _ = Describe("LogCache", func() {
 			cliConn.cliCommandErr = []error{errors.New("catch this instead")}
 
 			args := []string{"app-name"}
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			logFormat := "   %s [%s/%s] GAUGE %s:%f %s %s:%f %s"
 			Expect(writer.lines()).To(Equal([]string{
@@ -864,7 +1219,14 @@ var _ = Describe("LogCache", func() {
 
 		It("calls the log cache api", func() {
 			args := []string{"service-name"}
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 
@@ -879,7 +1241,14 @@ var _ = Describe("LogCache", func() {
 
 		It("requests the service guid", func() {
 			args := []string{"some-service"}
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(cliConn.cliCommandArgs).To(HaveLen(2))
 			Expect(cliConn.cliCommandArgs[1]).To(HaveLen(3))
@@ -901,7 +1270,14 @@ var _ = Describe("LogCache", func() {
 			cliConn.cliCommandErr = []error{errors.New("app not found"), errors.New("service not found")}
 
 			args := []string{"app-name"}
-			command.Tail(context.Background(), cliConn, args, httpClient, logger, writer)
+			command.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 

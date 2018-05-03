@@ -46,7 +46,7 @@ func (w *stubWriter) Write(p []byte) (int, error) {
 }
 
 func (w *stubWriter) lines() []string {
-	return strings.Split(strings.TrimSpace(string(w.bytes)), "\n")
+	return strings.Split(strings.TrimRight(string(w.bytes), "\n\t "), "\n")
 }
 
 type stubHTTPClient struct {
