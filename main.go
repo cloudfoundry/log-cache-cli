@@ -13,6 +13,7 @@ import (
 
 	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/log-cache-cli/internal/command"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // version is set via ldflags at compile time. It should be JSON encoded
@@ -22,9 +23,7 @@ var version string
 
 type LogCacheCLI struct{}
 
-var commands = map[string]command.Command{
-	"tail": command.Tail,
-}
+var commands = make(map[string]command.Command)
 
 func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 	if len(args) == 1 && args[0] == "CLI-MESSAGE-UNINSTALL" {
@@ -36,7 +35,21 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 		log.Fatalf("Expected at least 1 argument, but got %d.", len(args))
 	}
 
+	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
+
+	commands["tail"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c command.HTTPClient, log command.Logger, tableWriter io.Writer) {
+		var opts []command.TailOption
+		if !isTerminal {
+			opts = append(opts, command.WithTailNoHeaders())
+		}
+		command.Tail(ctx, cli, args, c, log, tableWriter, opts...)
+	}
+
 	commands["log-meta"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c command.HTTPClient, log command.Logger, tableWriter io.Writer) {
+		var opts []command.MetaOption
+		if !isTerminal {
+			opts = append(opts, command.WithMetaNoHeaders())
+		}
 		command.Meta(
 			ctx,
 			cli,
@@ -68,6 +81,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 			c,
 			log,
 			tableWriter,
+			opts...,
 		)
 	}
 
