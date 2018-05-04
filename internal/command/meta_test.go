@@ -374,7 +374,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		args := []string{"--scope", "application"}
+		args := []string{"--source-type", "application"}
 		command.Meta(
 			context.Background(),
 			cliConn,
@@ -417,7 +417,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		args := []string{"--scope", "PLATFORM"}
+		args := []string{"--source-type", "PLATFORM"}
 		command.Meta(
 			context.Background(),
 			cliConn,
@@ -459,7 +459,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		args := []string{"--scope", "PLATFORM", "--guid"}
+		args := []string{"--source-type", "PLATFORM", "--guid"}
 		command.Meta(
 			context.Background(),
 			cliConn,
@@ -630,7 +630,7 @@ var _ = Describe("Meta", func() {
 	})
 
 	It("fatally logs when scope is not 'platform', 'application' or 'all'", func() {
-		args := []string{"--scope", "invalid"}
+		args := []string{"--source-type", "invalid"}
 		Expect(func() {
 			command.Meta(
 				context.Background(),

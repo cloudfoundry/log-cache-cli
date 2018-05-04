@@ -44,7 +44,7 @@ type servicesResponse struct {
 type Tailer func(sourceID string, start, end time.Time) []string
 
 type optionsFlags struct {
-	Scope       string `long:"scope"`
+	SourceType  string `long:"source-type"`
 	EnableNoise bool   `long:"noise"`
 	ShowGUID    bool   `long:"guid"`
 
@@ -75,7 +75,7 @@ func Meta(
 	mopts ...MetaOption,
 ) {
 	opts := optionsFlags{
-		Scope:       "all",
+		SourceType:  "all",
 		EnableNoise: false,
 		ShowGUID:    false,
 	}
@@ -93,8 +93,8 @@ func Meta(
 		log.Fatalf("Invalid arguments, expected 0, got %d.", len(args))
 	}
 
-	scope := strings.ToLower(opts.Scope)
-	if invalidScope(scope) {
+	sourceType := strings.ToLower(opts.SourceType)
+	if invalidSourceType(sourceType) {
 		log.Fatalf("Scope must be 'platform', 'application' or 'all'.")
 	}
 
@@ -172,7 +172,7 @@ func Meta(
 			continue
 		}
 		delete(meta, source.GUID)
-		if scope == "application" || scope == "all" {
+		if sourceType == "application" || sourceType == "all" {
 			args := []interface{}{source.Name, m.Count, m.Expired, cacheDuration(m)}
 			if opts.ShowGUID {
 				args = append([]interface{}{source.GUID}, args...)
@@ -188,7 +188,7 @@ func Meta(
 	}
 
 	// Apps that do not have a known name from CAPI
-	if scope == "application" || scope == "all" {
+	if sourceType == "application" || sourceType == "all" {
 		for sourceID, m := range meta {
 			if idRegexp.MatchString(sourceID) {
 				args := []interface{}{sourceID, m.Count, m.Expired, cacheDuration(m)}
@@ -206,7 +206,7 @@ func Meta(
 		}
 	}
 
-	if scope == "platform" || scope == "all" {
+	if sourceType == "platform" || sourceType == "all" {
 		for sourceID, m := range meta {
 			if !idRegexp.MatchString(sourceID) {
 				args := []interface{}{sourceID, m.Count, m.Expired, cacheDuration(m)}
@@ -346,15 +346,15 @@ func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
 	return strings.Replace(apiEndpoint, "api", "log-cache", 1), nil
 }
 
-func invalidScope(scope string) bool {
+func invalidSourceType(sourceType string) bool {
 	validScopes := []string{"platform", "application", "all"}
 
-	if scope == "" {
+	if sourceType == "" {
 		return false
 	}
 
 	for _, s := range validScopes {
-		if scope == s {
+		if sourceType == s {
 			return false
 		}
 	}
