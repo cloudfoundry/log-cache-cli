@@ -219,11 +219,11 @@ func (e envelopeWrapper) String() string {
 			strings.Join(values, " "),
 		)
 	case *loggregator_v2.Envelope_Timer:
-		return fmt.Sprintf("   %s [%s/%s] TIMER %d",
+		return fmt.Sprintf("   %s [%s/%s] TIMER %f ms",
 			ts.Format(timeFormat),
 			e.sourceID,
 			e.GetInstanceId(),
-			e.GetTimer().GetStop()-e.GetTimer().GetStart(),
+			float64(e.GetTimer().GetStop()-e.GetTimer().GetStart())/1000000.0,
 		)
 	case *loggregator_v2.Envelope_Event:
 		return fmt.Sprintf("   %s [%s/%s] EVENT %s:%s",
