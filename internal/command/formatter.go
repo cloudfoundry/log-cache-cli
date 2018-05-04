@@ -187,20 +187,17 @@ type envelopeWrapper struct {
 
 func (e envelopeWrapper) String() string {
 	ts := time.Unix(0, e.Timestamp)
+
 	switch e.Message.(type) {
 	case *loggregator_v2.Envelope_Log:
-		return fmt.Sprintf("   %s [%s/%s] %s %s",
-			ts.Format(timeFormat),
-			e.sourceType(),
-			e.InstanceId,
+		return fmt.Sprintf("%s%s %s",
+			e.header(ts),
 			e.GetLog().GetType(),
 			e.GetLog().GetPayload(),
 		)
 	case *loggregator_v2.Envelope_Counter:
-		return fmt.Sprintf("   %s [%s/%s] COUNTER %s:%d",
-			ts.Format(timeFormat),
-			e.sourceID,
-			e.GetInstanceId(),
+		return fmt.Sprintf("%sCOUNTER %s:%d",
+			e.header(ts),
 			e.GetCounter().GetName(),
 			e.GetCounter().GetTotal(),
 		)
@@ -212,29 +209,47 @@ func (e envelopeWrapper) String() string {
 
 		sort.Sort(sort.StringSlice(values))
 
-		return fmt.Sprintf("   %s [%s/%s] GAUGE %s",
-			ts.Format(timeFormat),
-			e.sourceID,
-			e.GetInstanceId(),
+		return fmt.Sprintf("%sGAUGE %s",
+			e.header(ts),
 			strings.Join(values, " "),
 		)
 	case *loggregator_v2.Envelope_Timer:
-		return fmt.Sprintf("   %s [%s/%s] TIMER %f ms",
-			ts.Format(timeFormat),
-			e.sourceID,
-			e.GetInstanceId(),
+		return fmt.Sprintf("%sTIMER %f ms",
+			e.header(ts),
 			float64(e.GetTimer().GetStop()-e.GetTimer().GetStart())/1000000.0,
 		)
 	case *loggregator_v2.Envelope_Event:
-		return fmt.Sprintf("   %s [%s/%s] EVENT %s:%s",
-			ts.Format(timeFormat),
-			e.sourceID,
-			e.GetInstanceId(),
+		return fmt.Sprintf("%sEVENT %s:%s",
+			e.header(ts),
 			e.GetEvent().GetTitle(),
 			e.GetEvent().GetBody(),
 		)
 	default:
 		return e.Envelope.String()
+	}
+}
+
+func (e envelopeWrapper) header(ts time.Time) string {
+	if e.InstanceId == "" {
+		return fmt.Sprintf("   %s [%s] ",
+			ts.Format(timeFormat),
+			e.source(),
+		)
+	} else {
+		return fmt.Sprintf("   %s [%s/%s] ",
+			ts.Format(timeFormat),
+			e.source(),
+			e.GetInstanceId(),
+		)
+	}
+}
+
+func (e envelopeWrapper) source() string {
+	switch e.Message.(type) {
+	case *loggregator_v2.Envelope_Log:
+		return e.sourceType()
+	default:
+		return e.sourceID
 	}
 }
 

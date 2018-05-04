@@ -231,6 +231,31 @@ var _ = Describe("LogCache", func() {
 			}))
 		})
 
+		It("doens't report the instance id if the envelopeDoesn't have one", func() {
+			httpClient.responseBody = []string{
+				mixedResponseBodyNoInstanceId(startTime),
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+			defer cancel()
+
+			command.Tail(
+				ctx,
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
+
+			lines := writer.lines()
+			Expect(lines).To(HaveLen(7))
+			for i := 2; i < len(lines); i++ { //Exclude the header
+				Expect(lines[i]).To(SatisfyAny(
+					ContainSubstring("[app-name]"),
+					ContainSubstring("[APP/PROC/WEB]")))
+			}
+		})
+
 		It("writes out json", func() {
 			httpClient.responseBody = []string{
 				mixedResponseBody(startTime),
@@ -1363,6 +1388,14 @@ func eventResponseBody(startTime time.Time) string {
 func mixedResponseBody(startTime time.Time) string {
 	return fmt.Sprintf(mixedResponseTemplate,
 		startTime.UnixNano(),
+		"0",
+	)
+}
+
+func mixedResponseBodyNoInstanceId(startTime time.Time) string {
+	return fmt.Sprintf(mixedResponseTemplate,
+		startTime.UnixNano(),
+		"",
 	)
 }
 
@@ -1551,7 +1584,7 @@ var mixedResponseTemplate = `{
 			{
 				"source_id": "app-name",
 				"timestamp":"%[1]d",
-				"instance_id":"0",
+				"instance_id":"%[2]s",
 				"tags":{
 					"source_type":"APP/PROC/WEB"
 				},
@@ -1561,14 +1594,14 @@ var mixedResponseTemplate = `{
 			},
 			{
 				"source_id": "app-name",
-				"instance_id":"0",
+				"instance_id":"%[2]s",
 				"timestamp":"%[1]d",
-				"instance_id":"0",
+				"instance_id":"%[2]s",
 				"counter":{"name":"some-name","total":99}
 			},
 			{
 				"source_id": "app-name",
-				"instance_id":"0",
+				"instance_id":"%[2]s",
 				"timestamp":"%[1]d",
 				"gauge": {
 					"metrics": {
@@ -1581,7 +1614,7 @@ var mixedResponseTemplate = `{
 			},
 			{
 				"source_id": "app-name",
-				"instance_id":"0",
+				"instance_id":"%[2]s",
 				"timestamp":"%[1]d",
 				"timer": {
 					"name": "http",
@@ -1591,7 +1624,7 @@ var mixedResponseTemplate = `{
 			},
 			{
 				"source_id": "app-name",
-				"instance_id":"0",
+				"instance_id":"%[2]s",
 				"timestamp":"%[1]d",
 				"event": {
 					"title": "some-title",
