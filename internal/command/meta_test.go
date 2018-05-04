@@ -374,7 +374,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		args := []string{"--scope", "applications"}
+		args := []string{"--scope", "application"}
 		command.Meta(
 			context.Background(),
 			cliConn,
@@ -629,7 +629,7 @@ var _ = Describe("Meta", func() {
 		Expect(logger.fatalfMessage).To(Equal("Invalid arguments, expected 0, got 1."))
 	})
 
-	It("fatally logs when scope is not 'platform', 'applications' or 'all'", func() {
+	It("fatally logs when scope is not 'platform', 'application' or 'all'", func() {
 		args := []string{"--scope", "invalid"}
 		Expect(func() {
 			command.Meta(
@@ -643,7 +643,7 @@ var _ = Describe("Meta", func() {
 			)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(Equal("Scope must be 'platform', 'applications' or 'all'."))
+		Expect(logger.fatalfMessage).To(Equal("Scope must be 'platform', 'application' or 'all'."))
 	})
 
 	It("fatally logs when getting ApiEndpoint fails", func() {

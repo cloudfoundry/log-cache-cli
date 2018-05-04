@@ -95,7 +95,7 @@ func Meta(
 
 	scope := strings.ToLower(opts.Scope)
 	if invalidScope(scope) {
-		log.Fatalf("Scope must be 'platform', 'applications' or 'all'.")
+		log.Fatalf("Scope must be 'platform', 'application' or 'all'.")
 	}
 
 	logCacheEndpoint, err := logCacheEndpoint(cli)
@@ -172,7 +172,7 @@ func Meta(
 			continue
 		}
 		delete(meta, source.GUID)
-		if scope == "applications" || scope == "all" {
+		if scope == "application" || scope == "all" {
 			args := []interface{}{source.Name, m.Count, m.Expired, cacheDuration(m)}
 			if opts.ShowGUID {
 				args = append([]interface{}{source.GUID}, args...)
@@ -188,7 +188,7 @@ func Meta(
 	}
 
 	// Apps that do not have a known name from CAPI
-	if scope == "applications" || scope == "all" {
+	if scope == "application" || scope == "all" {
 		for sourceID, m := range meta {
 			if idRegexp.MatchString(sourceID) {
 				args := []interface{}{sourceID, m.Count, m.Expired, cacheDuration(m)}
@@ -347,7 +347,7 @@ func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
 }
 
 func invalidScope(scope string) bool {
-	validScopes := []string{"platform", "applications", "all"}
+	validScopes := []string{"platform", "application", "all"}
 
 	if scope == "" {
 		return false

@@ -141,7 +141,7 @@ ENVIRONMENT VARIABLES:
    LOG_CACHE_ADDR       Overrides the default location of log-cache.
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
 					Options: map[string]string{
-						"-scope": "Scope of meta information to show. Available: 'all', 'applications', and 'platform'.",
+						"-scope": "Scope of meta information to show. Available: 'all', 'application', and 'platform'.",
 						"-noise": "Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...",
 						"-guid":  "Display raw source GUIDs",
 					},
