@@ -18,9 +18,24 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
+const (
+	sourceTypeApplication sourceType = "application"
+	sourceTypeService     sourceType = "service"
+	sourceTypePlatform    sourceType = "platform"
+	sourceTypeAll         sourceType = "all"
+	sourceTypeUnknown     sourceType = "unknown"
+)
+
+type sourceType string
+
+func (st sourceType) Equal(value string) bool {
+	return string(st) == value
+}
+
 type source struct {
 	GUID string `json:"guid"`
 	Name string `json:"name"`
+	Type sourceType
 }
 
 type sourceInfo struct {
@@ -52,7 +67,7 @@ type optionsFlags struct {
 }
 
 var (
-	idRegexp = regexp.MustCompile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+	appOrServiceRegex = regexp.MustCompile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 )
 
 type MetaOption func(*optionsFlags)
@@ -95,7 +110,7 @@ func Meta(
 
 	sourceType := strings.ToLower(opts.SourceType)
 	if invalidSourceType(sourceType) {
-		log.Fatalf("Scope must be 'platform', 'application' or 'all'.")
+		log.Fatalf("Source type must be 'platform', 'application', 'service', or 'all'.")
 	}
 
 	logCacheEndpoint, err := logCacheEndpoint(cli)
@@ -142,9 +157,9 @@ func Meta(
 		))
 	}
 
-	headerArgs := []interface{}{"Source", "Count", "Expired", "Cache Duration"}
-	headerFormat := "%s\t%s\t%s\t%s\n"
-	tableFormat := "%s\t%d\t%d\t%s\n"
+	headerArgs := []interface{}{"Source", "Source Type", "Count", "Expired", "Cache Duration"}
+	headerFormat := "%s\t%s\t%s\t%s\t%s\n"
+	tableFormat := "%s\t%s\t%d\t%d\t%s\n"
 	colToSortOn := 0
 
 	if opts.ShowGUID {
@@ -172,8 +187,11 @@ func Meta(
 			continue
 		}
 		delete(meta, source.GUID)
-		if sourceType == "application" || sourceType == "all" {
-			args := []interface{}{source.Name, m.Count, m.Expired, cacheDuration(m)}
+
+		displayApplication := sourceTypeApplication.Equal(sourceType) && source.Type == sourceTypeApplication
+		displayService := sourceTypeService.Equal(sourceType) && source.Type == sourceTypeService
+		if sourceTypeAll.Equal(sourceType) || displayApplication || displayService {
+			args := []interface{}{source.Name, source.Type, m.Count, m.Expired, cacheDuration(m)}
 			if opts.ShowGUID {
 				args = append([]interface{}{source.GUID}, args...)
 			}
@@ -187,11 +205,11 @@ func Meta(
 		}
 	}
 
-	// Apps that do not have a known name from CAPI
-	if sourceType == "application" || sourceType == "all" {
+	// Source IDs that aren't apps or services
+	if sourceTypeAll.Equal(sourceType) {
 		for sourceID, m := range meta {
-			if idRegexp.MatchString(sourceID) {
-				args := []interface{}{sourceID, m.Count, m.Expired, cacheDuration(m)}
+			if appOrServiceRegex.MatchString(sourceID) {
+				args := []interface{}{sourceID, sourceTypeUnknown, m.Count, m.Expired, cacheDuration(m)}
 				if opts.ShowGUID {
 					args = append([]interface{}{sourceID}, args...)
 				}
@@ -206,10 +224,10 @@ func Meta(
 		}
 	}
 
-	if sourceType == "platform" || sourceType == "all" {
+	if sourceTypePlatform.Equal(sourceType) || sourceTypeAll.Equal(sourceType) {
 		for sourceID, m := range meta {
-			if !idRegexp.MatchString(sourceID) {
-				args := []interface{}{sourceID, m.Count, m.Expired, cacheDuration(m)}
+			if !appOrServiceRegex.MatchString(sourceID) {
+				args := []interface{}{sourceID, sourceTypePlatform, m.Count, m.Expired, cacheDuration(m)}
 				if opts.ShowGUID {
 					args = append([]interface{}{sourceID}, args...)
 				}
@@ -258,7 +276,10 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 			return nil, err
 		}
 
-		resources = append(resources, r.Resources...)
+		for _, res := range r.Resources {
+			res.Type = sourceTypeApplication
+			resources = append(resources, res)
+		}
 	}
 
 	for _, res := range resources {
@@ -284,6 +305,7 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 			resources = append(resources, source{
 				GUID: res.Metadata.GUID,
 				Name: res.Entity.Name,
+				Type: sourceTypeService,
 			})
 		}
 	}
@@ -346,15 +368,15 @@ func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
 	return strings.Replace(apiEndpoint, "api", "log-cache", 1), nil
 }
 
-func invalidSourceType(sourceType string) bool {
-	validScopes := []string{"platform", "application", "all"}
+func invalidSourceType(st string) bool {
+	validSourceTypes := []sourceType{sourceTypePlatform, sourceTypeApplication, sourceTypeAll, sourceTypeService}
 
-	if sourceType == "" {
+	if st == "" {
 		return false
 	}
 
-	for _, s := range validScopes {
-		if sourceType == s {
+	for _, s := range validSourceTypes {
+		if s.Equal(st) {
 			return false
 		}
 	}
@@ -381,8 +403,8 @@ func (s *rowSorter) Less(i, j int) bool {
 	sourceI := s.rows[i][s.colToSortOn].(string)
 	sourceJ := s.rows[j][s.colToSortOn].(string)
 
-	isGuidI := idRegexp.MatchString(sourceI)
-	isGuidJ := idRegexp.MatchString(sourceJ)
+	isGuidI := appOrServiceRegex.MatchString(sourceI)
+	isGuidJ := appOrServiceRegex.MatchString(sourceJ)
 
 	// Both are guids
 	if isGuidI && isGuidJ {

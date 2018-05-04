@@ -77,9 +77,9 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  Source  Count   Expired  Cache Duration",
-			"source-2   app-1   100000  85008    11m45s",
-			"source-1   app-2   100000  85008    11m45s",
+			"Source ID  Source  Source Type  Count   Expired  Cache Duration",
+			"source-2   app-1   application  100000  85008    11m45s",
+			"source-1   app-2   application  100000  85008    11m45s",
 			"",
 		}))
 
@@ -113,8 +113,8 @@ var _ = Describe("Meta", func() {
 		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
-			"source-2  app-1  100000  85008  11m45s",
-			"source-1  app-2  100000  85008  11m45s",
+			"source-2  app-1  application  100000  85008  11m45s",
+			"source-1  app-2  application  100000  85008  11m45s",
 			"",
 		}))
 	})
@@ -177,10 +177,10 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  Source        Count   Expired  Cache Duration",
-			"source-2   aa-service-2  100000  85008    11m45s",
-			"source-3   ab-service-3  100000  85008    11m45s",
-			"source-1   app-1         100000  85008    11m45s",
+			"Source ID  Source        Source Type  Count   Expired  Cache Duration",
+			"source-2   aa-service-2  service      100000  85008    11m45s",
+			"source-3   ab-service-3  service      100000  85008    11m45s",
+			"source-1   app-1         application  100000  85008    11m45s",
 			"",
 		}))
 
@@ -220,21 +220,17 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source  Count   Expired  Cache Duration",
-			"app-1   100000  85008    11m45s",
+			"Source  Source Type  Count   Expired  Cache Duration",
+			"app-1   application  100000  85008    11m45s",
 			"",
 		}))
 
 		Expect(httpClient.requestCount()).To(Equal(1))
 	})
 
-	It("displays the rate column", func() {
+	It("displays the rate column for each service type", func() {
 		tailer := func(sourceID string, start, end time.Time) []string {
 			switch sourceID {
-			case "deadbeef-dead-dead-dead-deaddeafbeef":
-				return []string{
-					`{"timestamp":"300100000002","sourceId":"deadbeef-dead-dead-dead-deaddeafbeef","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
-				}
 			case "source-1":
 				return []string{
 					`{"timestamp":"300100000002","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
@@ -249,6 +245,10 @@ var _ = Describe("Meta", func() {
 					`{"timestamp":"301000000000","sourceId":"source-2","gauge":{"metrics":{"other":{"value":7}}}}`,
 					`{"timestamp":"400000000000","sourceId":"source-2","gauge":{"metrics":{"y":{"value":12}}}}`,
 				}
+			case "source-3":
+				return []string{
+					`{"timestamp":"300100000002","sourceId":"source-3","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
+				}
 			default:
 				panic("unexpected source-id")
 			}
@@ -256,9 +256,9 @@ var _ = Describe("Meta", func() {
 
 		httpClient.responseBody = []string{
 			metaResponseInfo(
-				"deadbeef-dead-dead-dead-deaddeafbeef",
 				"source-1",
 				"source-2",
+				"source-3",
 			),
 		}
 
@@ -267,7 +267,7 @@ var _ = Describe("Meta", func() {
 				capiAppsResponse(map[string]string{"source-1": "app-1"}),
 			},
 			{
-				capiServiceInstancesResponse(nil),
+				capiServiceInstancesResponse(map[string]string{"source-3": "service-1"}),
 			},
 		}
 		cliConn.cliCommandErr = nil
@@ -288,10 +288,10 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source                                Count   Expired  Cache Duration  Rate",
-			"app-1                                 100000  85008    11m45s          5",
-			"source-2                              100000  85008    11m45s          3",
-			"deadbeef-dead-dead-dead-deaddeafbeef  100000  85008    11m45s          1",
+			"Source     Source Type  Count   Expired  Cache Duration  Rate",
+			"app-1      application  100000  85008    11m45s          5",
+			"service-1  service      100000  85008    11m45s          1",
+			"source-2   platform     100000  85008    11m45s          3",
 			"",
 		}))
 
@@ -346,9 +346,9 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source    Count   Expired  Cache Duration",
-			"app-1     100000  85008    11m45s",
-			"source-2  100000  85008    11m45s",
+			"Source    Source Type  Count   Expired  Cache Duration",
+			"app-1     application  100000  85008    11m45s",
+			"source-2  platform     100000  85008    11m45s",
 			"",
 		}))
 	})
@@ -391,9 +391,50 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source                                Count   Expired  Cache Duration",
-			"app-1                                 100000  85008    11m45s",
-			"026fb323-6884-4978-a45f-da188dbf8ecd  100000  85008    11m45s",
+			"Source  Source Type  Count   Expired  Cache Duration",
+			"app-1   application  100000  85008    11m45s",
+			"",
+		}))
+	})
+
+	It("prints meta scoped to service", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo(
+				"source-1",
+				"source-2",
+				"deadbeef-dead-dead-dead-deaddeafbeef",
+			),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiAppsResponse(map[string]string{"source-1": "app-1"}),
+			},
+			{
+				capiServiceInstancesResponse(map[string]string{"source-2": "service-1"}),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
+		args := []string{"--source-type", "service"}
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			args,
+			httpClient,
+			logger,
+			tableWriter,
+		)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source     Source Type  Count   Expired  Cache Duration",
+			"service-1  service      100000  85008    11m45s",
 			"",
 		}))
 	})
@@ -434,8 +475,50 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source    Count   Expired  Cache Duration",
-			"source-2  100000  85008    11m45s",
+			"Source    Source Type  Count   Expired  Cache Duration",
+			"source-2  platform     100000  85008    11m45s",
+			"",
+		}))
+	})
+
+	It("returns unknown when sourceid is guid and not found in CAPI", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo(
+				"source-1",
+				"11111111-1111-1111-1111-111111111111",
+			),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiAppsResponse(nil),
+			},
+			{
+				capiServiceInstancesResponse(nil),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
+		args := []string{"--source-type", "all"}
+		command.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			args,
+			httpClient,
+			logger,
+			tableWriter,
+		)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source                                Source Type  Count   Expired  Cache Duration",
+			"source-1                              platform     100000  85008    11m45s",
+			"11111111-1111-1111-1111-111111111111  unknown      100000  85008    11m45s",
 			"",
 		}))
 	})
@@ -476,8 +559,8 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source ID  Source    Count   Expired  Cache Duration",
-			"source-2   source-2  100000  85008    11m45s",
+			"Source ID  Source    Source Type  Count   Expired  Cache Duration",
+			"source-2   source-2  platform     100000  85008    11m45s",
 			"",
 		}))
 	})
@@ -643,7 +726,7 @@ var _ = Describe("Meta", func() {
 			)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(Equal("Scope must be 'platform', 'application' or 'all'."))
+		Expect(logger.fatalfMessage).To(Equal("Source type must be 'platform', 'application', 'service', or 'all'."))
 	})
 
 	It("fatally logs when getting ApiEndpoint fails", func() {
