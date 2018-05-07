@@ -217,7 +217,7 @@ var _ = Describe("LogCache", func() {
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
-			logFormat := "   %s [%s/%s] TIMER %f ms"
+			logFormat := "   %s [%s/%s] TIMER %s %f ms"
 			Expect(writer.lines()).To(Equal([]string{
 				fmt.Sprintf(
 					"Retrieving logs for app %s in org %s / space %s as %s...",
@@ -227,7 +227,7 @@ var _ = Describe("LogCache", func() {
 					cliConn.usernameResp,
 				),
 				"",
-				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "app-name", "0", float64(time.Second)/1000000.0),
+				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "app-name", "0", "http", float64(time.Second)/1000000.0),
 			}))
 		})
 
