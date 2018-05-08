@@ -41,6 +41,24 @@ var _ = Describe("Meta", func() {
 		}))
 	})
 
+	It("doesn't print anything if there is no data", func() {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `{}`)
+		}))
+		defer server.Close()
+		var buf bytes.Buffer
+		metaCmd := command.NewMeta(command.Config{
+			Addr: server.URL,
+		})
+		metaCmd.SetOutput(&buf)
+		metaCmd.SetArgs([]string{})
+
+		err := metaCmd.Execute()
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(buf.String()).To(BeEmpty())
+	})
+
 	It("removes header when not writing to a tty", func() {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, metaResponseInfo("source-id-5", "source-id-3", "source-id-4", "source-id-2"))

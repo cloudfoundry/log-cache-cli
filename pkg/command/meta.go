@@ -71,6 +71,9 @@ func (m *Meta) runE(cmd *cobra.Command, args []string) error {
 		}
 		return err
 	}
+	if len(meta) == 0 {
+		return nil
+	}
 	rows := rows(meta)
 
 	headerArgs := []interface{}{"Source ID", "Count", "Expired", "Cache Duration"}
