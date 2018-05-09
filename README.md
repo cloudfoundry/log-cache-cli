@@ -1,6 +1,43 @@
-Log Cache CLI Plugin
-====================
+Log Cache CLI
+=============
+
 [![GoDoc][go-doc-badge]][go-doc] [![travis][travis-badge]][travis] [![slack.cloudfoundry.org][slack-badge]][loggregator-slack]
+
+This repo contains the following:
+
+ - Stand alone CLI for Log Cache
+ - Cloud Foundry CLI plugin for Log Cache
+
+## Stand alone CLI
+
+### Installing CLI
+
+Run our install script:
+
+```
+curl -sS https://raw.githubusercontent.com/cloudfoundry/log-cache-cli/develop/scripts/install.sh | bash
+```
+
+### Usage
+
+1. Target the Log Cache by setting the environment variable `LOG_CACHE_ADDR`.
+1. Simply run the `log-cache` command to view current metrics stored in Log
+   Cache.
+1. Help can be accessed with the `--help` flag at any command level.
+
+```
+$ log-cache tail --help
+Output logs and metrics for a given source-id
+
+Usage:
+  log-cache tail <source-id> [flags]
+
+Flags:
+  -f, --follow   Output appended to stdout as logs are egressed.
+  -h, --help     help for tail
+```
+
+## Cloud Foundry CLI plugin
 
 The Log Cache CLI Plugin is a [CF CLI](cf-cli) plugin for the [Log
 Cache](log-cache) system.
@@ -13,8 +50,6 @@ cf install-plugin $GOPATH/bin/log-cache-cli
 ```
 
 ### Usage
-
-##### `log-cache`
 
 ```
 $ cf tail --help
@@ -38,8 +73,6 @@ OPTIONS:
    --end-time            End of query range in UNIX nanoseconds.
    --envelope-type       Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', and 'event'.
 ```
-
-##### `log-cache-meta`
 
 ```
 $ cf log-meta --help
