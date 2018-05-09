@@ -52,7 +52,7 @@ func NewMeta(conf Config, opts ...MetaOption) *cobra.Command {
 
 func (m *Meta) command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "lc",
+		Use:   "log-cache",
 		Short: "List cluster logs and metrics",
 		RunE:  m.runE,
 		Args:  cobra.NoArgs,
