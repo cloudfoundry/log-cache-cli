@@ -136,12 +136,17 @@ var _ = Describe("Tail", func() {
 	},
 		Entry(
 			"log",
-			logResponseBody(time.Unix(0, 1)),
+			logResponseBody(logResponseTemplate, time.Unix(0, 1)),
 			fmt.Sprintf(logFormat, time.Unix(0, 1).Format(timeFormat), "OUT"),
 		),
 		Entry(
+			"log without instance",
+			logResponseBody(logResponseWithoutInstanceTemplate, time.Unix(0, 1)),
+			fmt.Sprintf(logWithoutInstanceFormat, time.Unix(0, 1).Format(timeFormat), "OUT"),
+		),
+		Entry(
 			"counter",
-			counterResponseBody(time.Unix(0, 1)),
+			counterResponseBody(counterResponseTemplate, time.Unix(0, 1)),
 			fmt.Sprintf(
 				counterFormat,
 				time.Unix(0, 1).Format(timeFormat),
@@ -150,8 +155,18 @@ var _ = Describe("Tail", func() {
 			),
 		),
 		Entry(
+			"counter without instance",
+			counterResponseBody(counterResponseWithoutInstanceTemplate, time.Unix(0, 1)),
+			fmt.Sprintf(
+				counterWithoutInstanceFormat,
+				time.Unix(0, 1).Format(timeFormat),
+				"some-name",
+				99,
+			),
+		),
+		Entry(
 			"gauge",
-			gaugeResponseBody(time.Unix(0, 1)),
+			gaugeResponseBody(gaugeResponseTemplate, time.Unix(0, 1)),
 			fmt.Sprintf(
 				gaugeFormat,
 				time.Unix(0, 1).Format(timeFormat),
@@ -164,8 +179,22 @@ var _ = Describe("Tail", func() {
 			),
 		),
 		Entry(
+			"gauge without instance",
+			gaugeResponseBody(gaugeResponseWithoutInstanceTemplate, time.Unix(0, 1)),
+			fmt.Sprintf(
+				gaugeWithoutInstanceFormat,
+				time.Unix(0, 1).Format(timeFormat),
+				"some-name",
+				99.0,
+				"my-unit",
+				"some-other-name",
+				101.0,
+				"my-unit",
+			),
+		),
+		Entry(
 			"timer",
-			timerResponseBody(time.Unix(0, 1)),
+			timerResponseBody(timerResponseTemplate, time.Unix(0, 1)),
 			fmt.Sprintf(
 				timerFormat,
 				time.Unix(0, 1).Format(timeFormat),
@@ -173,8 +202,17 @@ var _ = Describe("Tail", func() {
 			),
 		),
 		Entry(
+			"timer without instance",
+			timerResponseBody(timerResponseWithoutInstanceTemplate, time.Unix(0, 1)),
+			fmt.Sprintf(
+				timerWithoutInstanceFormat,
+				time.Unix(0, 1).Format(timeFormat),
+				"1s",
+			),
+		),
+		Entry(
 			"event",
-			eventResponseBody(time.Unix(0, 1)),
+			eventResponseBody(eventResponseTemplate, time.Unix(0, 1)),
 			fmt.Sprintf(
 				eventFormat,
 				time.Unix(0, 1).Format(timeFormat),
@@ -183,10 +221,29 @@ var _ = Describe("Tail", func() {
 			),
 		),
 		Entry(
+			"event without instance",
+			eventResponseBody(eventResponseWithoutInstanceTemplate, time.Unix(0, 1)),
+			fmt.Sprintf(
+				eventWithoutInstanceFormat,
+				time.Unix(0, 1).Format(timeFormat),
+				"some-title",
+				"some-body",
+			),
+		),
+		Entry(
 			"unknown",
-			unknownResponseBody(time.Unix(0, 1)),
+			unknownResponseBody(unknownResponseTemplate, time.Unix(0, 1)),
 			fmt.Sprintf(
 				unknownFormat,
+				time.Unix(0, 1).Format(timeFormat),
+				`tags:<key:"foo" value:"bar" >`,
+			),
+		),
+		Entry(
+			"unknown without instance",
+			unknownResponseBody(unknownResponseWithoutInstanceTemplate, time.Unix(0, 1)),
+			fmt.Sprintf(
+				unknownWithoutInstanceFormat,
 				time.Unix(0, 1).Format(timeFormat),
 				`tags:<key:"foo" value:"bar" >`,
 			),
@@ -252,13 +309,19 @@ var _ = Describe("Tail", func() {
 })
 
 const (
-	logFormat     = "%s [app-name/0] LOG/%s log body"
-	counterFormat = "%s [app-name/0] COUNTER %s:%d"
-	gaugeFormat   = "%s [app-name/0] GAUGE %s:%f %s %s:%f %s"
-	timerFormat   = "%s [app-name/0] TIMER %s"
-	eventFormat   = "%s [app-name/0] EVENT %s:%s"
-	unknownFormat = "%s [app-name/0] UNKNOWN %s"
-	timeFormat    = "2006-01-02T15:04:05.00-0700"
+	logFormat                    = "%s [app-name/0] LOG/%s log body"
+	logWithoutInstanceFormat     = "%s [app-name] LOG/%s log body"
+	counterFormat                = "%s [app-name/0] COUNTER %s:%d"
+	counterWithoutInstanceFormat = "%s [app-name] COUNTER %s:%d"
+	gaugeFormat                  = "%s [app-name/0] GAUGE %s:%f %s %s:%f %s"
+	gaugeWithoutInstanceFormat   = "%s [app-name] GAUGE %s:%f %s %s:%f %s"
+	timerFormat                  = "%s [app-name/0] TIMER %s"
+	timerWithoutInstanceFormat   = "%s [app-name] TIMER %s"
+	eventFormat                  = "%s [app-name/0] EVENT %s:%s"
+	eventWithoutInstanceFormat   = "%s [app-name] EVENT %s:%s"
+	unknownFormat                = "%s [app-name/0] UNKNOWN %s"
+	unknownWithoutInstanceFormat = "%s [app-name] UNKNOWN %s"
+	timeFormat                   = "2006-01-02T15:04:05.00-0700"
 
 	responseTemplate = `{
 		"envelopes": {
@@ -307,12 +370,38 @@ const (
 		}
 	}`
 
+	logResponseWithoutInstanceTemplate = `{
+		"envelopes": {
+			"batch": [
+				{
+					"source_id": "app-name",
+					"timestamp":"%d",
+					"log":{
+						"payload":"bG9nIGJvZHkK"
+					}
+				}
+			]
+		}
+	}`
+
 	counterResponseTemplate = `{
 		"envelopes": {
 			"batch": [
 				{
 					"source_id": "app-name",
 					"instance_id":"0",
+					"timestamp":"%d",
+					"counter":{"name":"some-name","total":99}
+				}
+			]
+		}
+	}`
+
+	counterResponseWithoutInstanceTemplate = `{
+		"envelopes": {
+			"batch": [
+				{
+					"source_id": "app-name",
 					"timestamp":"%d",
 					"counter":{"name":"some-name","total":99}
 				}
@@ -328,18 +417,41 @@ const (
 					"instance_id":"0",
 					"timestamp": "%d",
 					"gauge": {
-					  "metrics": {
-						"some-name": {
-						  "value": 99,
-						  "unit":"my-unit"
-						},
-						"some-other-name": {
-						  "value": 101,
-						  "unit":"my-unit"
+						"metrics": {
+							"some-name": {
+								"value": 99,
+								"unit":"my-unit"
+							},
+							"some-other-name": {
+								"value": 101,
+								"unit":"my-unit"
+							}
 						}
-					  }
 					}
-				  }
+				}
+			]
+		}
+	}`
+
+	gaugeResponseWithoutInstanceTemplate = `{
+		"envelopes": {
+			"batch": [
+				{
+					"source_id": "app-name",
+					"timestamp": "%d",
+					"gauge": {
+						"metrics": {
+							"some-name": {
+								"value": 99,
+								"unit":"my-unit"
+							},
+							"some-other-name": {
+								"value": 101,
+								"unit":"my-unit"
+							}
+						}
+					}
+				}
 			]
 		}
 	}`
@@ -351,6 +463,22 @@ const (
 					"source_id": "app-name",
 					"timestamp": "%d",
 					"instance_id":"0",
+					"timer": {
+						"name": "http",
+						"start": "%d",
+						"stop": "%d"
+					}
+				}
+			]
+		}
+	}`
+
+	timerResponseWithoutInstanceTemplate = `{
+		"envelopes": {
+			"batch": [
+				{
+					"source_id": "app-name",
+					"timestamp": "%d",
 					"timer": {
 						"name": "http",
 						"start": "%d",
@@ -377,12 +505,39 @@ const (
 		}
 	}`
 
+	eventResponseWithoutInstanceTemplate = `{
+		"envelopes": {
+			"batch": [
+				{
+					"source_id": "app-name",
+					"timestamp": "%d",
+					"event": {
+						"title": "some-title",
+						"body": "some-body"
+					}
+				}
+			]
+		}
+	}`
+
 	unknownResponseTemplate = `{
 		"envelopes": {
 			"batch": [
 				{
 					"source_id": "app-name",
 					"instance_id":"0",
+					"timestamp": "%d",
+					"tags": {"foo":"bar"}
+				}
+			]
+		}
+	}`
+
+	unknownResponseWithoutInstanceTemplate = `{
+		"envelopes": {
+			"batch": [
+				{
+					"source_id": "app-name",
 					"timestamp": "%d",
 					"tags": {"foo":"bar"}
 				}
@@ -409,36 +564,36 @@ func tailResponseBodyAsc(startTime time.Time) string {
 	)
 }
 
-func logResponseBody(startTime time.Time) string {
-	return fmt.Sprintf(logResponseTemplate, startTime.UnixNano())
+func logResponseBody(template string, startTime time.Time) string {
+	return fmt.Sprintf(template, startTime.UnixNano())
 }
 
-func counterResponseBody(startTime time.Time) string {
-	return fmt.Sprintf(counterResponseTemplate, startTime.UnixNano())
+func counterResponseBody(template string, startTime time.Time) string {
+	return fmt.Sprintf(template, startTime.UnixNano())
 }
 
-func gaugeResponseBody(startTime time.Time) string {
-	return fmt.Sprintf(gaugeResponseTemplate, startTime.UnixNano())
+func gaugeResponseBody(template string, startTime time.Time) string {
+	return fmt.Sprintf(template, startTime.UnixNano())
 }
 
-func timerResponseBody(startTime time.Time) string {
+func timerResponseBody(template string, startTime time.Time) string {
 	return fmt.Sprintf(
-		timerResponseTemplate,
+		template,
 		startTime.UnixNano(),
 		startTime.Add(1*time.Second).UnixNano(),
 		startTime.Add(2*time.Second).UnixNano(),
 	)
 }
 
-func eventResponseBody(startTime time.Time) string {
+func eventResponseBody(template string, startTime time.Time) string {
 	return fmt.Sprintf(
-		eventResponseTemplate,
+		template,
 		startTime.UnixNano(),
 	)
 }
 
-func unknownResponseBody(startTime time.Time) string {
-	return fmt.Sprintf(unknownResponseTemplate, startTime.UnixNano())
+func unknownResponseBody(template string, startTime time.Time) string {
+	return fmt.Sprintf(template, startTime.UnixNano())
 }
 
 type incrementalHandler struct {

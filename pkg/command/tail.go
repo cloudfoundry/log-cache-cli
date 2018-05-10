@@ -136,6 +136,48 @@ func (t *Tail) writeEnvs(envs []*loggregator_v2.Envelope) error {
 	return nil
 }
 
+func format(e *loggregator_v2.Envelope) string {
+	switch e.Message.(type) {
+	case *loggregator_v2.Envelope_Log:
+		if e.GetInstanceId() == "" {
+			return "%s [%s] LOG/%[4]s %s\n"
+		} else {
+			return "%s [%s/%s] LOG/%s %s\n"
+		}
+	case *loggregator_v2.Envelope_Counter:
+		if e.GetInstanceId() == "" {
+			return "%s [%s] COUNTER %[4]s:%d\n"
+		} else {
+			return "%s [%s/%s] COUNTER %s:%d\n"
+		}
+	case *loggregator_v2.Envelope_Gauge:
+		if e.GetInstanceId() == "" {
+			return "%s [%s] GAUGE %[4]s\n"
+		} else {
+			return "%s [%s/%s] GAUGE %s\n"
+		}
+	case *loggregator_v2.Envelope_Timer:
+		if e.GetInstanceId() == "" {
+			return "%s [%s] TIMER %[4]s\n"
+		} else {
+			return "%s [%s/%s] TIMER %s\n"
+		}
+	case *loggregator_v2.Envelope_Event:
+		if e.GetInstanceId() == "" {
+			return "%s [%s] EVENT %[4]s:%s\n"
+		} else {
+			return "%s [%s/%s] EVENT %s:%s\n"
+		}
+	default:
+		if e.GetInstanceId() == "" {
+			return "%s [%s] UNKNOWN %[4]s\n"
+		} else {
+			return "%s [%s/%s] UNKNOWN %s\n"
+		}
+
+	}
+}
+
 func (t *Tail) writeEnv(e *loggregator_v2.Envelope) error {
 	const timeFormat = "2006-01-02T15:04:05.00-0700"
 	ts := time.Unix(0, e.Timestamp)
@@ -144,7 +186,7 @@ func (t *Tail) writeEnv(e *loggregator_v2.Envelope) error {
 	case *loggregator_v2.Envelope_Log:
 		_, err = fmt.Fprintf(
 			t.OutOrStdout(),
-			"%s [%s/%s] LOG/%s %s\n",
+			format(e),
 			ts.Format(timeFormat),
 			e.GetSourceId(),
 			e.GetInstanceId(),
@@ -154,7 +196,7 @@ func (t *Tail) writeEnv(e *loggregator_v2.Envelope) error {
 	case *loggregator_v2.Envelope_Counter:
 		_, err = fmt.Fprintf(
 			t.OutOrStdout(),
-			"%s [%s/%s] COUNTER %s:%d\n",
+			format(e),
 			ts.Format(timeFormat),
 			e.GetSourceId(),
 			e.GetInstanceId(),
@@ -171,7 +213,7 @@ func (t *Tail) writeEnv(e *loggregator_v2.Envelope) error {
 
 		_, err = fmt.Fprintf(
 			t.OutOrStdout(),
-			"%s [%s/%s] GAUGE %s\n",
+			format(e),
 			ts.Format(timeFormat),
 			e.GetSourceId(),
 			e.GetInstanceId(),
@@ -180,7 +222,7 @@ func (t *Tail) writeEnv(e *loggregator_v2.Envelope) error {
 	case *loggregator_v2.Envelope_Timer:
 		_, err = fmt.Fprintf(
 			t.OutOrStdout(),
-			"%s [%s/%s] TIMER %s\n",
+			format(e),
 			ts.Format(timeFormat),
 			e.GetSourceId(),
 			e.GetInstanceId(),
@@ -189,7 +231,7 @@ func (t *Tail) writeEnv(e *loggregator_v2.Envelope) error {
 	case *loggregator_v2.Envelope_Event:
 		_, err = fmt.Fprintf(
 			t.OutOrStdout(),
-			"%s [%s/%s] EVENT %s:%s\n",
+			format(e),
 			ts.Format(timeFormat),
 			e.GetSourceId(),
 			e.GetInstanceId(),
@@ -212,7 +254,7 @@ func (t *Tail) writeEnv(e *loggregator_v2.Envelope) error {
 		}
 		_, err = fmt.Fprintf(
 			t.OutOrStdout(),
-			"%s [%s/%s] UNKNOWN %s\n",
+			format(e),
 			ts.Format(timeFormat),
 			e.GetSourceId(),
 			e.GetInstanceId(),
