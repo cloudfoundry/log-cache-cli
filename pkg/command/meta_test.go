@@ -99,18 +99,6 @@ var _ = Describe("Meta", func() {
 		Expect(buf.String()).To(BeEmpty())
 	})
 
-	It("returns an error if unable to retrieve meta info", func() {
-		metaCmd := command.NewMeta(command.Config{
-			Addr: "http://does-not-exist",
-		})
-		metaCmd.SetOutput(ioutil.Discard)
-		metaCmd.SetArgs([]string{})
-
-		err := metaCmd.Execute()
-
-		Expect(err).To(MatchError(ContainSubstring("no such host")))
-	})
-
 	It("timesout when server is taking too long", func() {
 		done := make(chan struct{})
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

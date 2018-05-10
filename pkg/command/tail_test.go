@@ -89,18 +89,6 @@ var _ = Describe("Tail", func() {
 		Entry("too many args", []string{"foo", "bar"}),
 	)
 
-	It("returns an error when read fails", func() {
-		tailCmd := command.NewTail(command.Config{
-			Addr: "http://does-not-exist",
-		})
-		tailCmd.SetOutput(ioutil.Discard)
-		tailCmd.SetArgs([]string{"test-source-id"})
-
-		err := tailCmd.Execute()
-
-		Expect(err).To(MatchError(ContainSubstring("no such host")))
-	})
-
 	It("timesout when server is taking too long", func() {
 		done := make(chan struct{})
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
