@@ -2,9 +2,9 @@
 
 owner=cloudfoundry
 repo=log-cache-cli
-binary="$(uname | tr 'A-Z' 'a-z')"
+platform="$(uname | tr 'A-Z' 'a-z')"
 
-if [ "$binary" != "linux" ] && [ "$binary" != "darwin" ]; then
+if [ "$platform" != "linux" ] && [ "$platform" != "darwin" ]; then
   echo "Error: Unable to detect platform. Installation script currently works \
         for Linux and OSX platforms."
   exit 1
@@ -19,11 +19,11 @@ assets_json="$(
 )"
 asset_id="$(
     echo "$assets_json " \
-        | python -c 'import sys, json; print([x for x in json.load(sys.stdin) if "'"$binary"'" in x.get("name", "")][0].get("id", ""))'
+        | python -c 'import sys, json; print([x for x in json.load(sys.stdin) if "log-cache-'"$platform"'" in x.get("name", "")][0].get("id", ""))'
 )"
 asset_name="$(
     echo "$assets_json " \
-        | python -c 'import sys, json; print([x for x in json.load(sys.stdin) if "'"$binary"'" in x.get("name", "")][0].get("name", ""))'
+        | python -c 'import sys, json; print([x for x in json.load(sys.stdin) if "log-cache-'"$platform"'" in x.get("name", "")][0].get("name", ""))'
 )"
 
 echo "Downloading $asset_name from $owner/$repo..."
