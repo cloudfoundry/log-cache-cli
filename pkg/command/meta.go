@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"text/tabwriter"
 	"time"
@@ -52,7 +53,7 @@ func NewMeta(conf Config, opts ...MetaOption) *cobra.Command {
 
 func (m *Meta) command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "log-cache",
+		Use:   os.Args[0],
 		Short: "List cluster logs and metrics",
 		RunE:  m.runE,
 		Args:  cobra.NoArgs,
