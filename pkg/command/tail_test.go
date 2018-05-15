@@ -76,6 +76,28 @@ var _ = Describe("Tail", func() {
 		}))
 	})
 
+	Describe("--json", func() {
+		It("writes an array of JSON", func() {
+			startTime := time.Now()
+			resp := tailResponseBodyDesc(startTime)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, resp)
+			}))
+			defer server.Close()
+			var buf bytes.Buffer
+			tailCmd := command.NewTail(command.Config{
+				Addr: server.URL,
+			})
+			tailCmd.SetArgs([]string{"--json", "test-source-id"})
+			tailCmd.SetOutput(&buf)
+
+			err := tailCmd.Execute()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(buf.String()).To(MatchJSON(tailJSONOutputAsc(startTime)))
+		})
+	})
+
 	DescribeTable("returns an error if args are not correct", func(args []string) {
 		tailCmd := command.NewTail(command.Config{})
 		tailCmd.SetOutput(ioutil.Discard)
@@ -305,6 +327,31 @@ var _ = Describe("Tail", func() {
 
 			Expect(err).To(HaveOccurred())
 		})
+
+		Describe("--json", func() {
+			It("streams newline delimited JSON", func() {
+				startTime := time.Now().Add(-1 * time.Minute)
+				handler := newIncrementalHandler(
+					tailResponseBodyDesc(startTime.Add(-30*time.Second)),
+					tailResponseBodyAsc(startTime),
+					tailResponseBodyAsc(startTime.Add(3*time.Second)),
+				)
+
+				server := httptest.NewServer(handler)
+				defer server.Close()
+				tailCmd := command.NewTail(command.Config{
+					Addr: server.URL,
+				}, command.WithTailTimeout(250*time.Millisecond))
+				tailCmd.SetArgs([]string{"--follow", "--json", "test-source-id"})
+				var buf bytes.Buffer
+				tailCmd.SetOutput(&buf)
+
+				err := tailCmd.Execute()
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(strings.TrimRight(buf.String(), "\n")).To(Equal(tailStreamJSONOutputAsc(startTime)))
+			})
+		})
 	})
 })
 
@@ -354,6 +401,44 @@ const (
 			]
 		}
 	}`
+
+	jsonOutputTemplate = `[
+		{
+			"sourceId": "app-name",
+			"instanceId":"0",
+			"timestamp":"%d",
+			"log":{
+				"payload":"bG9nIGJvZHkK",
+				"type": "ERR"
+			}
+		},
+		{
+			"sourceId": "app-name",
+			"instanceId":"0",
+			"timestamp":"%d",
+			"log":{
+				"payload":"bG9nIGJvZHkK"
+			}
+		},
+		{
+			"sourceId": "app-name",
+			"instanceId":"0",
+			"timestamp":"%d",
+			"log":{
+				"payload":"bG9nIGJvZHkK"
+			}
+		}
+	]`
+
+	jsonStreamOutputTemplate = `{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK","type":"ERR"}}
+{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK","type":"ERR"}}
+{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK","type":"ERR"}}`
 
 	logResponseTemplate = `{
 		"envelopes": {
@@ -548,16 +633,44 @@ const (
 
 func tailResponseBodyDesc(startTime time.Time) string {
 	// NOTE: These are in descending order.
-	return fmt.Sprintf(responseTemplate,
+	return fmt.Sprintf(
+		responseTemplate,
 		startTime.Add(2*time.Second).UnixNano(),
 		startTime.Add(1*time.Second).UnixNano(),
 		startTime.UnixNano(),
 	)
 }
 
+func tailJSONOutputAsc(startTime time.Time) string {
+	// NOTE: These are in descending order.
+	return fmt.Sprintf(
+		jsonOutputTemplate,
+		startTime.UnixNano(),
+		startTime.Add(1*time.Second).UnixNano(),
+		startTime.Add(2*time.Second).UnixNano(),
+	)
+}
+
+func tailStreamJSONOutputAsc(startTime time.Time) string {
+	// NOTE: These are in descending order.
+	return fmt.Sprintf(
+		jsonStreamOutputTemplate,
+		startTime.Add(-30*time.Second).UnixNano(),
+		startTime.Add(-29*time.Second).UnixNano(),
+		startTime.Add(-28*time.Second).UnixNano(),
+		startTime.UnixNano(),
+		startTime.Add(1*time.Second).UnixNano(),
+		startTime.Add(2*time.Second).UnixNano(),
+		startTime.Add(3*time.Second).UnixNano(),
+		startTime.Add(4*time.Second).UnixNano(),
+		startTime.Add(5*time.Second).UnixNano(),
+	)
+}
+
 func tailResponseBodyAsc(startTime time.Time) string {
 	// NOTE: These are in ascending order.
-	return fmt.Sprintf(responseTemplate,
+	return fmt.Sprintf(
+		responseTemplate,
 		startTime.UnixNano(),
 		startTime.Add(1*time.Second).UnixNano(),
 		startTime.Add(2*time.Second).UnixNano(),
