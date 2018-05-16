@@ -272,13 +272,13 @@ var _ = Describe("LogCache", func() {
 				writer,
 			)
 
-			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","event":{"title":"some-title","body":"some-body"}}`, startTime.UnixNano()),
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}}`, startTime.UnixNano()),
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"bG9nIGJvZHk="}}`, startTime.UnixNano()),
-			))
+			Expect(writer.bytes).To(MatchJSON(fmt.Sprintf(`{"batch":[
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","event":{"title":"some-title","body":"some-body"}},
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}},
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}},
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}},
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"bG9nIGJvZHk="}}
+			]}`, startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano())))
 		})
 
 		It("only returns timer, gauge, and counter when type=metrics", func() {
@@ -298,11 +298,11 @@ var _ = Describe("LogCache", func() {
 				writer,
 			)
 
-			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}}`, startTime.UnixNano()),
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
-			))
+			Expect(writer.bytes).To(MatchJSON(fmt.Sprintf(`{"batch":[
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}},
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}},
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}}
+			]}`, startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano())))
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -328,10 +328,10 @@ var _ = Describe("LogCache", func() {
 				writer,
 			)
 
-			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","event":{"title":"some-title","body":"some-body"}}`, startTime.UnixNano()),
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"bG9nIGJvZHk="}}`, startTime.UnixNano()),
-			))
+			Expect(writer.bytes).To(MatchJSON(fmt.Sprintf(`{"batch":[
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","event":{"title":"some-title","body":"some-body"}},
+				{"timestamp":"%d","sourceId":"app-name","instanceId":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"bG9nIGJvZHk="}}
+			]}`, startTime.UnixNano(), startTime.UnixNano())))
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
@@ -358,8 +358,8 @@ var _ = Describe("LogCache", func() {
 				writer,
 			)
 
-			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}`, startTime.UnixNano()),
+			Expect(writer.bytes).To(MatchJSON(
+				fmt.Sprintf(`{"batch":[{"timestamp":"%d","sourceId":"app-name","instanceId":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}]}`, startTime.UnixNano()),
 			))
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
@@ -386,8 +386,8 @@ var _ = Describe("LogCache", func() {
 				writer,
 			)
 
-			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
+			Expect(writer.bytes).To(MatchJSON(
+				fmt.Sprintf(`{"batch":[{"timestamp":"%d","sourceId":"app-name","instanceId":"0","counter":{"name":"some-name","total":"99"}}]}`, startTime.UnixNano()),
 			))
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())

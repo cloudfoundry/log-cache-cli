@@ -32,9 +32,10 @@ type formatter interface {
 	serviceHeader(service, org, space, user string) (string, bool)
 	sourceHeader(sourceID, _, _, user string) (string, bool)
 	formatEnvelope(e *loggregator_v2.Envelope) (string, bool)
+	flush() (string, bool)
 }
 
-func newFormatter(sourceID string, kind formatterKind, log Logger, t *template.Template) formatter {
+func newFormatter(sourceID string, following bool, kind formatterKind, log Logger, t *template.Template) formatter {
 	bf := baseFormatter{
 		log: log,
 	}
@@ -46,7 +47,8 @@ func newFormatter(sourceID string, kind formatterKind, log Logger, t *template.T
 			sourceID:      sourceID,
 		}
 	case jsonFormat:
-		return jsonFormatter{
+		return &jsonFormatter{
+			following:     following,
 			baseFormatter: bf,
 		}
 	case templateFormat:
@@ -62,6 +64,10 @@ func newFormatter(sourceID string, kind formatterKind, log Logger, t *template.T
 
 type baseFormatter struct {
 	log Logger
+}
+
+func (f baseFormatter) flush() (string, bool) {
+	return "", false
 }
 
 func (f baseFormatter) appHeader(_, _, _, _ string) (string, bool) {
@@ -120,13 +126,37 @@ func (f prettyFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, boo
 type jsonFormatter struct {
 	baseFormatter
 
+	following bool
+	es        []*loggregator_v2.Envelope
 	marshaler jsonpb.Marshaler
 }
 
-func (f jsonFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
-	output, err := f.marshaler.MarshalToString(e)
+func (f *jsonFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
+	if f.following {
+		output, err := f.marshaler.MarshalToString(e)
+		if err != nil {
+			log.Printf("failed to marshal envelope: %s", err)
+			return "", false
+		}
+
+		return string(output), true
+	}
+
+	f.es = append(f.es, e)
+
+	return "", false
+}
+
+func (f *jsonFormatter) flush() (string, bool) {
+	if f.following {
+		return "", false
+	}
+
+	output, err := f.marshaler.MarshalToString(&loggregator_v2.EnvelopeBatch{
+		Batch: f.es,
+	})
 	if err != nil {
-		log.Printf("failed to marshal envelope: %s", err)
+		log.Printf("failed to marshal envelopes: %s", err)
 		return "", false
 	}
 

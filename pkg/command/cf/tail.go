@@ -65,8 +65,14 @@ func Tail(
 	}
 
 	sourceID := o.guid
-	formatter := newFormatter(o.providedName, formatterKindFromOptions(o), log, o.outputTemplate)
+	formatter := newFormatter(o.providedName, o.follow, formatterKindFromOptions(o), log, o.outputTemplate)
 	lw := lineWriter{w: w}
+
+	defer func() {
+		if value, ok := formatter.flush(); ok {
+			lw.Write(value)
+		}
+	}()
 
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
 		token, err := cli.AccessToken()
