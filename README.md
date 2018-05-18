@@ -3,44 +3,17 @@ Log Cache CLI
 
 [![GoDoc][go-doc-badge]][go-doc] [![travis][travis-badge]][travis] [![slack.cloudfoundry.org][slack-badge]][loggregator-slack]
 
-This repo contains the following:
+The Log Cache CLI can be installed and used in two ways.
 
- - Stand alone CLI for Log Cache
+ - Stand alone CLI for Log Cache 
  - Cloud Foundry CLI plugin for Log Cache
-
-## Stand alone CLI
-
-### Installing CLI
-
-Run our install script:
-
-```
-curl -sS https://raw.githubusercontent.com/cloudfoundry/log-cache-cli/develop/scripts/install.sh | bash
-```
-
-### Usage
-
-1. Target the Log Cache by setting the environment variable `LOG_CACHE_ADDR`.
-1. Simply run the `log-cache` command to view current metrics stored in Log
-   Cache.
-1. Help can be accessed with the `--help` flag at any command level.
-
-```
-$ log-cache tail --help
-Output logs and metrics for a given source-id
-
-Usage:
-  log-cache tail <source-id> [flags]
-
-Flags:
-  -f, --follow   Output appended to stdout as logs are egressed.
-  -h, --help     help for tail
-```
 
 ## Cloud Foundry CLI plugin
 
 The Log Cache CLI Plugin is a [CF CLI](cf-cli) plugin for the [Log
 Cache](log-cache) system.
+
+![Plugin Demo](./docs./Plugin-demo.gif)
 
 ### Installing Plugin
 
@@ -90,6 +63,36 @@ OPTIONS:
    --guid              Display raw source GUIDs
    --noise             Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...
    --source-type       Source type of information to show. Available: 'all', 'application', and 'platform'.
+```
+
+
+## Stand alone CLI
+
+### Installing CLI
+
+Run our install script:
+
+```
+curl -sS https://raw.githubusercontent.com/cloudfoundry/log-cache-cli/develop/scripts/install.sh | bash
+```
+
+### Usage
+
+1. Target the Log Cache by setting the environment variable `LOG_CACHE_ADDR`.
+1. Simply run the `log-cache` command to view current metrics stored in Log
+   Cache.
+1. Help can be accessed with the `--help` flag at any command level.
+
+```
+$ log-cache tail --help
+Output logs and metrics for a given source-id
+
+Usage:
+  log-cache tail <source-id> [flags]
+
+Flags:
+  -f, --follow   Output appended to stdout as logs are egressed.
+  -h, --help     help for tail
 ```
 
 [log-cache]: https://code.cloudfoundry.org/log-cache-release
