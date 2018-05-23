@@ -87,7 +87,7 @@ func (m *Meta) runE(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range rows {
-		fmt.Fprintf(tw, rowFormat, r.SourceID, r.Count, r.Expired, r.Duration)
+		fmt.Fprintf(tw, rowFormat, r.SourceID, r.Count, r.Expired, maxDuration(time.Second, r.Duration))
 	}
 
 	if err = tw.Flush(); err != nil {
@@ -95,6 +95,13 @@ func (m *Meta) runE(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func maxDuration(a, b time.Duration) time.Duration {
+	if a < b {
+		return b
+	}
+	return a
 }
 
 type row struct {

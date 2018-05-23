@@ -36,7 +36,7 @@ var _ = Describe("Meta", func() {
 			"source-id-2  100000  85008    11m45s",
 			"source-id-3  100000  85008    11m45s",
 			"source-id-4  100000  85008    11m45s",
-			"source-id-5  100000  85008    11m45s",
+			"source-id-5  100000  99999    1s",
 			"",
 		}))
 	})
@@ -78,7 +78,7 @@ var _ = Describe("Meta", func() {
 			"source-id-2  100000  85008  11m45s",
 			"source-id-3  100000  85008  11m45s",
 			"source-id-4  100000  85008  11m45s",
-			"source-id-5  100000  85008  11m45s",
+			"source-id-5  100000  99999  1s",
 			"",
 		}))
 	})
@@ -127,7 +127,13 @@ var _ = Describe("Meta", func() {
 
 func metaResponseInfo(sourceIDs ...string) string {
 	var metaInfos []string
-	for _, sourceID := range sourceIDs {
+	metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
+	  "count": "100000",
+	  "expired": "99999",
+	  "oldestTimestamp": "1519256863100000000",
+	  "newestTimestamp": "1519256863110000000"
+	}`, sourceIDs[0]))
+	for _, sourceID := range sourceIDs[1:] {
 		metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
 		  "count": "100000",
 		  "expired": "85008",
