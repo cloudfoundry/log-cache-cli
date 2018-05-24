@@ -16,11 +16,16 @@ import (
 )
 
 var _ = Describe("Meta", func() {
-	It("prints source ids returned from the api in ascending order", func() {
+	It("prints sources in ascending order by namespace, resource, and type", func() {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, metaResponseInfo(
 				"source-id-5",
+				"a-source-id-6",
 				"ns/pod/foo",
+				"ns/deployment/foo",
+				"ns/pod/bar",
+				"",
+				"ns2/statefulset/foo",
 				"source-id-4",
 				"source-id-2",
 			))
@@ -37,11 +42,16 @@ var _ = Describe("Meta", func() {
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.Split(buf.String(), "\n")).To(Equal([]string{
-			"Resource     Type  Namespace  Count   Expired  Cache Duration",
-			"foo          pod   ns         100000  85008    11m45s",
-			"source-id-2                   100000  85008    11m45s",
-			"source-id-4                   100000  85008    11m45s",
-			"source-id-5                   100000  99999    1s",
+			"RESOURCE        TYPE          NAMESPACE   COUNT    EXPIRED   CACHE DURATION",
+			"                -             -           100000   85008     11m45s",
+			"a-source-id-6   -             -           100000   85008     11m45s",
+			"source-id-2     -             -           100000   85008     11m45s",
+			"source-id-4     -             -           100000   85008     11m45s",
+			"source-id-5     -             -           100000   99999     1s",
+			"bar             pod           ns          100000   85008     11m45s",
+			"foo             deployment    ns          100000   85008     11m45s",
+			"foo             pod           ns          100000   85008     11m45s",
+			"foo             statefulset   ns2         100000   85008     11m45s",
 			"",
 		}))
 	})
@@ -85,10 +95,10 @@ var _ = Describe("Meta", func() {
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.Split(buf.String(), "\n")).To(Equal([]string{
-			"foo          pod  ns  100000  85008  11m45s",
-			"source-id-2           100000  85008  11m45s",
-			"source-id-4           100000  85008  11m45s",
-			"source-id-5           100000  99999  1s",
+			"source-id-2   -     -    100000   85008   11m45s",
+			"source-id-4   -     -    100000   85008   11m45s",
+			"source-id-5   -     -    100000   99999   1s",
+			"foo           pod   ns   100000   85008   11m45s",
 			"",
 		}))
 	})
