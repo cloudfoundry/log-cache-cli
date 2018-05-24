@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -77,9 +78,16 @@ func (m *Meta) runE(cmd *cobra.Command, args []string) error {
 	}
 	rows := rows(meta)
 
-	headerArgs := []interface{}{"Source ID", "Count", "Expired", "Cache Duration"}
-	headerFormat := "%s\t%s\t%s\t%s\n"
-	rowFormat := "%s\t%d\t%d\t%s\n"
+	headerArgs := []interface{}{
+		"Resource",
+		"Type",
+		"Namespace",
+		"Count",
+		"Expired",
+		"Cache Duration",
+	}
+	headerFormat := "%s\t%s\t%s\t%s\t%s\t%s\n"
+	rowFormat := "%s\t%s\t%s\t%d\t%d\t%s\n"
 
 	tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
 	if !m.noHeaders {
@@ -87,7 +95,17 @@ func (m *Meta) runE(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range rows {
-		fmt.Fprintf(tw, rowFormat, r.SourceID, r.Count, r.Expired, maxDuration(time.Second, r.Duration))
+		resource, kind, namespace := sourceParts(r.SourceID)
+		fmt.Fprintf(
+			tw,
+			rowFormat,
+			resource,
+			kind,
+			namespace,
+			r.Count,
+			r.Expired,
+			maxDuration(time.Second, r.Duration),
+		)
 	}
 
 	if err = tw.Flush(); err != nil {
@@ -102,6 +120,14 @@ func maxDuration(a, b time.Duration) time.Duration {
 		return b
 	}
 	return a
+}
+
+func sourceParts(sourceID string) (string, string, string) {
+	parts := strings.SplitN(sourceID, "/", 3)
+	if len(parts) != 3 {
+		return sourceID, "", ""
+	}
+	return parts[2], parts[1], parts[0]
 }
 
 type row struct {

@@ -18,7 +18,12 @@ import (
 var _ = Describe("Meta", func() {
 	It("prints source ids returned from the api in ascending order", func() {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, metaResponseInfo("source-id-5", "source-id-3", "source-id-4", "source-id-2"))
+			fmt.Fprint(w, metaResponseInfo(
+				"source-id-5",
+				"ns/pod/foo",
+				"source-id-4",
+				"source-id-2",
+			))
 		}))
 		defer server.Close()
 		var buf bytes.Buffer
@@ -32,11 +37,11 @@ var _ = Describe("Meta", func() {
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.Split(buf.String(), "\n")).To(Equal([]string{
-			"Source ID    Count   Expired  Cache Duration",
-			"source-id-2  100000  85008    11m45s",
-			"source-id-3  100000  85008    11m45s",
-			"source-id-4  100000  85008    11m45s",
-			"source-id-5  100000  99999    1s",
+			"Resource     Type  Namespace  Count   Expired  Cache Duration",
+			"foo          pod   ns         100000  85008    11m45s",
+			"source-id-2                   100000  85008    11m45s",
+			"source-id-4                   100000  85008    11m45s",
+			"source-id-5                   100000  99999    1s",
 			"",
 		}))
 	})
@@ -61,7 +66,12 @@ var _ = Describe("Meta", func() {
 
 	It("removes header when not writing to a tty", func() {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, metaResponseInfo("source-id-5", "source-id-3", "source-id-4", "source-id-2"))
+			fmt.Fprint(w, metaResponseInfo(
+				"source-id-5",
+				"ns/pod/foo",
+				"source-id-4",
+				"source-id-2",
+			))
 		}))
 		defer server.Close()
 		var buf bytes.Buffer
@@ -75,10 +85,10 @@ var _ = Describe("Meta", func() {
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.Split(buf.String(), "\n")).To(Equal([]string{
-			"source-id-2  100000  85008  11m45s",
-			"source-id-3  100000  85008  11m45s",
-			"source-id-4  100000  85008  11m45s",
-			"source-id-5  100000  99999  1s",
+			"foo          pod  ns  100000  85008  11m45s",
+			"source-id-2           100000  85008  11m45s",
+			"source-id-4           100000  85008  11m45s",
+			"source-id-5           100000  99999  1s",
 			"",
 		}))
 	})
