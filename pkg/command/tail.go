@@ -57,8 +57,8 @@ func NewTail(conf Config, opts ...TailOption) *cobra.Command {
 
 func (t *Tail) command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "tail <source-id>",
-		Short: "Output logs and metrics for a given source-id",
+		Use:   "tail <namespace/type/resource|resource>",
+		Short: "Output logs and metrics for a given resource",
 		RunE:  t.runE,
 		Args:  cobra.ExactArgs(1),
 	}

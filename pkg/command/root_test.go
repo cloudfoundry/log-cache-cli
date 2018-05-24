@@ -32,7 +32,7 @@ var _ = Describe("Execute", func() {
 		err := command.Execute(command.WithOutput(&buf))
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(buf.String()).To(ContainSubstring("Output logs and metrics for a given source-id"))
+		Expect(buf.String()).To(ContainSubstring("Output logs and metrics for a given resource"))
 	})
 
 	It("runs meta by default", func() {
