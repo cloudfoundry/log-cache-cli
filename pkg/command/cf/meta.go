@@ -339,7 +339,15 @@ func getSourceInfoFromCAPI(sourceIDs []string, endpoint string, cli plugin.CliCo
 func cacheDuration(m *logcache_v1.MetaInfo) time.Duration {
 	new := time.Unix(0, m.NewestTimestamp)
 	old := time.Unix(0, m.OldestTimestamp)
-	return new.Sub(old).Truncate(time.Second)
+
+	return maxDuration(time.Second, new.Sub(old).Truncate(time.Second))
+}
+
+func maxDuration(a, b time.Duration) time.Duration {
+	if a < b {
+		return b
+	}
+	return a
 }
 
 func truncate(count int, entries map[string]*logcache_v1.MetaInfo) map[string]*logcache_v1.MetaInfo {

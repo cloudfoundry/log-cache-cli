@@ -79,7 +79,7 @@ var _ = Describe("Meta", func() {
 			"",
 			"Source ID  Source  Source Type  Count   Expired  Cache Duration",
 			"source-2   app-1   application  100000  85008    11m45s",
-			"source-1   app-2   application  100000  85008    11m45s",
+			"source-1   app-2   application  100000  85008    1s",
 			"",
 		}))
 
@@ -114,7 +114,7 @@ var _ = Describe("Meta", func() {
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			"source-2  app-1  application  100000  85008  11m45s",
-			"source-1  app-2  application  100000  85008  11m45s",
+			"source-1  app-2  application  100000  85008  1s",
 			"",
 		}))
 	})
@@ -180,7 +180,7 @@ var _ = Describe("Meta", func() {
 			"Source ID  Source        Source Type  Count   Expired  Cache Duration",
 			"source-2   aa-service-2  service      100000  85008    11m45s",
 			"source-3   ab-service-3  service      100000  85008    11m45s",
-			"source-1   app-1         application  100000  85008    11m45s",
+			"source-1   app-1         application  100000  85008    1s",
 			"",
 		}))
 
@@ -221,7 +221,7 @@ var _ = Describe("Meta", func() {
 			),
 			"",
 			"Source  Source Type  Count   Expired  Cache Duration",
-			"app-1   application  100000  85008    11m45s",
+			"app-1   application  100000  85008    1s",
 			"",
 		}))
 
@@ -289,7 +289,7 @@ var _ = Describe("Meta", func() {
 			),
 			"",
 			"Source     Source Type  Count   Expired  Cache Duration  Rate",
-			"app-1      application  100000  85008    11m45s          5",
+			"app-1      application  100000  85008    1s              5",
 			"service-1  service      100000  85008    11m45s          1",
 			"source-2   platform     100000  85008    11m45s          3",
 			"",
@@ -347,7 +347,7 @@ var _ = Describe("Meta", func() {
 			),
 			"",
 			"Source    Source Type  Count   Expired  Cache Duration",
-			"app-1     application  100000  85008    11m45s",
+			"app-1     application  100000  85008    1s",
 			"source-2  platform     100000  85008    11m45s",
 			"",
 		}))
@@ -392,7 +392,7 @@ var _ = Describe("Meta", func() {
 			),
 			"",
 			"Source  Source Type  Count   Expired  Cache Duration",
-			"app-1   application  100000  85008    11m45s",
+			"app-1   application  100000  85008    1s",
 			"",
 		}))
 	})
@@ -517,7 +517,7 @@ var _ = Describe("Meta", func() {
 			),
 			"",
 			"Source                                Source Type  Count   Expired  Cache Duration",
-			"source-1                              platform     100000  85008    11m45s",
+			"source-1                              platform     100000  85008    1s",
 			"11111111-1111-1111-1111-111111111111  unknown      100000  85008    11m45s",
 			"",
 		}))
@@ -843,7 +843,13 @@ var _ = Describe("Meta", func() {
 
 func metaResponseInfo(sourceIDs ...string) string {
 	var metaInfos []string
-	for _, sourceID := range sourceIDs {
+	metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
+		  "count": "100000",
+		  "expired": "85008",
+		  "oldestTimestamp": "1519256863100000000",
+		  "newestTimestamp": "1519256863110000000"
+		}`, sourceIDs[0]))
+	for _, sourceID := range sourceIDs[1:] {
 		metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
 		  "count": "100000",
 		  "expired": "85008",
