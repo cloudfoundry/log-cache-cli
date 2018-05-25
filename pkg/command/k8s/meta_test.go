@@ -1,4 +1,4 @@
-package command_test
+package k8s_test
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/log-cache-cli/pkg/command"
+	"code.cloudfoundry.org/log-cache-cli/pkg/command/k8s"
 )
 
 var _ = Describe("Meta", func() {
@@ -32,7 +32,7 @@ var _ = Describe("Meta", func() {
 		}))
 		defer server.Close()
 		var buf bytes.Buffer
-		metaCmd := command.NewMeta(command.Config{
+		metaCmd := k8s.NewMeta(k8s.Config{
 			Addr: server.URL,
 		})
 		metaCmd.SetOutput(&buf)
@@ -62,7 +62,7 @@ var _ = Describe("Meta", func() {
 		}))
 		defer server.Close()
 		var buf bytes.Buffer
-		metaCmd := command.NewMeta(command.Config{
+		metaCmd := k8s.NewMeta(k8s.Config{
 			Addr: server.URL,
 		})
 		metaCmd.SetOutput(&buf)
@@ -85,9 +85,9 @@ var _ = Describe("Meta", func() {
 		}))
 		defer server.Close()
 		var buf bytes.Buffer
-		metaCmd := command.NewMeta(command.Config{
+		metaCmd := k8s.NewMeta(k8s.Config{
 			Addr: server.URL,
-		}, command.WithMetaNoHeaders())
+		}, k8s.WithMetaNoHeaders())
 		metaCmd.SetOutput(&buf)
 		metaCmd.SetArgs([]string{})
 
@@ -106,7 +106,7 @@ var _ = Describe("Meta", func() {
 	It("doesn't return an error if the server responds with no data", func() {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 		defer server.Close()
-		metaCmd := command.NewMeta(command.Config{
+		metaCmd := k8s.NewMeta(k8s.Config{
 			Addr: server.URL,
 		})
 		var buf bytes.Buffer
@@ -128,9 +128,9 @@ var _ = Describe("Meta", func() {
 			}
 		}))
 		defer server.Close()
-		metaCmd := command.NewMeta(command.Config{
+		metaCmd := k8s.NewMeta(k8s.Config{
 			Addr: server.URL,
-		}, command.WithMetaTimeout(time.Nanosecond))
+		}, k8s.WithMetaTimeout(time.Nanosecond))
 		metaCmd.SetOutput(ioutil.Discard)
 		metaCmd.SetArgs([]string{})
 

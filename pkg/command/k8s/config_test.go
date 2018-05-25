@@ -1,15 +1,15 @@
-package command_test
+package k8s_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/log-cache-cli/pkg/command"
+	"code.cloudfoundry.org/log-cache-cli/pkg/command/k8s"
 )
 
 var _ = Describe("Config", func() {
 	It("Loads config from file", func() {
-		expectedConfig := command.Config{
+		expectedConfig := k8s.Config{
 			Addr: "test-file-addr",
 		}
 		cleanup := writeTmpConfig(expectedConfig)
@@ -19,14 +19,14 @@ var _ = Describe("Config", func() {
 		cleanup = patchEnv("LOG_CACHE_SKIP_AUTH", "")
 		defer cleanup()
 
-		c, err := command.BuildConfig()
+		c, err := k8s.BuildConfig()
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(c).To(Equal(expectedConfig))
 	})
 
 	It("Loads config from env", func() {
-		expectedConfig := command.Config{
+		expectedConfig := k8s.Config{
 			Addr: "test-env-addr",
 		}
 		cleanup := patchEnv("LOG_CACHE_ADDR", expectedConfig.Addr)
@@ -34,18 +34,18 @@ var _ = Describe("Config", func() {
 		cleanup = patchEnv("LOG_CACHE_SKIP_AUTH", "")
 		defer cleanup()
 
-		c, err := command.BuildConfig()
+		c, err := k8s.BuildConfig()
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(c).To(Equal(expectedConfig))
 	})
 
 	It("Merges config file and env", func() {
-		expectedConfig := command.Config{
+		expectedConfig := k8s.Config{
 			Addr:     "test-addr",
 			SkipAuth: true,
 		}
-		fileConfig := command.Config{
+		fileConfig := k8s.Config{
 			Addr: "test-addr",
 		}
 		cleanup := writeTmpConfig(fileConfig)
@@ -55,18 +55,18 @@ var _ = Describe("Config", func() {
 		cleanup = patchEnv("LOG_CACHE_SKIP_AUTH", "true")
 		defer cleanup()
 
-		c, err := command.BuildConfig()
+		c, err := k8s.BuildConfig()
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(c).To(Equal(expectedConfig))
 	})
 
 	It("Prefers env over config file", func() {
-		fileConfig := command.Config{
+		fileConfig := k8s.Config{
 			Addr:     "some-bad-value",
 			SkipAuth: false,
 		}
-		expectedConfig := command.Config{
+		expectedConfig := k8s.Config{
 			Addr:     "test-env-addr",
 			SkipAuth: true,
 		}
@@ -77,7 +77,7 @@ var _ = Describe("Config", func() {
 		cleanup = patchEnv("LOG_CACHE_SKIP_AUTH", "true")
 		defer cleanup()
 
-		c, err := command.BuildConfig()
+		c, err := k8s.BuildConfig()
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(c).To(Equal(expectedConfig))
@@ -87,7 +87,7 @@ var _ = Describe("Config", func() {
 		cleanup := patchEnv("HOME", "/does/not/exist")
 		defer cleanup()
 
-		_, err := command.BuildConfig()
+		_, err := k8s.BuildConfig()
 
 		Expect(err).To(HaveOccurred())
 	})
@@ -96,7 +96,7 @@ var _ = Describe("Config", func() {
 		cleanup := writeInvalidTmpConfig()
 		defer cleanup()
 
-		_, err := command.BuildConfig()
+		_, err := k8s.BuildConfig()
 
 		Expect(err).To(HaveOccurred())
 	})

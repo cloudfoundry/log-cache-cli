@@ -1,4 +1,4 @@
-package command_test
+package k8s_test
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/log-cache-cli/pkg/command"
+	"code.cloudfoundry.org/log-cache-cli/pkg/command/k8s"
 )
 
 var _ = Describe("Execute", func() {
@@ -18,7 +18,7 @@ var _ = Describe("Execute", func() {
 		defer cleanup()
 		var buf bytes.Buffer
 
-		err := command.Execute(command.WithOutput(&buf))
+		err := k8s.Execute(k8s.WithOutput(&buf))
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(buf.String()).To(ContainSubstring("List cluster logs and metrics"))
@@ -29,7 +29,7 @@ var _ = Describe("Execute", func() {
 		defer cleanup()
 		var buf bytes.Buffer
 
-		err := command.Execute(command.WithOutput(&buf))
+		err := k8s.Execute(k8s.WithOutput(&buf))
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(buf.String()).To(ContainSubstring("Output logs and metrics for a given resource"))
@@ -46,7 +46,7 @@ var _ = Describe("Execute", func() {
 		cleanup = patchEnv("LOG_CACHE_ADDR", server.URL)
 		defer cleanup()
 
-		err := command.Execute()
+		err := k8s.Execute()
 
 		Expect(err).ToNot(HaveOccurred())
 		Eventually(paths).Should(Receive(Equal("/v1/meta")))
@@ -56,7 +56,7 @@ var _ = Describe("Execute", func() {
 		cleanup := patchEnv("HOME", "/does/not/exist")
 		defer cleanup()
 
-		err := command.Execute()
+		err := k8s.Execute()
 
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError(ContainSubstring("no such file or directory")))

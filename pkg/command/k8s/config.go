@@ -1,4 +1,4 @@
-package command
+package k8s
 
 import (
 	"io"

@@ -1,4 +1,4 @@
-package command_test
+package k8s_test
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.cloudfoundry.org/log-cache-cli/pkg/command"
+	"code.cloudfoundry.org/log-cache-cli/pkg/command/k8s"
 	homedir "github.com/mitchellh/go-homedir"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,7 +34,7 @@ func patchEnv(key, value string) func() {
 	}
 }
 
-func writeTmpConfig(c command.Config) func() {
+func writeTmpConfig(c k8s.Config) func() {
 	dir, err := ioutil.TempDir("", "")
 	Expect(err).ToNot(HaveOccurred())
 

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"code.cloudfoundry.org/log-cache-cli/pkg/command"
+	"code.cloudfoundry.org/log-cache-cli/pkg/command/k8s"
 )
 
 // version is set via ldflags at compile time. It should be JSON encoded
@@ -24,7 +24,7 @@ func init() {
 }
 
 func main() {
-	if command.Execute(command.WithOutput(os.Stdout)) != nil {
+	if k8s.Execute(k8s.WithOutput(os.Stdout)) != nil {
 		os.Exit(1)
 	}
 }

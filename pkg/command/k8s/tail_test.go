@@ -1,4 +1,4 @@
-package command_test
+package k8s_test
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/log-cache-cli/pkg/command"
+	"code.cloudfoundry.org/log-cache-cli/pkg/command/k8s"
 )
 
 var _ = Describe("Tail", func() {
@@ -31,7 +31,7 @@ var _ = Describe("Tail", func() {
 		}))
 		defer server.Close()
 		var buf bytes.Buffer
-		tailCmd := command.NewTail(command.Config{
+		tailCmd := k8s.NewTail(k8s.Config{
 			Addr: server.URL,
 		})
 		tailCmd.SetOutput(&buf)
@@ -59,9 +59,9 @@ var _ = Describe("Tail", func() {
 		}))
 		defer server.Close()
 		var buf bytes.Buffer
-		tailCmd := command.NewTail(command.Config{
+		tailCmd := k8s.NewTail(k8s.Config{
 			Addr: server.URL,
-		}, command.WithTailNoHeaders())
+		}, k8s.WithTailNoHeaders())
 		tailCmd.SetOutput(&buf)
 		tailCmd.SetArgs([]string{"test-source-id"})
 
@@ -85,7 +85,7 @@ var _ = Describe("Tail", func() {
 			}))
 			defer server.Close()
 			var buf bytes.Buffer
-			tailCmd := command.NewTail(command.Config{
+			tailCmd := k8s.NewTail(k8s.Config{
 				Addr: server.URL,
 			})
 			tailCmd.SetArgs([]string{"--json", "test-source-id"})
@@ -99,7 +99,7 @@ var _ = Describe("Tail", func() {
 	})
 
 	DescribeTable("returns an error if args are not correct", func(args []string) {
-		tailCmd := command.NewTail(command.Config{})
+		tailCmd := k8s.NewTail(k8s.Config{})
 		tailCmd.SetOutput(ioutil.Discard)
 		tailCmd.SetArgs(args)
 
@@ -120,9 +120,9 @@ var _ = Describe("Tail", func() {
 			}
 		}))
 		defer server.Close()
-		tailCmd := command.NewTail(command.Config{
+		tailCmd := k8s.NewTail(k8s.Config{
 			Addr: server.URL,
-		}, command.WithTailTimeout(time.Nanosecond))
+		}, k8s.WithTailTimeout(time.Nanosecond))
 		tailCmd.SetOutput(ioutil.Discard)
 		tailCmd.SetArgs([]string{"test-source-id"})
 
@@ -142,9 +142,9 @@ var _ = Describe("Tail", func() {
 		}))
 		defer server.Close()
 		var buf bytes.Buffer
-		tailCmd := command.NewTail(command.Config{
+		tailCmd := k8s.NewTail(k8s.Config{
 			Addr: server.URL,
-		}, command.WithTailNoHeaders())
+		}, k8s.WithTailNoHeaders())
 		tailCmd.SetOutput(&buf)
 		tailCmd.SetArgs([]string{"test-source-id"})
 
@@ -282,9 +282,9 @@ var _ = Describe("Tail", func() {
 			)
 			server := httptest.NewServer(handler)
 			defer server.Close()
-			tailCmd := command.NewTail(command.Config{
+			tailCmd := k8s.NewTail(k8s.Config{
 				Addr: server.URL,
-			}, command.WithTailTimeout(250*time.Millisecond))
+			}, k8s.WithTailTimeout(250*time.Millisecond))
 			var buf bytes.Buffer
 			tailCmd.SetArgs([]string{"--follow", "test-source-id"})
 			tailCmd.SetOutput(&buf)
@@ -317,9 +317,9 @@ var _ = Describe("Tail", func() {
 			)
 			server := httptest.NewServer(handler)
 			defer server.Close()
-			tailCmd := command.NewTail(command.Config{
+			tailCmd := k8s.NewTail(k8s.Config{
 				Addr: server.URL,
-			}, command.WithTailTimeout(250*time.Millisecond))
+			}, k8s.WithTailTimeout(250*time.Millisecond))
 			tailCmd.SetArgs([]string{"--follow", "test-source-id"})
 			tailCmd.SetOutput(errWriter{})
 
@@ -339,9 +339,9 @@ var _ = Describe("Tail", func() {
 
 				server := httptest.NewServer(handler)
 				defer server.Close()
-				tailCmd := command.NewTail(command.Config{
+				tailCmd := k8s.NewTail(k8s.Config{
 					Addr: server.URL,
-				}, command.WithTailTimeout(250*time.Millisecond))
+				}, k8s.WithTailTimeout(250*time.Millisecond))
 				tailCmd.SetArgs([]string{"--follow", "--json", "test-source-id"})
 				var buf bytes.Buffer
 				tailCmd.SetOutput(&buf)
