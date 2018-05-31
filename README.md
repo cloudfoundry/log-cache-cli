@@ -5,7 +5,7 @@ Log Cache CLI
 
 The Log Cache CLI can be installed and used in two ways.
 
- - Stand alone CLI for Log Cache 
+ - Standalone CLI for Log Cache
  - Cloud Foundry CLI plugin for Log Cache
 
 ## Cloud Foundry CLI plugin
@@ -62,6 +62,7 @@ ENVIRONMENT VARIABLES:
 OPTIONS:
    --guid              Display raw source GUIDs
    --noise             Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...
+   --sort-by           Sort by specified column. Available: 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', and 'rate'.
    --source-type       Source type of information to show. Available: 'all', 'application', and 'platform'.
 ```
 

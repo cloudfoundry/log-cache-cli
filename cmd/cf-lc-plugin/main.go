@@ -142,6 +142,7 @@ ENVIRONMENT VARIABLES:
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
 					Options: map[string]string{
 						"-source-type": "Source type of information to show. Available: 'all', 'application', and 'platform'.",
+						"-sort-by":     "Sort by specified column. Available: 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', and 'rate'.",
 						"-noise":       "Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...",
 						"-guid":        "Display raw source GUIDs",
 					},
