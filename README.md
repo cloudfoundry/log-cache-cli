@@ -18,8 +18,7 @@ Cache](log-cache) system.
 ### Installing Plugin
 
 ```
-go get code.cloudfoundry.org/log-cache-cli
-cf install-plugin $GOPATH/bin/log-cache-cli
+cf install-plugin -r CF-Community "log-cache"
 ```
 
 ### Usage
