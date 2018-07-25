@@ -404,8 +404,8 @@ const (
 
 	jsonOutputTemplate = `[
 		{
-			"sourceId": "app-name",
-			"instanceId":"0",
+			"source_id": "app-name",
+			"instance_id":"0",
 			"timestamp":"%d",
 			"log":{
 				"payload":"bG9nIGJvZHkK",
@@ -413,16 +413,16 @@ const (
 			}
 		},
 		{
-			"sourceId": "app-name",
-			"instanceId":"0",
+			"source_id": "app-name",
+			"instance_id":"0",
 			"timestamp":"%d",
 			"log":{
 				"payload":"bG9nIGJvZHkK"
 			}
 		},
 		{
-			"sourceId": "app-name",
-			"instanceId":"0",
+			"source_id": "app-name",
+			"instance_id":"0",
 			"timestamp":"%d",
 			"log":{
 				"payload":"bG9nIGJvZHkK"
@@ -430,15 +430,15 @@ const (
 		}
 	]`
 
-	jsonStreamOutputTemplate = `{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK","type":"ERR"}}
-{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
-{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
-{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
-{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
-{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK","type":"ERR"}}
-{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
-{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK"}}
-{"timestamp":"%d","sourceId":"app-name","instanceId":"0","log":{"payload":"bG9nIGJvZHkK","type":"ERR"}}`
+	jsonStreamOutputTemplate = `{"timestamp":"%d","source_id":"app-name","instance_id":"0","log":{"payload":"bG9nIGJvZHkK","type":"ERR"}}
+{"timestamp":"%d","source_id":"app-name","instance_id":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","source_id":"app-name","instance_id":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","source_id":"app-name","instance_id":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","source_id":"app-name","instance_id":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","source_id":"app-name","instance_id":"0","log":{"payload":"bG9nIGJvZHkK","type":"ERR"}}
+{"timestamp":"%d","source_id":"app-name","instance_id":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","source_id":"app-name","instance_id":"0","log":{"payload":"bG9nIGJvZHkK"}}
+{"timestamp":"%d","source_id":"app-name","instance_id":"0","log":{"payload":"bG9nIGJvZHkK","type":"ERR"}}`
 
 	logResponseTemplate = `{
 		"envelopes": {
