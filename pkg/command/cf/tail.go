@@ -124,8 +124,7 @@ func Tail(
 			headerPrinter = formatter.serviceHeader
 		}
 		if sourceID == "" {
-			// fall back to provided name
-			sourceID = o.providedName
+			// not an app or service, use generic header
 			headerPrinter = formatter.sourceHeader
 		}
 
@@ -154,6 +153,11 @@ func Tail(
 		return formatter.formatEnvelope(e)
 	}
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
+
+	if sourceID == "" {
+		// fall back to provided name
+		sourceID = o.providedName
+	}
 
 	walkStartTime := time.Now().Add(-5 * time.Second).UnixNano()
 	if o.lines > 0 {

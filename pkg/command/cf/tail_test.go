@@ -1326,6 +1326,30 @@ var _ = Describe("LogCache", func() {
 			Expect(logger.printfMessages).To(ContainElement("app not found"))
 			Expect(logger.printfMessages).To(ContainElement("service not found"))
 		})
+
+		It("uses the LOG_CACHE_ADDR environment variable", func() {
+			os.Setenv("LOG_CACHE_ADDR", "https://different-log-cache:8080")
+			defer os.Unsetenv("LOG_CACHE_ADDR")
+
+			cliConn.cliCommandResult = [][]string{{""}, {""}}
+			cliConn.cliCommandErr = []error{errors.New("app not found"), errors.New("service not found")}
+
+			cf.Tail(
+				context.Background(),
+				cliConn,
+				[]string{"app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
+			Expect(httpClient.requestURLs).To(HaveLen(1))
+
+			u, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
+			Expect(u.Scheme).To(Equal("https"))
+			Expect(u.Host).To(Equal("different-log-cache:8080"))
+			Expect(u.Path).To(ContainSubstring("app-name"))
+		})
 	})
 })
 
