@@ -13,7 +13,7 @@ The Log Cache CLI can be installed and used in two ways.
 The Log Cache CLI Plugin is a [CF CLI](https://github.com/cloudfoundry/cli) plugin for the [Log
 Cache](https://github.com/cloudfoundry/log-cache) system.
 
-![Plugin Demo](./docs./Plugin-demo.gif)
+![Plugin Demo](./docs/Plugin-demo.gif)
 
 ### Installing Plugin
 
