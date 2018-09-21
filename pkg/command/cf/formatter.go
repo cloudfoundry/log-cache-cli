@@ -35,7 +35,7 @@ type formatter interface {
 	flush() (string, bool)
 }
 
-func newFormatter(sourceID string, following bool, kind formatterKind, log Logger, t *template.Template) formatter {
+func newFormatter(sourceID string, following bool, kind formatterKind, log Logger, t *template.Template, newLineReplacer rune) formatter {
 	bf := baseFormatter{
 		log: log,
 	}
@@ -45,6 +45,7 @@ func newFormatter(sourceID string, following bool, kind formatterKind, log Logge
 		return prettyFormatter{
 			baseFormatter: bf,
 			sourceID:      sourceID,
+			newLine:       newLineReplacer,
 		}
 	case jsonFormat:
 		return &jsonFormatter{
@@ -89,6 +90,7 @@ func (f baseFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool)
 type prettyFormatter struct {
 	baseFormatter
 	sourceID string
+	newLine  rune
 }
 
 func (f prettyFormatter) appHeader(app, org, space, user string) (string, bool) {
@@ -120,7 +122,7 @@ func (f prettyFormatter) sourceHeader(sourceID, _, _, user string) (string, bool
 }
 
 func (f prettyFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
-	return fmt.Sprintf("%s", envelopeWrapper{sourceID: f.sourceID, Envelope: e}), true
+	return fmt.Sprintf("%s", envelopeWrapper{sourceID: f.sourceID, Envelope: e, newLine: f.newLine}), true
 }
 
 type jsonFormatter struct {
@@ -213,6 +215,7 @@ func (f templateFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, b
 type envelopeWrapper struct {
 	*loggregator_v2.Envelope
 	sourceID string
+	newLine  rune
 }
 
 func (e envelopeWrapper) String() string {
@@ -220,10 +223,21 @@ func (e envelopeWrapper) String() string {
 
 	switch e.Message.(type) {
 	case *loggregator_v2.Envelope_Log:
+		payload := string(e.GetLog().GetPayload())
+		sanitizer := func(r rune) rune {
+			if r == e.newLine {
+				return '\n'
+			}
+			return r
+		}
+		if e.newLine != 0 {
+			payload = strings.Map(sanitizer, payload)
+		}
+
 		return fmt.Sprintf("%s%s %s",
 			e.header(ts),
 			e.GetLog().GetType(),
-			e.GetLog().GetPayload(),
+			payload,
 		)
 	case *loggregator_v2.Envelope_Counter:
 		return fmt.Sprintf("%sCOUNTER %s:%d",
