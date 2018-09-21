@@ -2,6 +2,7 @@ package cf_test
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/url"
@@ -523,6 +524,307 @@ var _ = Describe("LogCache", func() {
 			))
 
 			Expect(cliConn.accessTokenCount).To(Equal(1))
+		})
+
+		It("does no translation when --new-line is not set", func() {
+			httpClient.responseBody = []string{
+				// Lines mode requests WithDescending
+				responseBodyWithNewLine(startTime.Add(-30*time.Second), '\u2028'),
+				// Walk uses ascending order
+				responseBodyAscWithNewLine(startTime, '\u2028'),
+				responseBodyAscWithNewLine(startTime.Add(3*time.Second), '\u2028'),
+			}
+			logFormat := "   %s [APP/PROC/WEB/0] %s log\u2028body"
+
+			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+			defer cancel()
+			now := time.Now()
+			cf.Tail(
+				ctx,
+				cliConn,
+				[]string{"-f", "app-name"},
+				httpClient,
+				logger,
+				writer,
+			)
+
+			Expect(httpClient.requestURLs).ToNot(BeEmpty())
+			requestURL, err := url.Parse(httpClient.requestURLs[0])
+
+			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(int64(0)))
+
+			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(end).To(BeNumerically("~", now.UnixNano(), time.Second))
+
+			envelopeType := requestURL.Query().Get("envelope_types")
+			Expect(envelopeType).To(Equal("ANY"))
+
+			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
+
+			Expect(writer.lines()).To(ConsistOf(
+				fmt.Sprintf(
+					"Retrieving logs for app %s in org %s / space %s as %s...",
+					"app-name",
+					cliConn.orgName,
+					cliConn.spaceName,
+					cliConn.usernameResp,
+				),
+				"",
+				fmt.Sprintf(logFormat, startTime.Add(-30*time.Second).Format(timeFormat), "ERR"),
+				fmt.Sprintf(logFormat, startTime.Add(-29*time.Second).Format(timeFormat), "OUT"),
+				fmt.Sprintf(logFormat, startTime.Add(-28*time.Second).Format(timeFormat), "OUT"),
+				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "OUT"),
+				fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
+				fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "ERR"),
+				fmt.Sprintf(logFormat, startTime.Add(3*time.Second).Format(timeFormat), "OUT"),
+				fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
+				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
+			))
+
+			Expect(cliConn.accessTokenCount).To(Equal(1))
+		})
+
+		It("uses a default value for --new-line", func() {
+			httpClient.responseBody = []string{
+				// Lines mode requests WithDescending
+				responseBodyWithNewLine(startTime.Add(-30*time.Second), '\u2028'),
+				// Walk uses ascending order
+				responseBodyAscWithNewLine(startTime, '\u2028'),
+				responseBodyAscWithNewLine(startTime.Add(3*time.Second), '\u2028'),
+			}
+			logFormat := "   %s [APP/PROC/WEB/0] %s log"
+
+			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+			defer cancel()
+			now := time.Now()
+			cf.Tail(
+				ctx,
+				cliConn,
+				[]string{"-f", "app-name", "--new-line"},
+				httpClient,
+				logger,
+				writer,
+			)
+
+			Expect(httpClient.requestURLs).ToNot(BeEmpty())
+			requestURL, err := url.Parse(httpClient.requestURLs[0])
+
+			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(int64(0)))
+
+			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(end).To(BeNumerically("~", now.UnixNano(), time.Second))
+
+			envelopeType := requestURL.Query().Get("envelope_types")
+			Expect(envelopeType).To(Equal("ANY"))
+
+			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
+
+			Expect(writer.lines()).To(ConsistOf(
+				fmt.Sprintf(
+					"Retrieving logs for app %s in org %s / space %s as %s...",
+					"app-name",
+					cliConn.orgName,
+					cliConn.spaceName,
+					cliConn.usernameResp,
+				),
+				"",
+				fmt.Sprintf(logFormat, startTime.Add(-30*time.Second).Format(timeFormat), "ERR"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(-29*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(-28*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "ERR"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(3*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
+				"body",
+			))
+
+			Expect(cliConn.accessTokenCount).To(Equal(1))
+		})
+
+		It("uses a codepoint string for --new-line", func() {
+			httpClient.responseBody = []string{
+				// Lines mode requests WithDescending
+				responseBodyWithNewLine(startTime.Add(-30*time.Second), '\u1234'),
+				// Walk uses ascending order
+				responseBodyAscWithNewLine(startTime, '\u1234'),
+				responseBodyAscWithNewLine(startTime.Add(3*time.Second), '\u1234'),
+			}
+			logFormat := "   %s [APP/PROC/WEB/0] %s log"
+
+			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+			defer cancel()
+			now := time.Now()
+			cf.Tail(
+				ctx,
+				cliConn,
+				[]string{"-f", "app-name", "--new-line=\\u1234"},
+				httpClient,
+				logger,
+				writer,
+			)
+
+			Expect(httpClient.requestURLs).ToNot(BeEmpty())
+			requestURL, err := url.Parse(httpClient.requestURLs[0])
+
+			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(int64(0)))
+
+			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(end).To(BeNumerically("~", now.UnixNano(), time.Second))
+
+			envelopeType := requestURL.Query().Get("envelope_types")
+			Expect(envelopeType).To(Equal("ANY"))
+
+			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
+
+			Expect(writer.lines()).To(ConsistOf(
+				fmt.Sprintf(
+					"Retrieving logs for app %s in org %s / space %s as %s...",
+					"app-name",
+					cliConn.orgName,
+					cliConn.spaceName,
+					cliConn.usernameResp,
+				),
+				"",
+				fmt.Sprintf(logFormat, startTime.Add(-30*time.Second).Format(timeFormat), "ERR"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(-29*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(-28*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "ERR"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(3*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
+				"body",
+			))
+
+			Expect(cliConn.accessTokenCount).To(Equal(1))
+		})
+
+		It("uses a single rune for --new-line", func() {
+			httpClient.responseBody = []string{
+				// Lines mode requests WithDescending
+				responseBodyWithNewLine(startTime.Add(-30*time.Second), '🎶'),
+				// Walk uses ascending order
+				responseBodyAscWithNewLine(startTime, '🎶'),
+				responseBodyAscWithNewLine(startTime.Add(3*time.Second), '🎶'),
+			}
+			logFormat := "   %s [APP/PROC/WEB/0] %s log"
+
+			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+			defer cancel()
+			now := time.Now()
+			cf.Tail(
+				ctx,
+				cliConn,
+				[]string{"-f", "app-name", "--new-line=🎶"},
+				httpClient,
+				logger,
+				writer,
+			)
+
+			Expect(httpClient.requestURLs).ToNot(BeEmpty())
+			requestURL, err := url.Parse(httpClient.requestURLs[0])
+
+			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(int64(0)))
+
+			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(end).To(BeNumerically("~", now.UnixNano(), time.Second))
+
+			envelopeType := requestURL.Query().Get("envelope_types")
+			Expect(envelopeType).To(Equal("ANY"))
+
+			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
+
+			Expect(writer.lines()).To(ConsistOf(
+				fmt.Sprintf(
+					"Retrieving logs for app %s in org %s / space %s as %s...",
+					"app-name",
+					cliConn.orgName,
+					cliConn.spaceName,
+					cliConn.usernameResp,
+				),
+				"",
+				fmt.Sprintf(logFormat, startTime.Add(-30*time.Second).Format(timeFormat), "ERR"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(-29*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(-28*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(1*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(2*time.Second).Format(timeFormat), "ERR"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(3*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
+				"body",
+				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
+				"body",
+			))
+
+			Expect(cliConn.accessTokenCount).To(Equal(1))
+		})
+
+		It("fails when --new-line receives an invalid argument", func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+			defer cancel()
+
+			wrapperFunc := func() {
+				cf.Tail(
+					ctx,
+					cliConn,
+					[]string{"-f", "app-name", "--new-line=hi"},
+					httpClient,
+					logger,
+					writer,
+				)
+			}
+
+			Expect(wrapperFunc).To(Panic())
 		})
 
 		It("filters when given counter-name flag while following", func() {
@@ -1371,6 +1673,30 @@ func responseBodyAsc(startTime time.Time) string {
 	)
 }
 
+func responseBodyWithNewLine(startTime time.Time, newLine rune) string {
+	// NOTE: These are in descending order.
+	payload := fmt.Sprintf("log%sbody", string(newLine))
+	encoded := base64.StdEncoding.EncodeToString([]byte(payload))
+	return fmt.Sprintf(responseTemplateWithNewLine,
+		encoded,
+		startTime.Add(2*time.Second).UnixNano(),
+		startTime.Add(1*time.Second).UnixNano(),
+		startTime.UnixNano(),
+	)
+}
+
+func responseBodyAscWithNewLine(startTime time.Time, newLine rune) string {
+	// NOTE: These are in ascending order.
+	payload := fmt.Sprintf("log%sbody", string(newLine))
+	encoded := base64.StdEncoding.EncodeToString([]byte(payload))
+	return fmt.Sprintf(responseTemplateWithNewLine,
+		encoded,
+		startTime.UnixNano(),
+		startTime.Add(1*time.Second).UnixNano(),
+		startTime.Add(2*time.Second).UnixNano(),
+	)
+}
+
 func deprecatedTagsResponseBody(startTime time.Time) string {
 	// NOTE: These are in descending order.
 	return fmt.Sprintf(deprecatedTagsResponseTemplate,
@@ -1458,6 +1784,47 @@ var responseTemplate = `{
 				},
 				"log":{
 					"payload":"bG9nIGJvZHk=",
+					"type": "ERR"
+				}
+			}
+		]
+	}
+}`
+
+var responseTemplateWithNewLine = `{
+	"envelopes": {
+		"batch": [
+			{
+				"timestamp":"%[2]d",
+				"source_id": "app-name",
+				"instance_id":"0",
+				"tags":{
+					"source_type":"APP/PROC/WEB"
+				},
+				"log":{
+					"payload":%[1]q
+				}
+			},
+			{
+				"timestamp":"%[3]d",
+				"source_id": "app-name",
+				"instance_id":"0",
+				"tags":{
+					"source_type":"APP/PROC/WEB"
+				},
+				"log":{
+					"payload":%[1]q
+				}
+			},
+			{
+				"timestamp":"%[4]d",
+				"source_id": "app-name",
+				"instance_id":"0",
+				"tags":{
+					"source_type":"APP/PROC/WEB"
+				},
+				"log":{
+					"payload":%[1]q,
 					"type": "ERR"
 				}
 			}
