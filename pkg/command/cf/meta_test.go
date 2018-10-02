@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"code.cloudfoundry.org/log-cache-cli/pkg/command/cf"
 
@@ -37,30 +36,30 @@ var _ = Describe("Meta", func() {
 
 	Context("when specifying a sort by flag", func() {
 		It("specifying `--sort-by rate` sorts by the rate column", func() {
-			tailer := func(sourceID string, start, end time.Time) []string {
+			tailer := func(sourceID string) []string {
 				switch sourceID {
 				case "source-1":
 					return []string{
-						`{"timestamp":"300100000002","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
-						`{"timestamp":"300100000003","sourceId":"source-1","counter":{"name":"x","total":"1"},"tags":{"deployment":"cf","__name__":"other","source_id":"other"}}`,
-						`{"timestamp":"300100000004","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
-						`{"timestamp":"301000000000","sourceId":"source-1","counter":{"name":"other","total":"2"}}`,
-						`{"timestamp":"400000101179","sourceId":"source-1","counter":{"name":"x","total":"3"},"tags":{"deployment":"cf"}}`,
+						`{"batch": [{"timestamp":"300100000002","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
+						{"timestamp":"300100000003","sourceId":"source-1","counter":{"name":"x","total":"1"},"tags":{"deployment":"cf","__name__":"other","source_id":"other"}},
+						{"timestamp":"300100000004","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
+						{"timestamp":"301000000000","sourceId":"source-1","counter":{"name":"other","total":"2"}},
+						{"timestamp":"400000101179","sourceId":"source-1","counter":{"name":"x","total":"3"},"tags":{"deployment":"cf"}}]}`,
 					}
 				case "source-2":
 					return []string{
-						`{"timestamp":"300080080103","sourceId":"source-2","counter":{"name":"y","total":"10"}}`,
-						`{"timestamp":"301000000000","sourceId":"source-2","gauge":{"metrics":{"other":{"value":7}}}}`,
-						`{"timestamp":"400000000000","sourceId":"source-2","gauge":{"metrics":{"y":{"value":12}}}}`,
+						`{"batch": [{"timestamp":"300080080103","sourceId":"source-2","counter":{"name":"y","total":"10"}},
+						{"timestamp":"301000000000","sourceId":"source-2","gauge":{"metrics":{"other":{"value":7}}}},
+						{"timestamp":"400000000000","sourceId":"source-2","gauge":{"metrics":{"y":{"value":12}}}}]}`,
 					}
 				case "source-3":
 					return []string{
-						`{"timestamp":"300100000002","sourceId":"source-3","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
+						`{"batch": [{"timestamp":"300100000002","sourceId":"source-3","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}]}`,
 					}
 				case "source-4":
 					return []string{
-						`{"timestamp":"300100000002","sourceId":"source-4","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
-						`{"timestamp":"400000000000","sourceId":"source-4","gauge":{"metrics":{"y":{"value":12}}}}`,
+						`{"batch": [{"timestamp":"300100000002","sourceId":"source-4","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
+						{"timestamp":"400000000000","sourceId":"source-4","gauge":{"metrics":{"y":{"value":12}}}}]}`,
 					}
 				default:
 					panic("unexpected source-id")
@@ -627,25 +626,25 @@ var _ = Describe("Meta", func() {
 	})
 
 	It("displays the rate column for each service type", func() {
-		tailer := func(sourceID string, start, end time.Time) []string {
+		tailer := func(sourceID string) []string {
 			switch sourceID {
 			case "source-1":
 				return []string{
-					`{"timestamp":"300100000002","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
-					`{"timestamp":"300100000003","sourceId":"source-1","counter":{"name":"x","total":"1"},"tags":{"deployment":"cf","__name__":"other","source_id":"other"}}`,
-					`{"timestamp":"300100000004","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
-					`{"timestamp":"301000000000","sourceId":"source-1","counter":{"name":"other","total":"2"}}`,
-					`{"timestamp":"400000101179","sourceId":"source-1","counter":{"name":"x","total":"3"},"tags":{"deployment":"cf"}}`,
+					`{"batch": [{"timestamp":"300100000002","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
+					{"timestamp":"300100000003","sourceId":"source-1","counter":{"name":"x","total":"1"},"tags":{"deployment":"cf","__name__":"other","source_id":"other"}},
+					{"timestamp":"300100000004","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
+					{"timestamp":"301000000000","sourceId":"source-1","counter":{"name":"other","total":"2"}},
+					{"timestamp":"400000101179","sourceId":"source-1","counter":{"name":"x","total":"3"},"tags":{"deployment":"cf"}}]}`,
 				}
 			case "source-2":
 				return []string{
-					`{"timestamp":"300080080103","sourceId":"source-2","counter":{"name":"y","total":"10"}}`,
-					`{"timestamp":"301000000000","sourceId":"source-2","gauge":{"metrics":{"other":{"value":7}}}}`,
-					`{"timestamp":"400000000000","sourceId":"source-2","gauge":{"metrics":{"y":{"value":12}}}}`,
+					`{"batch": [{"timestamp":"300080080103","sourceId":"source-2","counter":{"name":"y","total":"10"}},
+					{"timestamp":"301000000000","sourceId":"source-2","gauge":{"metrics":{"other":{"value":7}}}},
+					{"timestamp":"400000000000","sourceId":"source-2","gauge":{"metrics":{"y":{"value":12}}}}]}`,
 				}
 			case "source-3":
 				return []string{
-					`{"timestamp":"300100000002","sourceId":"source-3","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}`,
+					`{"batch": [{"timestamp":"300100000002","sourceId":"source-3","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}]}`,
 				}
 			default:
 				panic("unexpected source-id")

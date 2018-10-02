@@ -71,8 +71,40 @@ type servicesResponse struct {
 	Resources []serviceInstance `json:"resources"`
 }
 
-// Tailer defines our interface for querying Log Cache
-type Tailer func(sourceID string, start, end time.Time) []string
+type Tailer func(sourceID string) []string
+
+type calculator struct {
+	ctx    context.Context
+	cli    plugin.CliConnection
+	c      HTTPClient
+	log    Logger
+	tailer Tailer
+}
+
+func newCalculator(ctx context.Context, cli plugin.CliConnection, c HTTPClient, log Logger, tailer Tailer) *calculator {
+	return &calculator{
+		ctx:    ctx,
+		cli:    cli,
+		c:      c,
+		log:    log,
+		tailer: tailer,
+	}
+}
+
+func (calc *calculator) rate(sourceID string) int {
+	batch := struct {
+		Results []string `json:"batch"`
+	}{}
+
+	var results []string
+
+	for _, lines := range calc.tailer(sourceID) {
+		json.NewDecoder(strings.NewReader(lines)).Decode(&batch)
+		results = append(results, batch.Results...)
+	}
+
+	return len(results)
+}
 
 type optionsFlags struct {
 	SourceType  string `long:"source-type"`
@@ -209,6 +241,7 @@ func Meta(
 		fmt.Fprintf(tw, headerFormat, headerArgs...)
 	}
 	var rows [][]interface{}
+	calculator := newCalculator(ctx, cli, c, log, tailer)
 
 	for _, source := range resources {
 		m, ok := meta[source.GUID]
@@ -225,9 +258,7 @@ func Meta(
 				args = append([]interface{}{source.GUID}, args...)
 			}
 			if opts.EnableNoise {
-				end := time.Now()
-				start := end.Add(-time.Minute)
-				args = append(args, len(tailer(source.GUID, start, end)))
+				args = append(args, calculator.rate(source.GUID))
 			}
 
 			rows = append(rows, args)
@@ -243,9 +274,7 @@ func Meta(
 					args = append([]interface{}{sourceID}, args...)
 				}
 				if opts.EnableNoise {
-					end := time.Now()
-					start := end.Add(-time.Minute)
-					args = append(args, len(tailer(sourceID, start, end)))
+					args = append(args, calculator.rate(sourceID))
 				}
 
 				rows = append(rows, args)
@@ -261,9 +290,7 @@ func Meta(
 					args = append([]interface{}{sourceID}, args...)
 				}
 				if opts.EnableNoise {
-					end := time.Now()
-					start := end.Add(-time.Minute)
-					args = append(args, len(tailer(sourceID, start, end)))
+					args = append(args, calculator.rate(sourceID))
 				}
 
 				rows = append(rows, args)

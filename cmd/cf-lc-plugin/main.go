@@ -53,8 +53,10 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 		cf.Meta(
 			ctx,
 			cli,
-			func(sourceID string, start, end time.Time) []string {
+			func(sourceID string) []string {
 				var buf linesWriter
+				end := time.Now()
+				start := end.Add(-time.Minute)
 
 				args := []string{
 					sourceID,
