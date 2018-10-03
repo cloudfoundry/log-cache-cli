@@ -39,28 +39,13 @@ var _ = Describe("Meta", func() {
 			tailer := func(sourceID string) []string {
 				switch sourceID {
 				case "source-1":
-					return []string{
-						`{"batch": [{"timestamp":"300100000002","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
-						{"timestamp":"300100000003","sourceId":"source-1","counter":{"name":"x","total":"1"},"tags":{"deployment":"cf","__name__":"other","source_id":"other"}},
-						{"timestamp":"300100000004","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
-						{"timestamp":"301000000000","sourceId":"source-1","counter":{"name":"other","total":"2"}},
-						{"timestamp":"400000101179","sourceId":"source-1","counter":{"name":"x","total":"3"},"tags":{"deployment":"cf"}}]}`,
-					}
+					return generateBatch(5)
 				case "source-2":
-					return []string{
-						`{"batch": [{"timestamp":"300080080103","sourceId":"source-2","counter":{"name":"y","total":"10"}},
-						{"timestamp":"301000000000","sourceId":"source-2","gauge":{"metrics":{"other":{"value":7}}}},
-						{"timestamp":"400000000000","sourceId":"source-2","gauge":{"metrics":{"y":{"value":12}}}}]}`,
-					}
+					return generateBatch(3)
 				case "source-3":
-					return []string{
-						`{"batch": [{"timestamp":"300100000002","sourceId":"source-3","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}]}`,
-					}
+					return generateBatch(1)
 				case "source-4":
-					return []string{
-						`{"batch": [{"timestamp":"300100000002","sourceId":"source-4","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
-						{"timestamp":"400000000000","sourceId":"source-4","gauge":{"metrics":{"y":{"value":12}}}}]}`,
-					}
+					return generateBatch(2)
 				default:
 					panic("unexpected source-id")
 				}
@@ -106,6 +91,65 @@ var _ = Describe("Meta", func() {
 				"app-4      application  99996   85004    13m30s          2",
 				"source-2   platform     100002  84998    4m30s           3",
 				"app-1      application  100001  84999    1s              5",
+				"",
+			}))
+
+			Expect(httpClient.requestCount()).To(Equal(1))
+		})
+
+		It("returns rate of >999 when the batch limit of 1000 is reached, while still sorting correctly", func() {
+			tailer := func(sourceID string) []string {
+				switch sourceID {
+				case "source-1":
+					return generateBatch(1000)
+				case "source-2":
+					return generateBatch(10)
+				case "source-3":
+					return generateBatch(3)
+				default:
+					return nil
+
+				}
+			}
+
+			httpClient.responseBody = []string{
+				variedMetaResponseInfo("source-1", "source-2", "source-3"),
+			}
+
+			cliConn.cliCommandResult = [][]string{
+				{
+					capiAppsResponse(map[string]string{
+						"source-1": "app-1",
+					}),
+				},
+				{
+					capiServiceInstancesResponse(map[string]string{
+						"source-3": "service-3",
+					}),
+				},
+			}
+			cliConn.cliCommandErr = nil
+
+			cf.Meta(
+				context.Background(),
+				cliConn,
+				tailer,
+				[]string{"--noise", "--sort-by", "rate"},
+				httpClient,
+				logger,
+				tableWriter,
+			)
+
+			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+				fmt.Sprintf(
+					"Retrieving log cache metadata as %s...",
+					cliConn.usernameResp,
+				),
+				"",
+				"Source     Source Type  Count   Expired  Cache Duration  Rate",
+				"service-3  service      99997   85003    9m0s            3",
+				"source-2   platform     100002  84998    4m30s           10",
+				"app-1      application  100001  84999    1s              >999",
 				"",
 			}))
 
@@ -629,23 +673,11 @@ var _ = Describe("Meta", func() {
 		tailer := func(sourceID string) []string {
 			switch sourceID {
 			case "source-1":
-				return []string{
-					`{"batch": [{"timestamp":"300100000002","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
-					{"timestamp":"300100000003","sourceId":"source-1","counter":{"name":"x","total":"1"},"tags":{"deployment":"cf","__name__":"other","source_id":"other"}},
-					{"timestamp":"300100000004","sourceId":"source-1","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}},
-					{"timestamp":"301000000000","sourceId":"source-1","counter":{"name":"other","total":"2"}},
-					{"timestamp":"400000101179","sourceId":"source-1","counter":{"name":"x","total":"3"},"tags":{"deployment":"cf"}}]}`,
-				}
+				return generateBatch(5)
 			case "source-2":
-				return []string{
-					`{"batch": [{"timestamp":"300080080103","sourceId":"source-2","counter":{"name":"y","total":"10"}},
-					{"timestamp":"301000000000","sourceId":"source-2","gauge":{"metrics":{"other":{"value":7}}}},
-					{"timestamp":"400000000000","sourceId":"source-2","gauge":{"metrics":{"y":{"value":12}}}}]}`,
-				}
+				return generateBatch(3)
 			case "source-3":
-				return []string{
-					`{"batch": [{"timestamp":"300100000002","sourceId":"source-3","counter":{"name":"x","total":"100"},"tags":{"deployment":"other"}}]}`,
-				}
+				return generateBatch(1)
 			default:
 				panic("unexpected source-id")
 			}
@@ -1237,6 +1269,13 @@ var _ = Describe("Meta", func() {
 		Expect(logger.fatalfMessage).To(Equal(`Failed to read Meta information: some-error`))
 	})
 })
+
+func generateBatch(count int) []string {
+	x := strings.Repeat("{},", count-1)
+	x += "{}"
+
+	return []string{fmt.Sprintf(`{"batch": [%s]}`, x)}
+}
 
 func metaResponseInfo(sourceIDs ...string) string {
 	var metaInfos []string

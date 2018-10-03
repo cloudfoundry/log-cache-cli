@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -24,6 +25,7 @@ const (
 	sourceTypePlatform    sourceType = "platform"
 	sourceTypeAll         sourceType = "all"
 	sourceTypeUnknown     sourceType = "unknown"
+	MaximumBatchSize      int        = 1000
 )
 
 type sourceType string
@@ -233,7 +235,7 @@ func Meta(
 	if opts.EnableNoise {
 		headerArgs = append(headerArgs, "Rate")
 		headerFormat = strings.Replace(headerFormat, "\n", "\t%s\n", 1)
-		tableFormat = strings.Replace(tableFormat, "\n", "\t%d\n", 1)
+		tableFormat = strings.Replace(tableFormat, "\n", "\t%s\n", 1)
 	}
 
 	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
@@ -258,7 +260,7 @@ func Meta(
 				args = append([]interface{}{source.GUID}, args...)
 			}
 			if opts.EnableNoise {
-				args = append(args, calculator.rate(source.GUID))
+				args = append(args, displayRate(calculator.rate(source.GUID)))
 			}
 
 			rows = append(rows, args)
@@ -274,7 +276,7 @@ func Meta(
 					args = append([]interface{}{sourceID}, args...)
 				}
 				if opts.EnableNoise {
-					args = append(args, calculator.rate(sourceID))
+					args = append(args, displayRate(calculator.rate(sourceID)))
 				}
 
 				rows = append(rows, args)
@@ -290,7 +292,7 @@ func Meta(
 					args = append([]interface{}{sourceID}, args...)
 				}
 				if opts.EnableNoise {
-					args = append(args, calculator.rate(sourceID))
+					args = append(args, displayRate(calculator.rate(sourceID)))
 				}
 
 				rows = append(rows, args)
@@ -307,6 +309,18 @@ func Meta(
 	if err = tw.Flush(); err != nil {
 		log.Fatalf("Error writing results")
 	}
+}
+
+func displayRate(rate int) string {
+	var output string
+
+	if rate >= MaximumBatchSize {
+		output = fmt.Sprintf(">%d", MaximumBatchSize-1)
+	} else {
+		output = strconv.Itoa(rate)
+	}
+
+	return output
 }
 
 func sortRows(opts optionsFlags, rows [][]interface{}) {
@@ -529,6 +543,27 @@ func (s *columnLesser) Less(i, j int) bool {
 		sourceJ := s.rows[j][s.colToSortOn].(int64)
 
 		return sourceI < sourceJ
+	}
+
+	if sourceI, ok := s.rows[i][s.colToSortOn].(string); ok {
+		sourceJ := s.rows[j][s.colToSortOn].(string)
+
+		// We might be sorting a rate that is ">999", which will return an
+		// error when we try to convert to an integer. Catch those rates and
+		// explicitly treat those as the greater value, returning true or
+		// false as appropriate depending on which side of the comparison it
+		// falls on.
+		numSourceI, err := strconv.Atoi(sourceI)
+		if err != nil {
+			return false
+		}
+
+		numSourceJ, err := strconv.Atoi(sourceJ)
+		if err != nil {
+			return true
+		}
+
+		return numSourceI < numSourceJ
 	}
 
 	if sourceI, ok := s.rows[i][s.colToSortOn].(time.Duration); ok {

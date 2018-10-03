@@ -65,7 +65,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 					"--end-time",
 					strconv.FormatInt(end.UnixNano(), 10),
 					"--json",
-					"--lines", "1000",
+					"--lines", strconv.Itoa(cf.MaximumBatchSize),
 				}
 
 				cf.Tail(
