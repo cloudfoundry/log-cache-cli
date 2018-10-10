@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
-	logcache "code.cloudfoundry.org/go-log-cache"
-	"code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
+	logcache "code.cloudfoundry.org/log-cache/client"
+	logcache_v1 "code.cloudfoundry.org/log-cache/rpc/logcache_v1"
 	flags "github.com/jessevdk/go-flags"
 )
 
