@@ -71,6 +71,15 @@ func (s *stubHTTPClient) Do(r *http.Request) (*http.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if r.URL.Path == "/api/v1/info" {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body: ioutil.NopCloser(strings.NewReader(
+				`{"version": "1.4.7"}`,
+			)),
+		}, nil
+	}
+
 	s.requestURLs = append(s.requestURLs, r.URL.String())
 	s.requestHeaders = append(s.requestHeaders, r.Header)
 
