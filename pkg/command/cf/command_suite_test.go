@@ -7,13 +7,12 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"testing"
 
 	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/cli/plugin/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 func TestCommand(t *testing.T) {
@@ -53,16 +52,18 @@ type stubHTTPClient struct {
 	mu            sync.Mutex
 	responseCount int
 	responseBody  []string
-	responseCode  int
+	responseCode  []int
 	responseErr   error
 
-	requestURLs    []string
-	requestHeaders []http.Header
+	requestURLs               []string
+	requestHeaders            []http.Header
+	disableInfoEndpoint       bool
+	repeatLastResponseForever bool
 }
 
 func newStubHTTPClient() *stubHTTPClient {
 	return &stubHTTPClient{
-		responseCode: http.StatusOK,
+		responseCode: []int{},
 		responseBody: []string{},
 	}
 }
@@ -71,7 +72,19 @@ func (s *stubHTTPClient) Do(r *http.Request) (*http.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if len(s.responseBody) != len(s.responseCode) {
+		panic("response bodies and response codes must be equal in length")
+	}
+
 	if r.URL.Path == "/api/v1/info" {
+		if s.disableInfoEndpoint {
+			return &http.Response{
+				StatusCode: http.StatusNotFound,
+				Body:       ioutil.NopCloser(strings.NewReader(``)),
+			}, nil
+
+		}
+
 		return &http.Response{
 			StatusCode: http.StatusOK,
 			Body: ioutil.NopCloser(strings.NewReader(
@@ -84,12 +97,17 @@ func (s *stubHTTPClient) Do(r *http.Request) (*http.Response, error) {
 	s.requestHeaders = append(s.requestHeaders, r.Header)
 
 	var body string
-	if s.responseCount < len(s.responseBody) {
+	var code int
+	if s.responseCount >= len(s.responseBody) && s.repeatLastResponseForever {
+		body = s.responseBody[len(s.responseBody)-1]
+		code = s.responseCode[len(s.responseCode)-1]
+	} else {
 		body = s.responseBody[s.responseCount]
+		code = s.responseCode[s.responseCount]
 	}
 
 	resp := &http.Response{
-		StatusCode: s.responseCode,
+		StatusCode: code,
 		Body: ioutil.NopCloser(
 			strings.NewReader(body),
 		),

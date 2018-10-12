@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/log-cache-cli/pkg/command/cf"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -54,65 +53,7 @@ var _ = Describe("Meta", func() {
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
 			}
-
-			cliConn.cliCommandResult = [][]string{
-				{
-					capiAppsResponse(map[string]string{"source-1": "app-1"}),
-				},
-				{
-					capiServiceInstancesResponse(map[string]string{}),
-				},
-			}
-			cliConn.cliCommandErr = nil
-
-			cf.Meta(
-				context.Background(),
-				cliConn,
-				tailer,
-				[]string{"--noise", "--sort-by", "rate"},
-				httpClient,
-				logger,
-				tableWriter,
-			)
-
-			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
-				fmt.Sprintf(
-					"Retrieving log cache metadata as %s...",
-					cliConn.usernameResp,
-				),
-				"",
-				"Source     Source Type  Count   Expired  Cache Duration  Rate",
-				"service-3  service      99997   85003    9m0s            1",
-				"app-4      application  99996   85004    13m30s          2",
-				"source-2   platform     100002  84998    4m30s           3",
-				"app-1      application  100001  84999    1s              5",
-				"",
-			}))
-
-			Expect(httpClient.requestCount()).To(Equal(1))
-		})
-	})
-
-	Context("when specifying a sort by flag", func() {
-		It("specifying `--sort-by rate` sorts by the rate column", func() {
-			tailer := func(sourceID string) []string {
-				switch sourceID {
-				case "source-1":
-					return generateBatch(5)
-				case "source-2":
-					return generateBatch(3)
-				case "source-3":
-					return generateBatch(1)
-				case "source-4":
-					return generateBatch(2)
-				default:
-					panic("unexpected source-id")
-				}
-			}
-
-			httpClient.responseBody = []string{
-				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
-			}
+			httpClient.responseCode = []int{200}
 
 			cliConn.cliCommandResult = [][]string{
 				{
@@ -174,6 +115,7 @@ var _ = Describe("Meta", func() {
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3"),
 			}
+			httpClient.responseCode = []int{200}
 
 			cliConn.cliCommandResult = [][]string{
 				{
@@ -219,6 +161,7 @@ var _ = Describe("Meta", func() {
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3"),
 			}
+			httpClient.responseCode = []int{200}
 
 			cliConn.cliCommandResult = [][]string{
 				{
@@ -264,6 +207,7 @@ var _ = Describe("Meta", func() {
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
 			}
+			httpClient.responseCode = []int{200}
 
 			cliConn.cliCommandResult = [][]string{
 				{
@@ -311,6 +255,7 @@ var _ = Describe("Meta", func() {
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
 			}
+			httpClient.responseCode = []int{200}
 
 			cliConn.cliCommandResult = [][]string{
 				{
@@ -358,6 +303,7 @@ var _ = Describe("Meta", func() {
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
 			}
+			httpClient.responseCode = []int{200}
 
 			cliConn.cliCommandResult = [][]string{
 				{
@@ -402,6 +348,7 @@ var _ = Describe("Meta", func() {
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
 			}
+			httpClient.responseCode = []int{200}
 
 			cliConn.cliCommandResult = [][]string{
 				{
@@ -446,6 +393,7 @@ var _ = Describe("Meta", func() {
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
 			}
+			httpClient.responseCode = []int{200}
 
 			cliConn.cliCommandResult = [][]string{
 				{
@@ -539,6 +487,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1", "source-2"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -590,6 +539,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1", "source-2"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -623,6 +573,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1", "source-2", "source-3"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -691,6 +642,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -743,12 +695,9 @@ var _ = Describe("Meta", func() {
 		}
 
 		httpClient.responseBody = []string{
-			metaResponseInfo(
-				"source-1",
-				"source-2",
-				"source-3",
-			),
+			metaResponseInfo("source-1", "source-2", "source-3"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -790,6 +739,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1", "source-2"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -849,6 +799,7 @@ var _ = Describe("Meta", func() {
 				"026fb323-6884-4978-a45f-da188dbf8ecd",
 			),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -893,6 +844,7 @@ var _ = Describe("Meta", func() {
 				"deadbeef-dead-dead-dead-deaddeafbeef",
 			),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -935,6 +887,7 @@ var _ = Describe("Meta", func() {
 				"deadbeef-dead-dead-dead-deaddeafbeef",
 			),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -976,6 +929,7 @@ var _ = Describe("Meta", func() {
 				"11111111-1111-1111-1111-111111111111",
 			),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -1019,6 +973,7 @@ var _ = Describe("Meta", func() {
 				"deadbeef-dead-dead-dead-deaddeafbeef",
 			),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -1062,6 +1017,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo(guids...),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -1131,6 +1087,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -1163,6 +1120,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -1239,6 +1197,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1", "source-2"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{nil}
 		cliConn.cliCommandErr = []error{errors.New("some-error")}
@@ -1262,6 +1221,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{
 			{
@@ -1291,6 +1251,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1", "source-2"),
 		}
+		httpClient.responseCode = []int{200}
 
 		cliConn.cliCommandResult = [][]string{{"invalid"}}
 		cliConn.cliCommandErr = nil
@@ -1311,6 +1272,8 @@ var _ = Describe("Meta", func() {
 	})
 
 	It("fatally logs when Meta fails", func() {
+		httpClient.responseBody = []string{""}
+		httpClient.responseCode = []int{500}
 		httpClient.responseErr = errors.New("some-error")
 
 		Expect(func() {

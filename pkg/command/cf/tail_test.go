@@ -32,6 +32,7 @@ var _ = Describe("LogCache", func() {
 
 		httpClient = newStubHTTPClient()
 		httpClient.responseBody = []string{responseBody(startTime)}
+		httpClient.responseCode = []int{200}
 
 		cliConn = newStubCliConnection()
 	})
@@ -404,7 +405,12 @@ var _ = Describe("LogCache", func() {
 				// Walk uses ascending order
 				responseBodyAsc(startTime),
 				responseBodyAsc(startTime.Add(3 * time.Second)),
+				"",
+				"",
 			}
+
+			httpClient.responseCode = []int{200, 200, 200, 200, 200}
+
 			logFormat := "   %s [APP/PROC/WEB/0] %s log body"
 
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
@@ -468,7 +474,10 @@ var _ = Describe("LogCache", func() {
 				// Walk uses ascending order
 				responseBodyAsc(startTime),
 				responseBodyAsc(startTime.Add(3 * time.Second)),
+				"",
+				"",
 			}
+			httpClient.responseCode = []int{200, 200, 200, 200, 200}
 			logFormat := "   %s [APP/PROC/WEB/0] %s log body"
 
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
@@ -528,7 +537,10 @@ var _ = Describe("LogCache", func() {
 		It("filters when given counter-name flag while following", func() {
 			httpClient.responseBody = []string{
 				mixedResponseBody(startTime),
+				"",
+				"",
 			}
+			httpClient.responseCode = []int{200, 200, 200}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
@@ -590,6 +602,8 @@ var _ = Describe("LogCache", func() {
 
 		It("follow retries for empty responses", func() {
 			httpClient.responseBody = []string{emptyResponseBody()}
+			httpClient.responseCode = []int{200}
+			httpClient.repeatLastResponseForever = true
 
 			go cf.Tail(
 				context.Background(),
@@ -604,7 +618,8 @@ var _ = Describe("LogCache", func() {
 		})
 
 		It("follow retries for an error", func() {
-			httpClient.responseBody = nil
+			httpClient.responseBody = []string{"", "", ""}
+			httpClient.responseCode = []int{500, 200, 200}
 			httpClient.responseErr = errors.New("some-error")
 
 			go cf.Tail(
@@ -623,6 +638,8 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				eventResponseBody(startTime),
 			}
+			httpClient.responseCode = []int{200}
+
 			cf.Tail(
 				context.Background(),
 				cliConn,
@@ -673,7 +690,7 @@ var _ = Describe("LogCache", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requestURL.Scheme).To(Equal("https"))
 			Expect(requestURL.Host).To(Equal("log-cache.some-system.com"))
-			Expect(requestURL.Path).To(Equal("/v1/read/app-guid"))
+			Expect(requestURL.Path).To(Equal("/api/v1/read/app-guid"))
 			Expect(requestURL.Query().Get("start_time")).To(Equal("100"))
 			Expect(requestURL.Query().Get("end_time")).To(Equal("123"))
 			Expect(requestURL.Query().Get("envelope_types")).To(Equal("GAUGE"))
@@ -757,6 +774,8 @@ var _ = Describe("LogCache", func() {
 
 		It("formats the output via text/template", func() {
 			httpClient.responseBody = []string{responseBody(time.Unix(0, 1))}
+			httpClient.responseCode = []int{200}
+
 			args := []string{
 				"--output-format", `{{.Timestamp}} {{printf "%s" .GetLog.GetPayload}}`,
 				"app-guid",
@@ -776,6 +795,8 @@ var _ = Describe("LogCache", func() {
 
 		It("formats the output via text/template (short flag)", func() {
 			httpClient.responseBody = []string{responseBody(time.Unix(0, 1))}
+			httpClient.responseCode = []int{200}
+
 			args := []string{
 				"-o", `{{.Timestamp}} {{printf "%s" .GetLog.GetPayload}}`,
 				"app-guid",
@@ -907,6 +928,8 @@ var _ = Describe("LogCache", func() {
 
 		It("fatally logs if output-format and json flags are given", func() {
 			httpClient.responseBody = []string{responseBody(time.Unix(0, 1))}
+			httpClient.responseCode = []int{200}
+
 			args := []string{
 				"--output-format", `{{.Timestamp}} {{printf "%s" .GetLog.GetPayload}}`,
 				"--json",
@@ -945,6 +968,8 @@ var _ = Describe("LogCache", func() {
 
 		It("fatally logs if an output-format won't execute", func() {
 			httpClient.responseBody = []string{`{"envelopes":{"batch":[{"source_id": "a", "timestamp": 1},{"source_id":"b", "timestamp":2}]}}`}
+			httpClient.responseCode = []int{200}
+
 			args := []string{
 				"--output-format", "{{.invalid 9}}",
 				"app-guid",
@@ -1310,7 +1335,7 @@ var _ = Describe("LogCache", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
 
-			Expect(requestURL.Path).To(Equal("/v1/read/app-name"))
+			Expect(requestURL.Path).To(Equal("/api/v1/read/app-name"))
 
 			counterFormat := "   %s [%s/%s] COUNTER %s:%d"
 			Expect(writer.lines()).To(Equal([]string{
