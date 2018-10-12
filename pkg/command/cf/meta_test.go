@@ -57,6 +57,65 @@ var _ = Describe("Meta", func() {
 
 			cliConn.cliCommandResult = [][]string{
 				{
+					capiAppsResponse(map[string]string{"source-1": "app-1"}),
+				},
+				{
+					capiServiceInstancesResponse(map[string]string{}),
+				},
+			}
+			cliConn.cliCommandErr = nil
+
+			cf.Meta(
+				context.Background(),
+				cliConn,
+				tailer,
+				[]string{"--noise", "--sort-by", "rate"},
+				httpClient,
+				logger,
+				tableWriter,
+			)
+
+			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+				fmt.Sprintf(
+					"Retrieving log cache metadata as %s...",
+					cliConn.usernameResp,
+				),
+				"",
+				"Source     Source Type  Count   Expired  Cache Duration  Rate",
+				"service-3  service      99997   85003    9m0s            1",
+				"app-4      application  99996   85004    13m30s          2",
+				"source-2   platform     100002  84998    4m30s           3",
+				"app-1      application  100001  84999    1s              5",
+				"",
+			}))
+
+			Expect(httpClient.requestCount()).To(Equal(1))
+		})
+	})
+
+	Context("when specifying a sort by flag", func() {
+		It("specifying `--sort-by rate` sorts by the rate column", func() {
+			tailer := func(sourceID string) []string {
+				switch sourceID {
+				case "source-1":
+					return generateBatch(5)
+				case "source-2":
+					return generateBatch(3)
+				case "source-3":
+					return generateBatch(1)
+				case "source-4":
+					return generateBatch(2)
+				default:
+					panic("unexpected source-id")
+				}
+			}
+
+			httpClient.responseBody = []string{
+				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
+			}
+
+			cliConn.cliCommandResult = [][]string{
+				{
 					capiAppsResponse(map[string]string{
 						"source-1": "app-1",
 						"source-4": "app-4",
