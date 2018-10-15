@@ -10,6 +10,7 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"unicode/utf8"
 
 	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
@@ -65,7 +66,7 @@ func Tail(
 	}
 
 	sourceID := o.guid
-	formatter := newFormatter(o.providedName, o.follow, formatterKindFromOptions(o), log, o.outputTemplate)
+	formatter := newFormatter(o.providedName, o.follow, formatterKindFromOptions(o), log, o.outputTemplate, o.newLineReplacer)
 	lw := lineWriter{w: w}
 
 	defer func() {
@@ -241,7 +242,8 @@ type options struct {
 	gaugeName   string
 	counterName string
 
-	noHeaders bool
+	noHeaders       bool
+	newLineReplacer rune
 }
 
 type optionFlags struct {
@@ -255,6 +257,7 @@ type optionFlags struct {
 	GaugeName     string `long:"gauge-name"`
 	CounterName   string `long:"counter-name"`
 	EnvelopeClass string `long:"type"`
+	NewLine       string `long:"new-line" optional:"true" optional-value:"\\u2028"`
 }
 
 func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, error) {
@@ -318,6 +321,13 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 		gaugeName:      opts.GaugeName,
 		counterName:    opts.CounterName,
 		envelopeClass:  toEnvelopeClass(opts.EnvelopeClass),
+	}
+
+	if opts.NewLine != "" {
+		o.newLineReplacer, err = parseNewLineArgument(opts.NewLine)
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
 	}
 
 	return o, o.validate()
@@ -467,6 +477,30 @@ func getServiceGUID(serviceName string, cli plugin.CliConnection, log Logger) st
 	}
 
 	return strings.Join(r, "")
+}
+
+func parseNewLineArgument(s string) (rune, error) {
+	if strings.TrimSpace(s) == "" {
+		return '\u2028', nil
+	}
+
+	if utf8.RuneCountInString(s) == 1 {
+		r, _ := utf8.DecodeRuneInString(s)
+		return r, nil
+	}
+
+	s = strings.ToLower(s)
+	if strings.HasPrefix(s, "\\u") {
+		var r rune
+		_, err := fmt.Sscanf(s, "\\u%x", &r)
+		if err != nil {
+			return 0, err
+		}
+
+		return r, nil
+	}
+
+	return 0, errors.New("--new-line argument must be single unicode character or in the format \\uXXXXX")
 }
 
 type backoff struct {
