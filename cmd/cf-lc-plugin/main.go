@@ -130,6 +130,7 @@ ENVIRONMENT VARIABLES:
 						"-start-time":           "Start of query range in UNIX nanoseconds.",
 						"-counter-name":         "Counter name filter (implies --envelope-type=counter).",
 						"-gauge-name":           "Gauge name filter (implies --envelope-type=gauge).",
+						"-new-line":             "Character used for new line substition, must be single unicode character. Default is '\\n'.",
 					},
 				},
 			},
