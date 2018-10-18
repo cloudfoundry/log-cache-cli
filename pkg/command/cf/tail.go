@@ -37,10 +37,10 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-type TailOption func(*options)
+type TailOption func(*tailOptions)
 
 func WithTailNoHeaders() TailOption {
-	return func(o *options) {
+	return func(o *tailOptions) {
 		o.noHeaders = true
 	}
 }
@@ -56,7 +56,7 @@ func Tail(
 	w io.Writer,
 	opts ...TailOption,
 ) {
-	o, err := newOptions(cli, args, log)
+	o, err := newTailOptions(cli, args, log)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -225,7 +225,7 @@ const (
 
 type envelopeClass int
 
-type options struct {
+type tailOptions struct {
 	startTime     time.Time
 	endTime       time.Time
 	envelopeType  logcache_v1.EnvelopeType
@@ -246,7 +246,7 @@ type options struct {
 	newLineReplacer rune
 }
 
-type optionFlags struct {
+type tailOptionFlags struct {
 	StartTime     int64  `long:"start-time"`
 	EndTime       int64  `long:"end-time"`
 	EnvelopeType  string `long:"envelope-type"`
@@ -260,38 +260,38 @@ type optionFlags struct {
 	NewLine       string `long:"new-line" optional:"true" optional-value:"\\u2028"`
 }
 
-func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, error) {
-	opts := optionFlags{
+func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOptions, error) {
+	opts := tailOptionFlags{
 		EndTime: time.Now().UnixNano(),
 	}
 
 	args, err := flags.ParseArgs(&opts, args)
 	if err != nil {
-		return options{}, err
+		return tailOptions{}, err
 	}
 
 	if len(args) != 1 {
-		return options{}, fmt.Errorf("Expected 1 argument, got %d.", len(args))
+		return tailOptions{}, fmt.Errorf("Expected 1 argument, got %d.", len(args))
 	}
 
 	if opts.JSONOutput && opts.OutputFormat != "" {
-		return options{}, errors.New("Cannot use output-format and json flags together")
+		return tailOptions{}, errors.New("Cannot use output-format and json flags together")
 	}
 
 	if opts.EnvelopeType != "" && opts.CounterName != "" {
-		return options{}, errors.New("--counter-name cannot be used with --envelope-type")
+		return tailOptions{}, errors.New("--counter-name cannot be used with --envelope-type")
 	}
 
 	if opts.EnvelopeType != "" && opts.GaugeName != "" {
-		return options{}, errors.New("--gauge-name cannot be used with --envelope-type")
+		return tailOptions{}, errors.New("--gauge-name cannot be used with --envelope-type")
 	}
 
 	if opts.GaugeName != "" && opts.CounterName != "" {
-		return options{}, errors.New("--counter-name cannot be used with --gauge-name")
+		return tailOptions{}, errors.New("--counter-name cannot be used with --gauge-name")
 	}
 
 	if opts.EnvelopeType != "" && opts.EnvelopeClass != "" {
-		return options{}, errors.New("--envelope-type cannot be used with --type")
+		return tailOptions{}, errors.New("--envelope-type cannot be used with --type")
 	}
 
 	if opts.EnvelopeClass != "" {
@@ -307,7 +307,7 @@ func newOptions(cli plugin.CliConnection, args []string, log Logger) (options, e
 	}
 
 	id, isService := getGUID(args[0], cli, log)
-	o := options{
+	o := tailOptions{
 		startTime:      time.Unix(0, opts.StartTime),
 		endTime:        time.Unix(0, opts.EndTime),
 		envelopeType:   translateEnvelopeType(opts.EnvelopeType, log),
@@ -346,7 +346,7 @@ func toEnvelopeClass(class string) envelopeClass {
 	}
 }
 
-func formatterKindFromOptions(o options) formatterKind {
+func formatterKindFromOptions(o tailOptions) formatterKind {
 	if o.jsonOutput {
 		return jsonFormat
 	}
@@ -358,7 +358,7 @@ func formatterKindFromOptions(o options) formatterKind {
 	return prettyFormat
 }
 
-func nameFilter(e *loggregator_v2.Envelope, o options) bool {
+func nameFilter(e *loggregator_v2.Envelope, o tailOptions) bool {
 	if o.gaugeName != "" {
 		for name := range e.GetGauge().GetMetrics() {
 			if name == o.gaugeName {
@@ -376,7 +376,7 @@ func nameFilter(e *loggregator_v2.Envelope, o options) bool {
 	return true
 }
 
-func typeFilter(e *loggregator_v2.Envelope, o options) bool {
+func typeFilter(e *loggregator_v2.Envelope, o tailOptions) bool {
 	if o.envelopeClass == envelopeClassAny {
 		return true
 	}
@@ -391,7 +391,7 @@ func typeFilter(e *loggregator_v2.Envelope, o options) bool {
 	return false
 }
 
-func (o options) validate() error {
+func (o tailOptions) validate() error {
 	if o.startTime.After(o.endTime) && o.endTime != time.Unix(0, 0) {
 		return errors.New("Invalid date/time range. Ensure your start time is prior or equal the end time.")
 	}
