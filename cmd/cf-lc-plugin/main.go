@@ -37,6 +37,11 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 
 	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
 
+	commands["query"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c cf.HTTPClient, log cf.Logger, tableWriter io.Writer) {
+		var opts []cf.QueryOption
+		cf.Query(ctx, cli, args, c, log, tableWriter, opts...)
+	}
+
 	commands["tail"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c cf.HTTPClient, log cf.Logger, tableWriter io.Writer) {
 		var opts []cf.TailOption
 		if !isTerminal {
@@ -148,6 +153,23 @@ ENVIRONMENT VARIABLES:
 						"-sort-by":     "Sort by specified column. Available: 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', and 'rate'.",
 						"-noise":       "Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...",
 						"-guid":        "Display raw source GUIDs",
+					},
+				},
+			},
+			{
+				Name:     "query",
+				HelpText: "Issues a PromQL query against Log Cache",
+				UsageDetails: plugin.Usage{
+					Usage: `query <promql-query> [options]
+
+ENVIRONMENT VARIABLES:
+   LOG_CACHE_ADDR       Overrides the default location of log-cache.
+   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
+					Options: map[string]string{
+						"-time":  "Effective time for query execution of an instant query. Cannont be used with --start, --end, or --step. Can be a unix timestamp or RFC3339.",
+						"-start": "Start time for a range query. Cannont be used with --time. Can be a unix timestamp or RFC3339.",
+						"-end":   "End time for a range query. Cannont be used with --time. Can be a unix timestamp or RFC3339.",
+						"-step":  "Step interval for a range query. Cannot be used with --time.",
 					},
 				},
 			},
