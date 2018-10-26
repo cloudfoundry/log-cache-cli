@@ -5,5 +5,8 @@ if [[ ! "$remove_cli" =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
+# Remove the log-cache plugin from the CF CLI
+cf uninstall-plugin log-cache
+
+# Remove the standalone log-cache CLI used with k8s
 rm -f /usr/local/bin/lc
-rm -f /usr/local/bin/log-cache
