@@ -109,6 +109,7 @@ func (s *stubHTTPClient) requestCount() int {
 
 type stubCliConnection struct {
 	plugin.CliConnection
+	sync.Mutex
 
 	apiEndpointErr error
 
@@ -165,7 +166,7 @@ func (s *stubCliConnection) Username() (string, error) {
 
 func (s *stubCliConnection) GetCurrentOrg() (plugin_models.Organization, error) {
 	return plugin_models.Organization{
-		plugin_models.OrganizationFields{
+		OrganizationFields: plugin_models.OrganizationFields{
 			Name: s.orgName,
 		},
 	}, s.orgErr
@@ -173,13 +174,23 @@ func (s *stubCliConnection) GetCurrentOrg() (plugin_models.Organization, error) 
 
 func (s *stubCliConnection) GetCurrentSpace() (plugin_models.Space, error) {
 	return plugin_models.Space{
-		plugin_models.SpaceFields{
+		SpaceFields: plugin_models.SpaceFields{
 			Name: s.spaceName,
 		},
 	}, s.spaceErr
 }
 
 func (s *stubCliConnection) AccessToken() (string, error) {
+	s.Lock()
+	defer s.Unlock()
+
 	s.accessTokenCount++
 	return s.accessToken, s.accessTokenErr
+}
+
+func (s *stubCliConnection) getAccessTokenCount() int {
+	s.Lock()
+	defer s.Unlock()
+
+	return s.accessTokenCount
 }

@@ -1069,7 +1069,7 @@ var _ = Describe("LogCache", func() {
 				cf.WithTailTokenRefreshInterval(100*time.Millisecond),
 			)
 
-			Eventually(func() int { return cliConn.accessTokenCount }).Should(BeNumerically(">", 1))
+			Eventually(cliConn.getAccessTokenCount).Should(BeNumerically(">", 1))
 		})
 
 		It("formats the output via text/template", func() {
