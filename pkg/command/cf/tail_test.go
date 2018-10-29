@@ -1057,6 +1057,21 @@ var _ = Describe("LogCache", func() {
 			Expect(httpClient.requestHeaders[0].Get("Authorization")).To(Equal("bearer some-token"))
 		})
 
+		It("refreshes the access token periodically", func() {
+			args := []string{"some-app"}
+			cf.Tail(
+				context.Background(),
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+				cf.WithTailTokenRefreshInterval(100*time.Millisecond),
+			)
+
+			Eventually(func() int { return cliConn.accessTokenCount }).Should(BeNumerically(">", 1))
+		})
+
 		It("formats the output via text/template", func() {
 			httpClient.responseBody = []string{responseBody(time.Unix(0, 1))}
 			args := []string{

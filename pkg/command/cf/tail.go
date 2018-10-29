@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -45,6 +46,12 @@ func WithTailNoHeaders() TailOption {
 	}
 }
 
+func WithTailTokenRefreshInterval(interval time.Duration) TailOption {
+	return func(o *tailOptions) {
+		o.tokenRefreshInterval = interval
+	}
+}
+
 // Tail will fetch the logs for a given application guid and write them to
 // stdout.
 func Tail(
@@ -74,18 +81,6 @@ func Tail(
 			lw.Write(value)
 		}
 	}()
-
-	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		token, err := cli.AccessToken()
-		if err != nil {
-			log.Fatalf("Unable to get Access Token: %s", err)
-		}
-
-		c = &tokenHTTPClient{
-			c:           c,
-			accessToken: token,
-		}
-	}
 
 	logCacheAddr := os.Getenv("LOG_CACHE_ADDR")
 	if logCacheAddr == "" {
@@ -153,7 +148,23 @@ func Tail(
 
 		return formatter.formatEnvelope(e)
 	}
-	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
+
+	tokenClient := &tokenHTTPClient{
+		c: c,
+	}
+
+	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
+		tokenClient.accessToken = getAccessTokenOrPanic(cli)
+
+		go func(tc *tokenHTTPClient) {
+			ticker := time.NewTicker(o.tokenRefreshInterval)
+			for range ticker.C {
+				tc.accessToken = getAccessTokenOrPanic(cli)
+			}
+		}(tokenClient)
+	}
+
+	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(tokenClient))
 
 	if sourceID == "" {
 		// fall back to provided name
@@ -191,6 +202,7 @@ func Tail(
 			sourceID,
 			logcache.Visitor(func(envelopes []*loggregator_v2.Envelope) bool {
 				for _, e := range envelopes {
+					walkStartTime = e.Timestamp + 1
 					if formatted, ok := filterAndFormat(e); ok {
 						lw.Write(formatted)
 					}
@@ -202,9 +214,16 @@ func Tail(
 			logcache.WithWalkEnvelopeTypes(o.envelopeType),
 			logcache.WithWalkBackoff(logcache.NewAlwaysRetryBackoff(250*time.Millisecond)),
 		)
-
-		return
 	}
+}
+
+func getAccessTokenOrPanic(cli plugin.CliConnection) string {
+	token, err := cli.AccessToken()
+	if err != nil {
+		log.Fatalf("Unable to get Access Token: %s", err)
+	}
+
+	return token
 }
 
 type lineWriter struct {
@@ -233,11 +252,12 @@ type tailOptions struct {
 	lines         int
 	follow        bool
 
-	guid           string
-	isService      bool
-	providedName   string
-	outputTemplate *template.Template
-	jsonOutput     bool
+	guid                 string
+	isService            bool
+	providedName         string
+	outputTemplate       *template.Template
+	jsonOutput           bool
+	tokenRefreshInterval time.Duration
 
 	gaugeName   string
 	counterName string
@@ -308,19 +328,20 @@ func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOp
 
 	id, isService := getGUID(args[0], cli, log)
 	o := tailOptions{
-		startTime:      time.Unix(0, opts.StartTime),
-		endTime:        time.Unix(0, opts.EndTime),
-		envelopeType:   translateEnvelopeType(opts.EnvelopeType, log),
-		lines:          int(opts.Lines),
-		guid:           id,
-		isService:      isService,
-		providedName:   args[0],
-		follow:         opts.Follow,
-		outputTemplate: outputTemplate,
-		jsonOutput:     opts.JSONOutput,
-		gaugeName:      opts.GaugeName,
-		counterName:    opts.CounterName,
-		envelopeClass:  toEnvelopeClass(opts.EnvelopeClass),
+		startTime:            time.Unix(0, opts.StartTime),
+		endTime:              time.Unix(0, opts.EndTime),
+		envelopeType:         translateEnvelopeType(opts.EnvelopeType, log),
+		lines:                int(opts.Lines),
+		guid:                 id,
+		isService:            isService,
+		providedName:         args[0],
+		follow:               opts.Follow,
+		outputTemplate:       outputTemplate,
+		jsonOutput:           opts.JSONOutput,
+		tokenRefreshInterval: 5 * time.Minute,
+		gaugeName:            opts.GaugeName,
+		counterName:          opts.CounterName,
+		envelopeClass:        toEnvelopeClass(opts.EnvelopeClass),
 	}
 
 	if opts.NewLine != "" {
@@ -524,7 +545,10 @@ type tokenHTTPClient struct {
 }
 
 func (c *tokenHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Authorization", c.accessToken)
+	if len(c.accessToken) > 0 {
+		req.Header.Set("Authorization", c.accessToken)
+	}
 
 	return c.c.Do(req)
+
 }
