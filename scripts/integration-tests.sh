@@ -24,7 +24,9 @@ function setup {
     : ${TEST_APP_NAME:=log-cache-cli-integration}
     cf target -o ${CF_ORG:?Need to provide a CF organization} -s ${CF_SPACE:?Need to provide a CF space}
 
-    NO_STANDALONE_LC=true scripts/install.sh
+    cd $(dirname $0)
+
+    NO_STANDALONE_LC=true ./install.sh
 }
 
 function cleanup_test_app {

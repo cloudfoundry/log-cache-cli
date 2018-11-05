@@ -2,8 +2,6 @@
 
 set -e
 
-git submodule update --init --recursive --rebase
-
 SCRIPTS_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 WORKSPACE="$SCRIPTS_PATH/.."
 
