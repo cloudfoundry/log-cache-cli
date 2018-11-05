@@ -34,7 +34,7 @@ function cleanup_test_app {
 
     rm -rf ${TEST_APP_DIR}
     if [[ -n ${TEST_APP_GUID:-} ]]; then
-        cf delete -f ${TEST_APP_NAME}
+        cf delete -f -r ${TEST_APP_NAME}
     fi
 }
 
