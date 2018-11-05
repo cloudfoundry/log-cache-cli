@@ -8,10 +8,10 @@ WORKSPACE="$SCRIPTS_PATH/.."
 
 mkdir -p $WORKSPACE/build_artifacts
 
-pushd "$GOPATH/src/code.cloudfoundry.org/log-cache-cli/cmd/cf-lc-plugin"
+pushd "$WORKSPACE/cmd/cf-lc-plugin"
   go build -ldflags "-X main.version=$version" -o $WORKSPACE/build_artifacts/log-cache-cf-plugin-dev
 popd
 
-pushd "$GOPATH/src/code.cloudfoundry.org/log-cache-cli/cmd/lc"
+pushd "$WORKSPACE/cmd/lc"
   go build -ldflags "-X main.version=$version" -o $WORKSPACE/build_artifacts/log-cache-standalone-dev
 popd
