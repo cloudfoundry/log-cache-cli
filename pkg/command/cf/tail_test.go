@@ -282,14 +282,14 @@ var _ = Describe("LogCache", func() {
 			]}`, startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano())))
 		})
 
-		It("only returns timer, gauge, and counter when type=metrics", func() {
+		It("only returns timer, gauge, and counter when class=metrics", func() {
 			httpClient.responseBody = []string{
 				mixedResponseBody(startTime),
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
-			args := []string{"--type", "metrics", "--json", "app-name"}
+			args := []string{"--envelope-class", "metrics", "--json", "app-name"}
 			cf.Tail(
 				ctx,
 				cliConn,
@@ -312,14 +312,14 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 		})
 
-		It("only returns logs and events when type=logs", func() {
+		It("only returns logs and events with `--envelope-class logs`", func() {
 			httpClient.responseBody = []string{
 				mixedResponseBody(startTime),
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
-			args := []string{"--type", "logs", "--json", "app-name"}
+			args := []string{"--envelope-class", "logs", "--json", "app-name"}
 			cf.Tail(
 				ctx,
 				cliConn,
@@ -1106,7 +1106,7 @@ var _ = Describe("LogCache", func() {
 
 		It("fatally logs when envelope-type and type are both present", func() {
 			args := []string{
-				"--type", "metrics",
+				"--envelope-class", "metrics",
 				"--envelope-type", "counter",
 				"--json",
 				"app-name",
@@ -1123,7 +1123,7 @@ var _ = Describe("LogCache", func() {
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("--envelope-type cannot be used with --type"))
+			Expect(logger.fatalfMessage).To(Equal("--envelope-type cannot be used with --envelope-class"))
 		})
 
 		It("fatally logs if output-format and json flags are given", func() {
