@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -133,16 +134,8 @@ func Tail(
 		}
 	}
 
-	if o.gaugeName != "" {
-		o.envelopeType = logcache_v1.EnvelopeType_GAUGE
-	}
-
-	if o.counterName != "" {
-		o.envelopeType = logcache_v1.EnvelopeType_COUNTER
-	}
-
 	filterAndFormat := func(e *loggregator_v2.Envelope) (string, bool) {
-		if !nameFilter(e, o) || !typeFilter(e, o) {
+		if !typeFilter(e, o) {
 			return "", false
 		}
 
@@ -181,6 +174,7 @@ func Tail(
 			logcache.WithEnvelopeTypes(o.envelopeType),
 			logcache.WithLimit(o.lines),
 			logcache.WithDescending(),
+			logcache.WithNameFilter(o.nameFilter),
 		)
 
 		if err != nil && !o.follow {
@@ -202,7 +196,6 @@ func Tail(
 			sourceID,
 			logcache.Visitor(func(envelopes []*loggregator_v2.Envelope) bool {
 				for _, e := range envelopes {
-					walkStartTime = e.Timestamp + 1
 					if formatted, ok := filterAndFormat(e); ok {
 						lw.Write(formatted)
 					}
@@ -213,6 +206,7 @@ func Tail(
 			logcache.WithWalkStartTime(time.Unix(0, walkStartTime)),
 			logcache.WithWalkEnvelopeTypes(o.envelopeType),
 			logcache.WithWalkBackoff(logcache.NewAlwaysRetryBackoff(250*time.Millisecond)),
+			logcache.WithWalkNameFilter(o.nameFilter),
 		)
 	}
 }
@@ -259,8 +253,7 @@ type tailOptions struct {
 	jsonOutput           bool
 	tokenRefreshInterval time.Duration
 
-	gaugeName   string
-	counterName string
+	nameFilter string
 
 	noHeaders       bool
 	newLineReplacer rune
@@ -274,10 +267,9 @@ type tailOptionFlags struct {
 	Follow        bool   `long:"follow" short:"f"`
 	OutputFormat  string `long:"output-format" short:"o"`
 	JSONOutput    bool   `long:"json"`
-	GaugeName     string `long:"gauge-name"`
-	CounterName   string `long:"counter-name"`
 	EnvelopeClass string `long:"type"`
 	NewLine       string `long:"new-line" optional:"true" optional-value:"\\u2028"`
+	NameFilter    string `long:"name-filter"`
 }
 
 func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOptions, error) {
@@ -296,18 +288,6 @@ func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOp
 
 	if opts.JSONOutput && opts.OutputFormat != "" {
 		return tailOptions{}, errors.New("Cannot use output-format and json flags together")
-	}
-
-	if opts.EnvelopeType != "" && opts.CounterName != "" {
-		return tailOptions{}, errors.New("--counter-name cannot be used with --envelope-type")
-	}
-
-	if opts.EnvelopeType != "" && opts.GaugeName != "" {
-		return tailOptions{}, errors.New("--gauge-name cannot be used with --envelope-type")
-	}
-
-	if opts.GaugeName != "" && opts.CounterName != "" {
-		return tailOptions{}, errors.New("--counter-name cannot be used with --gauge-name")
 	}
 
 	if opts.EnvelopeType != "" && opts.EnvelopeClass != "" {
@@ -339,8 +319,7 @@ func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOp
 		outputTemplate:       outputTemplate,
 		jsonOutput:           opts.JSONOutput,
 		tokenRefreshInterval: 5 * time.Minute,
-		gaugeName:            opts.GaugeName,
-		counterName:          opts.CounterName,
+		nameFilter:           opts.NameFilter,
 		envelopeClass:        toEnvelopeClass(opts.EnvelopeClass),
 	}
 
@@ -379,24 +358,6 @@ func formatterKindFromOptions(o tailOptions) formatterKind {
 	return prettyFormat
 }
 
-func nameFilter(e *loggregator_v2.Envelope, o tailOptions) bool {
-	if o.gaugeName != "" {
-		for name := range e.GetGauge().GetMetrics() {
-			if name == o.gaugeName {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	if o.counterName != "" {
-		return e.GetCounter().GetName() == o.counterName
-	}
-
-	return true
-}
-
 func typeFilter(e *loggregator_v2.Envelope, o tailOptions) bool {
 	if o.envelopeClass == envelopeClassAny {
 		return true
@@ -419,6 +380,11 @@ func (o tailOptions) validate() error {
 
 	if o.lines > 1000 || o.lines < 0 {
 		return errors.New("Lines cannot be greater than 1000.")
+	}
+
+	_, err := regexp.Compile(o.nameFilter)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Invalid name filter '%s'. Ensure your name-filter is a valid regex.", o.nameFilter))
 	}
 
 	return nil

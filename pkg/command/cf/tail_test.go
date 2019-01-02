@@ -341,15 +341,14 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 		})
 
-		It("filters when given gauge-name flag", func() {
+		It("only reports metrics that match -name-filter when set", func() {
 			httpClient.responseBody = []string{
 				mixedResponseBody(startTime),
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
-			args := []string{"--gauge-name", "some-name", "--json", "app-name"}
-
+			args := []string{"--name-filter", "egress", "--json", "app-name"}
 			cf.Tail(
 				ctx,
 				cliConn,
@@ -359,43 +358,11 @@ var _ = Describe("LogCache", func() {
 				writer,
 			)
 
-			Expect(writer.bytes).To(MatchJSON(
-				fmt.Sprintf(`{"batch":[{"timestamp":"%d","source_id":"app-name","instance_id":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}}]}`, startTime.UnixNano()),
-			))
-
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
 			Expect(err).ToNot(HaveOccurred())
-			envelopeType := requestURL.Query().Get("envelope_types")
-			Expect(envelopeType).To(Equal("GAUGE"))
-		})
-
-		It("filters when given counter-name flag", func() {
-			httpClient.responseBody = []string{
-				mixedResponseBody(startTime),
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
-			defer cancel()
-
-			args := []string{"--counter-name", "some-name", "--json", "app-name"}
-			cf.Tail(
-				ctx,
-				cliConn,
-				args,
-				httpClient,
-				logger,
-				writer,
-			)
-
-			Expect(writer.bytes).To(MatchJSON(
-				fmt.Sprintf(`{"batch":[{"timestamp":"%d","source_id":"app-name","instance_id":"0","counter":{"name":"some-name","total":"99"}}]}`, startTime.UnixNano()),
-			))
-
-			Expect(httpClient.requestURLs).ToNot(BeEmpty())
-			requestURL, err := url.Parse(httpClient.requestURLs[0])
-			Expect(err).ToNot(HaveOccurred())
-			envelopeType := requestURL.Query().Get("envelope_types")
-			Expect(envelopeType).To(Equal("COUNTER"))
+			q := requestURL.Query().Get("name_filter")
+			Expect(q).To(Equal("egress"))
 		})
 
 		It("reports successful results when following", func() {
@@ -588,6 +555,31 @@ var _ = Describe("LogCache", func() {
 			))
 
 			Expect(cliConn.accessTokenCount).To(Equal(1))
+		})
+
+		It("only reports metrics that match -name-filter when set while following", func() {
+			httpClient.responseBody = []string{
+				mixedResponseBody(startTime),
+				responseBodyAsc(startTime),
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+			defer cancel()
+
+			args := []string{"--name-filter", "egress", "--follow", "app-name"}
+			cf.Tail(
+				ctx,
+				cliConn,
+				args,
+				httpClient,
+				logger,
+				writer,
+			)
+
+			Expect(httpClient.requestURLs).ToNot(BeEmpty())
+			requestURL, err := url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
+			q := requestURL.Query().Get("name_filter")
+			Expect(q).To(Equal("egress"))
 		})
 
 		It("uses a default value for --new-line", func() {
@@ -825,34 +817,6 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(wrapperFunc).To(Panic())
-		})
-
-		It("filters when given counter-name flag while following", func() {
-			httpClient.responseBody = []string{
-				mixedResponseBody(startTime),
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
-			defer cancel()
-			args := []string{"--counter-name", "some-name", "--json", "--follow", "app-name"}
-			cf.Tail(
-				ctx,
-				cliConn,
-				args,
-				httpClient,
-				logger,
-				writer,
-			)
-
-			Expect(writer.lines()).To(ConsistOf(
-				fmt.Sprintf(`{"timestamp":"%d","source_id":"app-name","instance_id":"0","counter":{"name":"some-name","total":"99"}}`, startTime.UnixNano()),
-			))
-
-			Expect(httpClient.requestURLs).ToNot(BeEmpty())
-			requestURL, err := url.Parse(httpClient.requestURLs[0])
-			Expect(err).ToNot(HaveOccurred())
-			envelopeType := requestURL.Query().Get("envelope_types")
-			Expect(envelopeType).To(Equal("COUNTER"))
 		})
 
 		It("uses the LOG_CACHE_ADDR environment variable", func() {
@@ -1140,26 +1104,6 @@ var _ = Describe("LogCache", func() {
 			Expect(logger.fatalfMessage).To(Equal("--envelope-type must be LOG, COUNTER, GAUGE, TIMER, EVENT or ANY"))
 		})
 
-		It("fatally logs if gauge-name and envelope-type flags are both set", func() {
-			args := []string{
-				"--gauge-name", "some-name",
-				"--envelope-type", "LOG",
-				"some-app",
-			}
-			Expect(func() {
-				cf.Tail(
-					context.Background(),
-					cliConn,
-					args,
-					httpClient,
-					logger,
-					writer,
-				)
-			}).To(Panic())
-
-			Expect(logger.fatalfMessage).To(Equal("--gauge-name cannot be used with --envelope-type"))
-		})
-
 		It("fatally logs when envelope-type and type are both present", func() {
 			args := []string{
 				"--type", "metrics",
@@ -1180,46 +1124,6 @@ var _ = Describe("LogCache", func() {
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("--envelope-type cannot be used with --type"))
-		})
-
-		It("fatally logs if counter-name and envelope-type flags are both set", func() {
-			args := []string{
-				"--counter-name", "some-name",
-				"--envelope-type", "LOG",
-				"some-app",
-			}
-			Expect(func() {
-				cf.Tail(
-					context.Background(),
-					cliConn,
-					args,
-					httpClient,
-					logger,
-					writer,
-				)
-			}).To(Panic())
-
-			Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --envelope-type"))
-		})
-
-		It("fatally logs if counter-name and gauge-name flags are both set", func() {
-			args := []string{
-				"--counter-name", "some-name",
-				"--gauge-name", "some-name",
-				"some-app",
-			}
-			Expect(func() {
-				cf.Tail(
-					context.Background(),
-					cliConn,
-					args,
-					httpClient,
-					logger,
-					writer,
-				)
-			}).To(Panic())
-
-			Expect(logger.fatalfMessage).To(Equal("--counter-name cannot be used with --gauge-name"))
 		})
 
 		It("fatally logs if output-format and json flags are given", func() {
@@ -1385,6 +1289,22 @@ var _ = Describe("LogCache", func() {
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
+		})
+
+		It("fatally logs if the name-filter regex is invalid", func() {
+			args := []string{"--name-filter", "*foo", "app-name"}
+			Expect(func() {
+				cf.Tail(
+					context.Background(),
+					cliConn,
+					args,
+					httpClient,
+					logger,
+					writer,
+				)
+			}).To(Panic())
+
+			Expect(logger.fatalfMessage).To(Equal("Invalid name filter '*foo'. Ensure your name-filter is a valid regex."))
 		})
 
 		It("fatally logs if too many arguments are given", func() {

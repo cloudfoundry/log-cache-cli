@@ -5,7 +5,7 @@ require (
 	code.cloudfoundry.org/go-envstruct v1.3.0
 	code.cloudfoundry.org/go-log-cache v1.0.0
 	code.cloudfoundry.org/go-loggregator v7.1.0+incompatible
-	code.cloudfoundry.org/log-cache v2.0.2-0.20181030221810-eacb1d4ccae8+incompatible
+	code.cloudfoundry.org/log-cache v2.0.3-0.20190102180933-14ca08c2a0f3+incompatible
 	code.cloudfoundry.org/rfc5424 v0.0.0-20180905210152-236a6d29298a // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/golang/protobuf v1.2.0
