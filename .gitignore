@@ -1,3 +1,4 @@
 log-cache-cli
 cf-lc-plugin
 *.test
+main
