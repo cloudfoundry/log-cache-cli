@@ -18,6 +18,7 @@ import (
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
 	logcache "code.cloudfoundry.org/log-cache/pkg/client"
 	logcache_v1 "code.cloudfoundry.org/log-cache/pkg/rpc/logcache_v1"
+	"github.com/blang/semver"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -158,6 +159,8 @@ func Tail(
 	}
 
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(tokenClient))
+
+	checkFeatureVersioning(client, ctx, log, o.nameFilter)
 
 	if sourceID == "" {
 		// fall back to provided name
@@ -488,6 +491,17 @@ func parseNewLineArgument(s string) (rune, error) {
 	}
 
 	return 0, errors.New("--new-line argument must be single unicode character or in the format \\uXXXXX")
+}
+
+func checkFeatureVersioning(client *logcache.Client, ctx context.Context, log Logger, nameFilter string) {
+	version, _ := client.LogCacheVersion(ctx)
+
+	if nameFilter != "" {
+		nameFilterVersion, _ := semver.Parse("2.1.0")
+		if version.LT(nameFilterVersion) {
+			log.Fatalf("Use of --name-filter requires minimum log-cache version 2.1.0")
+		}
+	}
 }
 
 type backoff struct {

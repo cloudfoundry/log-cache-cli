@@ -345,6 +345,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				mixedResponseBody(startTime),
 			}
+			httpClient.serverVersion = "2.1.0"
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
@@ -562,6 +563,7 @@ var _ = Describe("LogCache", func() {
 				mixedResponseBody(startTime),
 				responseBodyAsc(startTime),
 			}
+			httpClient.serverVersion = "2.1.0"
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
@@ -1335,6 +1337,70 @@ var _ = Describe("LogCache", func() {
 			}).To(Panic())
 
 			Expect(logger.fatalfMessage).To(Equal("Expected 1 argument, got 0."))
+		})
+
+		Context("when name-filter argument is not supplied", func() {
+			It("does not care whether the API supports this option", func() {
+				args := []string{"app-name"}
+				httpClient.serverVersion = "2.0.3"
+
+				Expect(func() {
+					cf.Tail(
+						context.Background(),
+						cliConn,
+						args,
+						httpClient,
+						logger,
+						writer,
+					)
+				}).NotTo(Panic())
+
+				Expect(httpClient.requestURLs).To(HaveLen(1))
+				requestURL, err := url.Parse(httpClient.requestURLs[0])
+				Expect(err).ToNot(HaveOccurred())
+				Expect(requestURL.Query().Get("name_filter")).To(BeEmpty())
+			})
+		})
+
+		Context("when name-filter argument is given", func() {
+			It("passes through this option to the supporting API", func() {
+				args := []string{"--name-filter", "egress", "app-name"}
+				httpClient.serverVersion = "2.1.0"
+
+				Expect(func() {
+					cf.Tail(
+						context.Background(),
+						cliConn,
+						args,
+						httpClient,
+						logger,
+						writer,
+					)
+				}).NotTo(Panic())
+
+				Expect(httpClient.requestURLs).To(HaveLen(1))
+				requestURL, err := url.Parse(httpClient.requestURLs[0])
+				Expect(err).ToNot(HaveOccurred())
+				Expect(requestURL.Query().Get("name_filter")).To(Equal("egress"))
+			})
+
+			It("fatally logs that the API does not support this option", func() {
+				args := []string{"--name-filter", "egress", "app-name"}
+				httpClient.serverVersion = "2.0.3"
+
+				Expect(func() {
+					cf.Tail(
+						context.Background(),
+						cliConn,
+						args,
+						httpClient,
+						logger,
+						writer,
+					)
+				}).To(Panic())
+
+				Expect(logger.fatalfMessage).To(Equal("Use of --name-filter requires minimum log-cache version 2.1.0"))
+			})
 		})
 
 		It("fatally logs if there is an error while getting API endpoint", func() {

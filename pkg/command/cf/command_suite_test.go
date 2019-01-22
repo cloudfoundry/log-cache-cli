@@ -58,12 +58,15 @@ type stubHTTPClient struct {
 
 	requestURLs    []string
 	requestHeaders []http.Header
+
+	serverVersion string
 }
 
 func newStubHTTPClient() *stubHTTPClient {
 	return &stubHTTPClient{
-		responseCode: http.StatusOK,
-		responseBody: []string{},
+		responseCode:  http.StatusOK,
+		responseBody:  []string{},
+		serverVersion: "1.4.7",
 	}
 }
 
@@ -75,7 +78,7 @@ func (s *stubHTTPClient) Do(r *http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: http.StatusOK,
 			Body: ioutil.NopCloser(strings.NewReader(
-				`{"version": "1.4.7"}`,
+				fmt.Sprintf(`{"version": "%s"}`, s.serverVersion),
 			)),
 		}, nil
 	}
