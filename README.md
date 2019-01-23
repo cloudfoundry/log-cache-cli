@@ -65,9 +65,8 @@ OPTIONS:
    --lines, -n                Number of envelopes to return. Default is 10.
    --envelope-class, -c       Envelope class filter. Available filters: 'logs', 'metrics', and 'any'.
    --envelope-type, -t        Envelope type filter. Available filters: 'log', 'counter', 'gauge', 'timer', 'event', and 'any'.
-   --counter-name             Counter name filter (implies --envelope-type=counter).
-   --gauge-name               Gauge name filter (implies --envelope-type=gauge).
    --json                     Output envelopes in JSON format.
+   --name-filter              Filters metrics by name.
    --new-line                 Character used for new line substition, must be single unicode character. Default is '\n'.
 ```
 
