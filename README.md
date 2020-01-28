@@ -108,6 +108,12 @@ OPTIONS:
    --time       Effective time for query execution of an instant query. Cannont be used with --start, --end, or --step. Can be a unix timestamp or RFC3339.
 ```
 
+Example `cf query` usage:
+
+```
+cf query "cpu{source_id='73467cc3-261a-472e-80e8-d6eadfd30d98'}" --start 1580231000 --end 1580231060 --step 1
+```
+
 ## Stand alone CLI
 
 ### Installing CLI
