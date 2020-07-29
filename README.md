@@ -89,6 +89,30 @@ OPTIONS:
    --source-type       Source type of information to show. Available: 'all', 'application', and 'platform'.
 ```
 
+```
+cf query --help
+NAME:
+   query - Issues a PromQL query against Log Cache
+
+USAGE:
+   query <promql-query> [options]
+
+ENVIRONMENT VARIABLES:
+   LOG_CACHE_ADDR       Overrides the default location of log-cache.
+   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
+
+OPTIONS:
+   --end        End time for a range query. Cannont be used with --time. Can be a unix timestamp or RFC3339.
+   --start      Start time for a range query. Cannont be used with --time. Can be a unix timestamp or RFC3339.
+   --step       Step interval for a range query. Cannot be used with --time.
+   --time       Effective time for query execution of an instant query. Cannont be used with --start, --end, or --step. Can be a unix timestamp or RFC3339.
+```
+
+Example `cf query` usage:
+
+```
+cf query "cpu{source_id='73467cc3-261a-472e-80e8-d6eadfd30d98'}" --start 1580231000 --end 1580231060 --step 1
+```
 
 ## Stand alone CLI
 
