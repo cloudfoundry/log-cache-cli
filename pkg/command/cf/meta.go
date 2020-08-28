@@ -75,39 +75,6 @@ type servicesResponse struct {
 
 type Tailer func(sourceID string) []string
 
-type calculator struct {
-	ctx    context.Context
-	cli    plugin.CliConnection
-	c      HTTPClient
-	log    Logger
-	tailer Tailer
-}
-
-func newCalculator(ctx context.Context, cli plugin.CliConnection, c HTTPClient, log Logger, tailer Tailer) *calculator {
-	return &calculator{
-		ctx:    ctx,
-		cli:    cli,
-		c:      c,
-		log:    log,
-		tailer: tailer,
-	}
-}
-
-func (calc *calculator) rate(sourceID string) int {
-	batch := struct {
-		Results []string `json:"batch"`
-	}{}
-
-	var results []string
-
-	for _, lines := range calc.tailer(sourceID) {
-		json.NewDecoder(strings.NewReader(lines)).Decode(&batch)
-		results = append(results, batch.Results...)
-	}
-
-	return len(results)
-}
-
 type optionsFlags struct {
 	SourceType  string `long:"source-type"`
 	EnableNoise bool   `long:"noise"`
@@ -115,6 +82,7 @@ type optionsFlags struct {
 	SortBy      string `long:"sort-by"`
 
 	noHeaders bool
+	noSleep   bool
 }
 
 var (
@@ -129,11 +97,16 @@ func WithMetaNoHeaders() MetaOption {
 	}
 }
 
+func WithMetaNoSleep() MetaOption {
+	return func(o *optionsFlags) {
+		o.noSleep = true
+	}
+}
+
 // Meta returns the metadata from Log Cache
 func Meta(
 	ctx context.Context,
 	cli plugin.CliConnection,
-	tailer Tailer,
 	args []string,
 	c HTTPClient,
 	log Logger,
@@ -233,7 +206,7 @@ func Meta(
 	}
 
 	if opts.EnableNoise {
-		headerArgs = append(headerArgs, "Rate")
+		headerArgs = append(headerArgs, "Rate/minute")
 		headerFormat = strings.Replace(headerFormat, "\n", "\t%s\n", 1)
 		tableFormat = strings.Replace(tableFormat, "\n", "\t%s\n", 1)
 	}
@@ -243,8 +216,26 @@ func Meta(
 		fmt.Fprintf(tw, headerFormat, headerArgs...)
 	}
 	var rows [][]interface{}
-	calculator := newCalculator(ctx, cli, c, log, tailer)
-
+	var meta2 map[string]*logcache_v1.MetaInfo
+	if opts.EnableNoise {
+		if !opts.noHeaders {
+			fmt.Fprintf(tableWriter, "Waiting 5 minutes then comparing log output...\n\n")
+		}
+		if !opts.noSleep {
+			time.Sleep(5 * time.Minute)
+		}
+		if !opts.noHeaders {
+			fmt.Fprintf(tableWriter, fmt.Sprintf(
+				"Retrieving new log cache metadata as %s...\n\n",
+				username,
+			))
+		}
+		meta2, err = client.Meta(ctx)
+		meta, meta2 = meta2, meta
+		if err != nil {
+			log.Fatalf("Failed to read Meta information: %s", err)
+		}
+	}
 	for _, source := range resources {
 		m, ok := meta[source.GUID]
 		if !ok {
@@ -259,8 +250,10 @@ func Meta(
 			if opts.ShowGUID {
 				args = append([]interface{}{source.GUID}, args...)
 			}
+
 			if opts.EnableNoise {
-				args = append(args, displayRate(calculator.rate(source.GUID)))
+				diff := (m.Count + m.Expired) - (meta2[source.GUID].Count + meta2[source.GUID].Expired)
+				args = append(args, strconv.Itoa(int(diff)/5))
 			}
 
 			rows = append(rows, args)
@@ -276,7 +269,8 @@ func Meta(
 					args = append([]interface{}{sourceID}, args...)
 				}
 				if opts.EnableNoise {
-					args = append(args, displayRate(calculator.rate(sourceID)))
+					diff := (m.Count + m.Expired) - (meta2[sourceID].Count + meta2[sourceID].Expired)
+					args = append(args, strconv.Itoa(int(diff)/5))
 				}
 
 				rows = append(rows, args)
@@ -292,7 +286,8 @@ func Meta(
 					args = append([]interface{}{sourceID}, args...)
 				}
 				if opts.EnableNoise {
-					args = append(args, displayRate(calculator.rate(sourceID)))
+					diff := (m.Count + m.Expired) - (meta2[sourceID].Count + meta2[sourceID].Expired)
+					args = append(args, strconv.Itoa(int(diff)/5))
 				}
 
 				rows = append(rows, args)
