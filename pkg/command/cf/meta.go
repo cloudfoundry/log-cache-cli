@@ -75,46 +75,14 @@ type servicesResponse struct {
 
 type Tailer func(sourceID string) []string
 
-type calculator struct {
-	ctx    context.Context
-	cli    plugin.CliConnection
-	c      HTTPClient
-	log    Logger
-	tailer Tailer
-}
-
-func newCalculator(ctx context.Context, cli plugin.CliConnection, c HTTPClient, log Logger, tailer Tailer) *calculator {
-	return &calculator{
-		ctx:    ctx,
-		cli:    cli,
-		c:      c,
-		log:    log,
-		tailer: tailer,
-	}
-}
-
-func (calc *calculator) rate(sourceID string) int {
-	batch := struct {
-		Results []string `json:"batch"`
-	}{}
-
-	var results []string
-
-	for _, lines := range calc.tailer(sourceID) {
-		json.NewDecoder(strings.NewReader(lines)).Decode(&batch)
-		results = append(results, batch.Results...)
-	}
-
-	return len(results)
-}
-
 type optionsFlags struct {
 	SourceType  string `long:"source-type"`
 	EnableNoise bool   `long:"noise"`
 	ShowGUID    bool   `long:"guid"`
 	SortBy      string `long:"sort-by"`
 
-	noHeaders bool
+	withHeaders            bool
+	metaNoiseSleepDuration time.Duration
 }
 
 var (
@@ -125,7 +93,13 @@ type MetaOption func(*optionsFlags)
 
 func WithMetaNoHeaders() MetaOption {
 	return func(o *optionsFlags) {
-		o.noHeaders = true
+		o.withHeaders = false
+	}
+}
+
+func WithMetaNoiseSleepDuration(d time.Duration) MetaOption {
+	return func(o *optionsFlags) {
+		o.metaNoiseSleepDuration = d
 	}
 }
 
@@ -133,51 +107,108 @@ func WithMetaNoHeaders() MetaOption {
 func Meta(
 	ctx context.Context,
 	cli plugin.CliConnection,
-	tailer Tailer,
 	args []string,
 	c HTTPClient,
 	log Logger,
 	tableWriter io.Writer,
 	mopts ...MetaOption,
 ) {
-	opts := optionsFlags{
-		SourceType:  "all",
-		EnableNoise: false,
-		ShowGUID:    false,
-		SortBy:      "source",
-	}
+	opts := getOptions(args, log, mopts...)
+	client := createLogCacheClient(c, log, cli)
 
-	args, err := flags.ParseArgs(&opts, args)
+	var originalMeta map[string]*logcache_v1.MetaInfo
+	var currentMeta map[string]*logcache_v1.MetaInfo
+	currentMeta, err := client.Meta(ctx)
 	if err != nil {
-		log.Fatalf("Could not parse flags: %s", err)
+		log.Fatalf("Failed to read Meta information: %s", err)
 	}
 
-	for _, o := range mopts {
-		o(&opts)
+	resources, err := getSourceInfo(currentMeta, cli)
+	if err != nil {
+		log.Fatalf("Failed to read application information: %s", err)
 	}
 
-	if len(args) > 0 {
-		log.Fatalf("Invalid arguments, expected 0, got %d.", len(args))
+	if opts.EnableNoise {
+		originalMeta = currentMeta
+		time.Sleep(opts.metaNoiseSleepDuration)
+		currentMeta, err = client.Meta(ctx)
+		if err != nil {
+			log.Fatalf("Failed to read Meta information: %s", err)
+		}
 	}
 
-	sourceType := strings.ToLower(opts.SourceType)
-	if invalidSourceType(sourceType) {
-		log.Fatalf("Source type must be 'platform', 'application', 'service', or 'all'.")
+	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
+	writeHeaders(opts, log, cli, tw)
+
+	rows := toDisplayRows(resources, currentMeta, originalMeta)
+	rows = filterRows(opts, rows)
+	sortRows(opts, rows)
+
+	for _, r := range rows {
+		format, items := tableFormat(opts, r)
+		fmt.Fprintf(tw, format, items...)
 	}
 
-	sortBy := strings.ToLower(opts.SortBy)
-	if invalidSortBy(sortBy) {
-		log.Fatalf("Sort by must be 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', or 'rate'.")
+	if err = tw.Flush(); err != nil {
+		log.Fatalf("Error writing results")
+	}
+}
+
+func toDisplayRows(resources map[string]source, currentMeta, originalMeta map[string]*logcache_v1.MetaInfo) []displayRow {
+	var rows []displayRow
+	for sourceID, m := range currentMeta {
+		dR := displayRow{Source: sourceID, SourceID: sourceID, Count: m.Count, Expired: m.Expired, CacheDuration: cacheDuration(m)}
+		source, isAppOrService := resources[sourceID]
+		if isAppOrService {
+			dR.Type = source.Type
+			dR.Source = source.Name
+		} else if appOrServiceRegex.MatchString(sourceID) {
+			dR.Type = sourceTypeUnknown
+		} else {
+			dR.Type = sourceTypePlatform
+		}
+		if originalMeta[sourceID] != nil {
+			diff := (m.Count + m.Expired) - (originalMeta[sourceID].Count + originalMeta[sourceID].Expired)
+			dR.Delta = diff / 5
+		} else {
+			dR.Delta = -1
+		}
+		rows = append(rows, dR)
 	}
 
-	if sortByRate.Equal(sortBy) && !opts.EnableNoise {
-		log.Fatalf("Can't sort by rate column without --noise flag")
-	}
+	return rows
+}
 
-	if sortBySourceID.Equal(sortBy) && !opts.ShowGUID {
-		log.Fatalf("Can't sort by source id column without --guid flag")
+func filterRows(opts optionsFlags, rows []displayRow) []displayRow {
+	if sourceTypeAll.Equal(opts.SourceType) {
+		return rows
 	}
+	filteredRows := []displayRow{}
+	for _, row := range rows {
+		if row.Type == sourceTypeApplication && sourceTypeApplication.Equal(opts.SourceType) {
+			filteredRows = append(filteredRows, row)
+		}
+		if row.Type == sourceTypePlatform && sourceTypePlatform.Equal(opts.SourceType) {
+			filteredRows = append(filteredRows, row)
+		}
+		if row.Type == sourceTypeService && sourceTypeService.Equal(opts.SourceType) {
+			filteredRows = append(filteredRows, row)
+		}
+	}
+	return filteredRows
+}
 
+type displayRow struct {
+	Source        string
+	SourceID      string
+	Type          sourceType
+	Count         int64
+	Expired       int64
+	CacheDuration time.Duration
+	Delta         int64
+}
+
+func createLogCacheClient(c HTTPClient, log Logger, cli plugin.CliConnection) *logcache.Client {
 	logCacheEndpoint, err := logCacheEndpoint(cli)
 	if err != nil {
 		log.Fatalf("Could not determine Log Cache endpoint: %s", err)
@@ -195,27 +226,35 @@ func Meta(
 		}
 	}
 
-	client := logcache.NewClient(
+	return logcache.NewClient(
 		logCacheEndpoint,
 		logcache.WithHTTPClient(c),
 	)
+}
 
-	meta, err := client.Meta(ctx)
-	if err != nil {
-		log.Fatalf("Failed to read Meta information: %s", err)
+func tableFormat(opts optionsFlags, row displayRow) (string, []interface{}) {
+	tableFormat := "%s\t%s\t%d\t%d\t%s\n"
+	items := []interface{}{interface{}(row.Source), interface{}(row.Type), interface{}(row.Count), interface{}(row.Expired), interface{}(row.CacheDuration)}
+	if opts.ShowGUID {
+		tableFormat = "%s\t" + tableFormat
+		items = append([]interface{}{interface{}(row.SourceID)}, items...)
 	}
 
-	resources, err := getSourceInfo(meta, cli)
-	if err != nil {
-		log.Fatalf("Failed to read application information: %s", err)
+	if opts.EnableNoise {
+		tableFormat = strings.Replace(tableFormat, "\n", "\t%d\n", 1)
+		items = append(items, interface{}(row.Delta))
 	}
 
+	return tableFormat, items
+}
+
+func writeHeaders(opts optionsFlags, log Logger, cli plugin.CliConnection, tableWriter io.Writer) {
 	username, err := cli.Username()
 	if err != nil {
 		log.Fatalf("Could not get username: %s", err)
 	}
 
-	if !opts.noHeaders {
+	if opts.withHeaders {
 		fmt.Fprintf(tableWriter, fmt.Sprintf(
 			"Retrieving log cache metadata as %s...\n\n",
 			username,
@@ -224,91 +263,73 @@ func Meta(
 
 	headerArgs := []interface{}{"Source", "Source Type", "Count", "Expired", "Cache Duration"}
 	headerFormat := "%s\t%s\t%s\t%s\t%s\n"
-	tableFormat := "%s\t%s\t%d\t%d\t%s\n"
 
 	if opts.ShowGUID {
 		headerArgs = append([]interface{}{"Source ID"}, headerArgs...)
 		headerFormat = "%s\t" + headerFormat
-		tableFormat = "%s\t" + tableFormat
 	}
 
 	if opts.EnableNoise {
-		headerArgs = append(headerArgs, "Rate")
+		headerArgs = append(headerArgs, "Rate/minute")
 		headerFormat = strings.Replace(headerFormat, "\n", "\t%s\n", 1)
-		tableFormat = strings.Replace(tableFormat, "\n", "\t%s\n", 1)
 	}
 
-	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
-	if !opts.noHeaders {
-		fmt.Fprintf(tw, headerFormat, headerArgs...)
-	}
-	var rows [][]interface{}
-	calculator := newCalculator(ctx, cli, c, log, tailer)
-
-	for _, source := range resources {
-		m, ok := meta[source.GUID]
-		if !ok {
-			continue
+	if opts.withHeaders {
+		if opts.EnableNoise {
+			fmt.Fprintf(tableWriter, "Waiting 5 minutes then comparing log output...\n\n")
+			fmt.Fprintf(tableWriter, fmt.Sprintf(
+				"Retrieving new log cache metadata as %s...\n\n",
+				username,
+			))
 		}
-		delete(meta, source.GUID)
 
-		displayApplication := sourceTypeApplication.Equal(sourceType) && source.Type == sourceTypeApplication
-		displayService := sourceTypeService.Equal(sourceType) && source.Type == sourceTypeService
-		if sourceTypeAll.Equal(sourceType) || displayApplication || displayService {
-			args := []interface{}{source.Name, source.Type, m.Count, m.Expired, cacheDuration(m)}
-			if opts.ShowGUID {
-				args = append([]interface{}{source.GUID}, args...)
-			}
-			if opts.EnableNoise {
-				args = append(args, displayRate(calculator.rate(source.GUID)))
-			}
+		fmt.Fprintf(tableWriter, headerFormat, headerArgs...)
+	}
+}
 
-			rows = append(rows, args)
-		}
+func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
+	opts := optionsFlags{
+		SourceType:             "all",
+		EnableNoise:            false,
+		ShowGUID:               false,
+		SortBy:                 "source",
+		withHeaders:            true,
+		metaNoiseSleepDuration: 5 * time.Minute,
 	}
 
-	// Source IDs that aren't apps or services
-	if sourceTypeAll.Equal(sourceType) {
-		for sourceID, m := range meta {
-			if appOrServiceRegex.MatchString(sourceID) {
-				args := []interface{}{sourceID, sourceTypeUnknown, m.Count, m.Expired, cacheDuration(m)}
-				if opts.ShowGUID {
-					args = append([]interface{}{sourceID}, args...)
-				}
-				if opts.EnableNoise {
-					args = append(args, displayRate(calculator.rate(sourceID)))
-				}
-
-				rows = append(rows, args)
-			}
-		}
+	for _, o := range mopts {
+		o(&opts)
 	}
 
-	if sourceTypePlatform.Equal(sourceType) || sourceTypeAll.Equal(sourceType) {
-		for sourceID, m := range meta {
-			if !appOrServiceRegex.MatchString(sourceID) {
-				args := []interface{}{sourceID, sourceTypePlatform, m.Count, m.Expired, cacheDuration(m)}
-				if opts.ShowGUID {
-					args = append([]interface{}{sourceID}, args...)
-				}
-				if opts.EnableNoise {
-					args = append(args, displayRate(calculator.rate(sourceID)))
-				}
-
-				rows = append(rows, args)
-			}
-		}
+	args, err := flags.ParseArgs(&opts, args)
+	if err != nil {
+		log.Fatalf("Could not parse flags: %s", err)
 	}
 
-	sortRows(opts, rows)
-
-	for _, r := range rows {
-		fmt.Fprintf(tw, tableFormat, r...)
+	if len(args) > 0 {
+		log.Fatalf("Invalid arguments, expected 0, got %d.", len(args))
 	}
 
-	if err = tw.Flush(); err != nil {
-		log.Fatalf("Error writing results")
+	opts.SourceType = strings.ToLower(opts.SourceType)
+	opts.SortBy = strings.ToLower(opts.SortBy)
+
+	if invalidSourceType(opts.SourceType) {
+		log.Fatalf("Source type must be 'platform', 'application', 'service', or 'all'.")
 	}
+
+	if invalidSortBy(opts.SortBy) {
+		log.Fatalf("Sort by must be 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', or 'rate'.")
+	}
+
+	if sortByRate.Equal(opts.SortBy) && !opts.EnableNoise {
+		log.Fatalf("Can't sort by rate column without --noise flag")
+	}
+
+	if sortBySourceID.Equal(opts.SortBy) && !opts.ShowGUID {
+		log.Fatalf("Can't sort by source id column without --guid flag")
+	}
+
+	return opts
 }
 
 func displayRate(rate int) string {
@@ -323,52 +344,57 @@ func displayRate(rate int) string {
 	return output
 }
 
-func sortRows(opts optionsFlags, rows [][]interface{}) {
-	var sorter sort.Interface
-	var columnPadding int
-
-	// if we're sending the --guid flag, we prepend the source id column,
-	// which pushes over all the other columns by 1
-	if opts.ShowGUID {
-		columnPadding += 1
-	}
-
+func sortRows(opts optionsFlags, rows []displayRow) {
 	switch opts.SortBy {
 	case string(sortBySourceID):
-		sorter = newColumnSorterWithLesser(&sourceLesser{
-			colToSortOn: 0,
-			rows:        rows,
-		}, rows)
+		sort.Slice(rows, func(i, j int) bool {
+			if rows[i].Type == sourceTypeUnknown && rows[j].Type != sourceTypeUnknown {
+				return false
+			}
+			if rows[j].Type == sourceTypeUnknown && rows[i].Type != sourceTypeUnknown {
+				return true
+			}
+			return rows[i].SourceID < rows[j].SourceID
+		})
 	case string(sortBySource):
-		sorter = newColumnSorterWithLesser(&sourceLesser{
-			colToSortOn: 0 + columnPadding,
-			rows:        rows,
-		}, rows)
+		sort.Slice(rows, func(i, j int) bool {
+			if rows[i].Type == sourceTypeUnknown && rows[j].Type != sourceTypeUnknown {
+				return false
+			}
+			if rows[j].Type == sourceTypeUnknown && rows[i].Type != sourceTypeUnknown {
+				return true
+			}
+			return rows[i].Source < rows[j].Source
+		})
 	case string(sortBySourceType):
-		sorter = newColumnSorter(1+columnPadding, rows)
+		sort.Slice(rows, func(i, j int) bool {
+			return rows[i].Type < rows[j].Type
+		})
 	case string(sortByCount):
-		sorter = newColumnSorter(2+columnPadding, rows)
+		sort.Slice(rows, func(i, j int) bool {
+			return rows[i].Count < rows[j].Count
+		})
 	case string(sortByExpired):
-		sorter = newColumnSorter(3+columnPadding, rows)
+		sort.Slice(rows, func(i, j int) bool {
+			return rows[i].Expired < rows[j].Expired
+		})
 	case string(sortByCacheDuration):
-		sorter = newColumnSorter(4+columnPadding, rows)
+		sort.Slice(rows, func(i, j int) bool {
+			return rows[i].CacheDuration < rows[j].CacheDuration
+		})
 	case string(sortByRate):
-		sorter = newColumnSorter(5+columnPadding, rows)
-	default:
-		sorter = newColumnSorterWithLesser(&sourceLesser{
-			colToSortOn: 0 + columnPadding,
-			rows:        rows,
-		}, rows)
+		sort.Slice(rows, func(i, j int) bool {
+			return rows[i].Delta < rows[j].Delta
+		})
 	}
-
-	sort.Sort(sorter)
 }
 
-func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection) ([]source, error) {
+func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection) (map[string]source, error) {
 	var (
-		resources []source
+		resources map[string]source
 		sourceIDs []string
 	)
+	resources = make(map[string]source)
 
 	meta := make(map[string]int)
 	for k := range metaInfo {
@@ -389,7 +415,7 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 
 		for _, res := range r.Resources {
 			res.Type = sourceTypeApplication
-			resources = append(resources, res)
+			resources[res.GUID] = res
 		}
 	}
 
@@ -413,11 +439,11 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 			return nil, err
 		}
 		for _, res := range r.Resources {
-			resources = append(resources, source{
+			resources[res.Metadata.GUID] = source{
 				GUID: res.Metadata.GUID,
 				Name: res.Entity.Name,
 				Type: sourceTypeService,
-			})
+			}
 		}
 	}
 
@@ -530,129 +556,4 @@ func invalidSortBy(sb string) bool {
 	}
 
 	return true
-}
-
-func (s *columnLesser) Less(i, j int) bool {
-	if sourceI, ok := s.rows[i][s.colToSortOn].(int); ok {
-		sourceJ := s.rows[j][s.colToSortOn].(int)
-
-		return sourceI < sourceJ
-	}
-
-	if sourceI, ok := s.rows[i][s.colToSortOn].(int64); ok {
-		sourceJ := s.rows[j][s.colToSortOn].(int64)
-
-		return sourceI < sourceJ
-	}
-
-	if sourceI, ok := s.rows[i][s.colToSortOn].(string); ok {
-		sourceJ := s.rows[j][s.colToSortOn].(string)
-
-		// We might be sorting a rate that is ">999", which will return an
-		// error when we try to convert to an integer. Catch those rates and
-		// explicitly treat those as the greater value, returning true or
-		// false as appropriate depending on which side of the comparison it
-		// falls on.
-		numSourceI, err := strconv.Atoi(sourceI)
-		if err != nil {
-			return false
-		}
-
-		numSourceJ, err := strconv.Atoi(sourceJ)
-		if err != nil {
-			return true
-		}
-
-		return numSourceI < numSourceJ
-	}
-
-	if sourceI, ok := s.rows[i][s.colToSortOn].(time.Duration); ok {
-		sourceJ := s.rows[j][s.colToSortOn].(time.Duration)
-
-		return sourceI < sourceJ
-	}
-
-	if sourceI, ok := s.rows[i][s.colToSortOn].(sourceType); ok {
-		sourceJ := s.rows[j][s.colToSortOn].(sourceType)
-
-		return sourceI < sourceJ
-	}
-
-	return false
-}
-
-type lesser interface {
-	Less(i, j int) bool
-}
-
-type columnLesser struct {
-	colToSortOn int
-	rows        [][]interface{}
-}
-
-type columnSorter struct {
-	l    lesser
-	rows [][]interface{}
-}
-
-func newColumnSorterWithLesser(l lesser, rows [][]interface{}) *columnSorter {
-	return &columnSorter{
-		l:    l,
-		rows: rows,
-	}
-}
-
-func newColumnSorter(colToSortOn int, rows [][]interface{}) *columnSorter {
-	return &columnSorter{
-		l: &columnLesser{
-			colToSortOn: colToSortOn,
-			rows:        rows,
-		},
-		rows: rows,
-	}
-}
-
-func (s *columnSorter) Len() int {
-	return len(s.rows)
-}
-
-func (s *columnSorter) Less(i, j int) bool {
-	return s.l.Less(i, j)
-}
-
-func (s *columnSorter) Swap(i, j int) {
-	t := s.rows[i]
-	s.rows[i] = s.rows[j]
-	s.rows[j] = t
-}
-
-type sourceLesser struct {
-	colToSortOn int
-	rows        [][]interface{}
-}
-
-func (s *sourceLesser) Less(i, j int) bool {
-	sourceI := s.rows[i][s.colToSortOn].(string)
-	sourceJ := s.rows[j][s.colToSortOn].(string)
-
-	isGuidI := appOrServiceRegex.MatchString(sourceI)
-	isGuidJ := appOrServiceRegex.MatchString(sourceJ)
-
-	// Both are guids
-	if isGuidI && isGuidJ {
-		return sourceI < sourceJ
-	}
-
-	// Only sourceI is guid
-	if isGuidI {
-		return false
-	}
-
-	// Only sourceJ is guid
-	if isGuidJ {
-		return true
-	}
-
-	// Neither sourceI or sourceJ are guids
-	return sourceI < sourceJ
 }

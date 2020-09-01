@@ -8,8 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/log-cache-cli/pkg/command/cf"
@@ -58,32 +56,6 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 		cf.Meta(
 			ctx,
 			cli,
-			func(sourceID string) []string {
-				var buf linesWriter
-				end := time.Now()
-				start := end.Add(-time.Minute)
-
-				args := []string{
-					sourceID,
-					"--start-time",
-					strconv.FormatInt(start.UnixNano(), 10),
-					"--end-time",
-					strconv.FormatInt(end.UnixNano(), 10),
-					"--json",
-					"--lines", strconv.Itoa(cf.MaximumBatchSize),
-				}
-
-				cf.Tail(
-					ctx,
-					cli,
-					args,
-					c,
-					log,
-					&buf,
-				)
-
-				return buf.lines
-			},
 			args,
 			c,
 			log,

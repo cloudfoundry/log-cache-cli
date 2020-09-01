@@ -36,23 +36,9 @@ var _ = Describe("Meta", func() {
 
 	Context("when specifying a sort by flag", func() {
 		It("specifying `--sort-by rate` sorts by the rate column", func() {
-			tailer := func(sourceID string) []string {
-				switch sourceID {
-				case "source-1":
-					return generateBatch(5)
-				case "source-2":
-					return generateBatch(3)
-				case "source-3":
-					return generateBatch(1)
-				case "source-4":
-					return generateBatch(2)
-				default:
-					panic("unexpected source-id")
-				}
-			}
-
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
+				variedMetaResponseInfoButHigher([]int{5 * 5, 3 * 5, 1 * 5, 2 * 5}, "source-1", "source-2", "source-3", "source-4"),
 			}
 
 			cliConn.cliCommandResult = [][]string{
@@ -73,11 +59,11 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				tailer,
 				[]string{"--noise", "--sort-by", "rate"},
 				httpClient,
 				logger,
 				tableWriter,
+				cf.WithMetaNoiseSleepDuration(0),
 			)
 
 			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
@@ -86,74 +72,22 @@ var _ = Describe("Meta", func() {
 					cliConn.usernameResp,
 				),
 				"",
-				"Source     Source Type  Count   Expired  Cache Duration  Rate",
-				"service-3  service      99997   85003    9m0s            1",
-				"app-4      application  99996   85004    13m30s          2",
-				"source-2   platform     100002  84998    4m30s           3",
-				"app-1      application  100001  84999    1s              5",
+				"Waiting 5 minutes then comparing log output...",
 				"",
-			}))
-
-			Expect(httpClient.requestCount()).To(Equal(1))
-		})
-
-		It("returns rate of >999 when the batch limit of 1000 is reached, while still sorting correctly", func() {
-			tailer := func(sourceID string) []string {
-				switch sourceID {
-				case "source-1":
-					return generateBatch(1000)
-				case "source-2":
-					return generateBatch(10)
-				case "source-3":
-					return generateBatch(3)
-				default:
-					return nil
-
-				}
-			}
-
-			httpClient.responseBody = []string{
-				variedMetaResponseInfo("source-1", "source-2", "source-3"),
-			}
-
-			cliConn.cliCommandResult = [][]string{
-				{
-					capiAppsResponse(map[string]string{
-						"source-1": "app-1",
-					}),
-				},
-				{
-					capiServiceInstancesResponse(map[string]string{
-						"source-3": "service-3",
-					}),
-				},
-			}
-			cliConn.cliCommandErr = nil
-
-			cf.Meta(
-				context.Background(),
-				cliConn,
-				tailer,
-				[]string{"--noise", "--sort-by", "rate"},
-				httpClient,
-				logger,
-				tableWriter,
-			)
-
-			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 				fmt.Sprintf(
-					"Retrieving log cache metadata as %s...",
+					"Retrieving new log cache metadata as %s...",
 					cliConn.usernameResp,
 				),
 				"",
-				"Source     Source Type  Count   Expired  Cache Duration  Rate",
-				"service-3  service      99997   85003    9m0s            3",
-				"source-2   platform     100002  84998    4m30s           10",
-				"app-1      application  100001  84999    1s              >999",
+				"Source     Source Type  Count   Expired  Cache Duration  Rate/minute",
+				"service-3  service      100002  85003    9m0s            1",
+				"app-4      application  100006  85004    13m30s          2",
+				"source-2   platform     100017  84998    4m30s           3",
+				"app-1      application  100026  84999    1s              5",
 				"",
 			}))
 
-			Expect(httpClient.requestCount()).To(Equal(1))
+			Expect(httpClient.requestCount()).To(Equal(2))
 		})
 
 		It("specifying `--sort-by source-type` sorts by the source type column", func() {
@@ -178,7 +112,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				[]string{"--sort-by", "source-type"},
 				httpClient,
 				logger,
@@ -224,7 +157,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				[]string{"--guid", "--sort-by", "source-id"},
 				httpClient,
 				logger,
@@ -271,7 +203,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				[]string{"--guid", "--sort-by", "source"},
 				httpClient,
 				logger,
@@ -315,7 +246,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				[]string{"--sort-by", "count"},
 				httpClient,
 				logger,
@@ -359,7 +289,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				[]string{"--sort-by", "expired"},
 				httpClient,
 				logger,
@@ -403,7 +332,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				[]string{"--sort-by", "cache-duration"},
 				httpClient,
 				logger,
@@ -432,7 +360,6 @@ var _ = Describe("Meta", func() {
 				cf.Meta(
 					context.Background(),
 					cliConn,
-					nil,
 					[]string{"--sort-by", "invalid"},
 					httpClient,
 					logger,
@@ -448,7 +375,6 @@ var _ = Describe("Meta", func() {
 				cf.Meta(
 					context.Background(),
 					cliConn,
-					nil,
 					[]string{"--sort-by", "source-id"},
 					httpClient,
 					logger,
@@ -464,7 +390,6 @@ var _ = Describe("Meta", func() {
 				cf.Meta(
 					context.Background(),
 					cliConn,
-					nil,
 					[]string{"--sort-by", "rate"},
 					httpClient,
 					logger,
@@ -494,7 +419,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			[]string{"--guid"},
 			httpClient,
 			logger,
@@ -545,7 +469,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			[]string{"--guid"},
 			httpClient,
 			logger,
@@ -583,7 +506,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			[]string{"--guid"},
 			httpClient,
 			logger,
@@ -644,7 +566,6 @@ var _ = Describe("Meta", func() {
 			context.Background(),
 			cliConn,
 			nil,
-			nil,
 			httpClient,
 			logger,
 			tableWriter,
@@ -670,21 +591,13 @@ var _ = Describe("Meta", func() {
 	})
 
 	It("displays the rate column for each service type", func() {
-		tailer := func(sourceID string) []string {
-			switch sourceID {
-			case "source-1":
-				return generateBatch(5)
-			case "source-2":
-				return generateBatch(3)
-			case "source-3":
-				return generateBatch(1)
-			default:
-				panic("unexpected source-id")
-			}
-		}
-
 		httpClient.responseBody = []string{
 			metaResponseInfo(
+				"source-1",
+				"source-2",
+				"source-3",
+			),
+			metaResponseInfoButHigher(
 				"source-1",
 				"source-2",
 				"source-3",
@@ -704,11 +617,11 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			tailer,
 			[]string{"--noise"},
 			httpClient,
 			logger,
 			tableWriter,
+			cf.WithMetaNoiseSleepDuration(0),
 		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
@@ -717,14 +630,21 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			"Source     Source Type  Count   Expired  Cache Duration  Rate",
-			"app-1      application  100000  85008    1s              5",
-			"service-3  service      100000  85008    11m45s          1",
-			"source-2   platform     100000  85008    11m45s          3",
+			"Waiting 5 minutes then comparing log output...",
+			"",
+			fmt.Sprintf(
+				"Retrieving new log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source     Source Type  Count   Expired  Cache Duration  Rate/minute",
+			"app-1      application  100004  85009    1s              1",
+			"service-3  service      100004  85009    11m45s          1",
+			"source-2   platform     100004  85009    11m45s          1",
 			"",
 		}))
 
-		Expect(httpClient.requestCount()).To(Equal(1))
+		Expect(httpClient.requestCount()).To(Equal(2))
 	})
 
 	It("prints source IDs without app names when CAPI doesn't return info", func() {
@@ -745,7 +665,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			nil,
 			httpClient,
 			logger,
@@ -807,7 +726,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			args,
 			httpClient,
 			logger,
@@ -849,7 +767,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			args,
 			httpClient,
 			logger,
@@ -891,7 +808,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			args,
 			httpClient,
 			logger,
@@ -932,7 +848,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			args,
 			httpClient,
 			logger,
@@ -975,7 +890,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			args,
 			httpClient,
 			logger,
@@ -1023,7 +937,6 @@ var _ = Describe("Meta", func() {
 		cf.Meta(
 			context.Background(),
 			cliConn,
-			nil,
 			nil,
 			httpClient,
 			logger,
@@ -1084,7 +997,6 @@ var _ = Describe("Meta", func() {
 			context.Background(),
 			cliConn,
 			nil,
-			nil,
 			httpClient,
 			logger,
 			tableWriter,
@@ -1116,7 +1028,6 @@ var _ = Describe("Meta", func() {
 			context.Background(),
 			cliConn,
 			nil,
-			nil,
 			httpClient,
 			logger,
 			tableWriter,
@@ -1130,7 +1041,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				[]string{"extra-arg"},
 				httpClient,
 				logger,
@@ -1147,7 +1057,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				args,
 				httpClient,
 				logger,
@@ -1165,7 +1074,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				nil,
 				httpClient,
 				logger,
@@ -1188,7 +1096,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				nil,
 				httpClient,
 				logger,
@@ -1218,7 +1125,6 @@ var _ = Describe("Meta", func() {
 				context.Background(),
 				cliConn,
 				nil,
-				nil,
 				httpClient,
 				logger,
 				tableWriter,
@@ -1241,7 +1147,6 @@ var _ = Describe("Meta", func() {
 				context.Background(),
 				cliConn,
 				nil,
-				nil,
 				httpClient,
 				logger,
 				tableWriter,
@@ -1258,7 +1163,6 @@ var _ = Describe("Meta", func() {
 			cf.Meta(
 				context.Background(),
 				cliConn,
-				nil,
 				nil,
 				httpClient,
 				logger,
@@ -1296,6 +1200,25 @@ func metaResponseInfo(sourceIDs ...string) string {
 	return fmt.Sprintf(`{ "meta": { %s }}`, strings.Join(metaInfos, ","))
 }
 
+func metaResponseInfoButHigher(sourceIDs ...string) string {
+	var metaInfos []string
+	metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
+		  "count": "100004",
+		  "expired": "85009",
+		  "oldestTimestamp": "1519256863100000000",
+		  "newestTimestamp": "1519256863110000000"
+		}`, sourceIDs[0]))
+	for _, sourceID := range sourceIDs[1:] {
+		metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
+		  "count": "100004",
+		  "expired": "85009",
+		  "oldestTimestamp": "1519256157847077020",
+		  "newestTimestamp": "1519256863126668345"
+		}`, sourceID))
+	}
+	return fmt.Sprintf(`{ "meta": { %s }}`, strings.Join(metaInfos, ","))
+}
+
 func variedMetaResponseInfo(sourceIDs ...string) string {
 	var metaInfos []string
 	expiredBase := 85000
@@ -1310,6 +1233,31 @@ func variedMetaResponseInfo(sourceIDs ...string) string {
 		currentOffset := alternatingSign * (n + 1)
 		expired := expiredBase - currentOffset
 		count := countBase + currentOffset
+		newestTimestamp := oldestTimestampBase + n*270000000000
+
+		metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
+		  "count": "%d",
+		  "expired": "%d",
+		  "oldestTimestamp": "%d",
+		  "newestTimestamp": "%d"
+		}`, sourceID, count, expired, oldestTimestampBase, newestTimestamp))
+	}
+	return fmt.Sprintf(`{ "meta": { %s }}`, strings.Join(metaInfos, ","))
+}
+
+func variedMetaResponseInfoButHigher(diffs []int, sourceIDs ...string) string {
+	var metaInfos []string
+	expiredBase := 85000
+	countBase := 100000
+	oldestTimestampBase := 1519256863100000000
+	alternatingSign := -1
+	for n, sourceID := range sourceIDs {
+		if n%2 == 0 {
+			alternatingSign *= -1
+		}
+		currentOffset := alternatingSign * (n + 1)
+		expired := expiredBase - currentOffset
+		count := countBase + currentOffset + diffs[n]
 		newestTimestamp := oldestTimestampBase + n*270000000000
 
 		metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
