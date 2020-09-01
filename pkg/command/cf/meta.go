@@ -76,10 +76,11 @@ type servicesResponse struct {
 type Tailer func(sourceID string) []string
 
 type optionsFlags struct {
-	SourceType  string `long:"source-type"`
-	EnableNoise bool   `long:"noise"`
-	ShowGUID    bool   `long:"guid"`
-	SortBy      string `long:"sort-by"`
+	SourceType    string `long:"source-type"`
+	EnableNoise   bool   `long:"noise"`
+	ShowGUID      bool   `long:"guid"`
+	NoSourceNames bool   `long:"no-source-names"`
+	SortBy        string `long:"sort-by"`
 
 	withHeaders            bool
 	metaNoiseSleepDuration time.Duration
@@ -123,17 +124,20 @@ func Meta(
 		log.Fatalf("Failed to read Meta information: %s", err)
 	}
 
-	resources, err := getSourceInfo(currentMeta, cli)
-	if err != nil {
-		log.Fatalf("Failed to read application information: %s", err)
-	}
-
 	if opts.EnableNoise {
 		originalMeta = currentMeta
 		time.Sleep(opts.metaNoiseSleepDuration)
 		currentMeta, err = client.Meta(ctx)
 		if err != nil {
 			log.Fatalf("Failed to read Meta information: %s", err)
+		}
+	}
+
+	resources := make(map[string]source)
+	if !opts.NoSourceNames {
+		resources, err = getSourceInfo(currentMeta, cli)
+		if err != nil {
+			log.Fatalf("Failed to read application information: %s", err)
 		}
 	}
 

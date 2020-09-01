@@ -483,6 +483,39 @@ var _ = Describe("Meta", func() {
 		}))
 	})
 
+	It("does't ask capi for source id's", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo("11111111-1111-1111-1111-111111111111", "11111111-1111-1111-1111-111111111112", "platform"),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiAppsResponse(map[string]string{
+					"11111111-1111-1111-1111-111111111111": "app-2",
+					"11111111-1111-1111-1111-111111111112": "app-1",
+				}),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
+		cf.Meta(
+			context.Background(),
+			cliConn,
+			[]string{"--guid", "--no-source-names"},
+			httpClient,
+			logger,
+			tableWriter,
+			cf.WithMetaNoHeaders(),
+		)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			"platform                              platform                              platform  100000  85008  11m45s",
+			"11111111-1111-1111-1111-111111111111  11111111-1111-1111-1111-111111111111  unknown   100000  85008  1s",
+			"11111111-1111-1111-1111-111111111112  11111111-1111-1111-1111-111111111112  unknown   100000  85008  11m45s",
+			"",
+		}))
+	})
+
 	It("returns service instance names with service source guids", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1", "source-2", "source-3"),
