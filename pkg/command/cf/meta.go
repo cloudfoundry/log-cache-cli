@@ -116,17 +116,25 @@ func Meta(
 ) {
 	opts := getOptions(args, log, mopts...)
 	client := createLogCacheClient(c, log, cli)
+	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
+	username, err := cli.Username()
+	if err != nil {
+		log.Fatalf("Could not get username: %s", err)
+	}
 
 	var originalMeta map[string]*logcache_v1.MetaInfo
 	var currentMeta map[string]*logcache_v1.MetaInfo
-	currentMeta, err := client.Meta(ctx)
+	writeRetrievingMetaHeader(opts, tw, username)
+	currentMeta, err = client.Meta(ctx)
 	if err != nil {
 		log.Fatalf("Failed to read Meta information: %s", err)
 	}
 
 	if opts.EnableNoise {
 		originalMeta = currentMeta
+		writeWaiting(opts, tw, username)
 		time.Sleep(opts.metaNoiseSleepDuration)
+		writeRetrievingMetaHeader(opts, tw, username)
 		currentMeta, err = client.Meta(ctx)
 		if err != nil {
 			log.Fatalf("Failed to read Meta information: %s", err)
@@ -135,14 +143,14 @@ func Meta(
 
 	resources := make(map[string]source)
 	if !opts.NoSourceNames {
+		writeApssAndServicesHeader(opts, tw, username)
 		resources, err = getSourceInfo(currentMeta, cli)
 		if err != nil {
 			log.Fatalf("Failed to read application information: %s", err)
 		}
 	}
 
-	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
-	writeHeaders(opts, log, cli, tw)
+	writeHeaders(opts, tw, username)
 
 	rows := toDisplayRows(resources, currentMeta, originalMeta)
 	rows = filterRows(opts, rows)
@@ -252,42 +260,46 @@ func tableFormat(opts optionsFlags, row displayRow) (string, []interface{}) {
 	return tableFormat, items
 }
 
-func writeHeaders(opts optionsFlags, log Logger, cli plugin.CliConnection, tableWriter io.Writer) {
-	username, err := cli.Username()
-	if err != nil {
-		log.Fatalf("Could not get username: %s", err)
-	}
-
+func writeRetrievingMetaHeader(opts optionsFlags, tableWriter io.Writer, username string) {
 	if opts.withHeaders {
 		fmt.Fprintf(tableWriter, fmt.Sprintf(
 			"Retrieving log cache metadata as %s...\n\n",
 			username,
 		))
 	}
+}
 
-	headerArgs := []interface{}{"Source", "Source Type", "Count", "Expired", "Cache Duration"}
-	headerFormat := "%s\t%s\t%s\t%s\t%s\n"
-
-	if opts.ShowGUID {
-		headerArgs = append([]interface{}{"Source ID"}, headerArgs...)
-		headerFormat = "%s\t" + headerFormat
-	}
-
-	if opts.EnableNoise {
-		headerArgs = append(headerArgs, "Rate/minute")
-		headerFormat = strings.Replace(headerFormat, "\n", "\t%s\n", 1)
-	}
-
+func writeApssAndServicesHeader(opts optionsFlags, tableWriter io.Writer, username string) {
 	if opts.withHeaders {
-		if opts.EnableNoise {
-			fmt.Fprintf(tableWriter, "Waiting 5 minutes then comparing log output...\n\n")
-			fmt.Fprintf(tableWriter, fmt.Sprintf(
-				"Retrieving new log cache metadata as %s...\n\n",
-				username,
-			))
+		fmt.Fprintf(tableWriter, fmt.Sprintf(
+			"Retrieving app and service names as %s...\n\n",
+			username,
+		))
+	}
+}
+
+func writeHeaders(opts optionsFlags, tableWriter io.Writer, username string) {
+	if opts.withHeaders {
+		headerArgs := []interface{}{"Source", "Source Type", "Count", "Expired", "Cache Duration"}
+		headerFormat := "%s\t%s\t%s\t%s\t%s\n"
+
+		if opts.ShowGUID {
+			headerArgs = append([]interface{}{"Source ID"}, headerArgs...)
+			headerFormat = "%s\t" + headerFormat
 		}
 
+		if opts.EnableNoise {
+			headerArgs = append(headerArgs, "Rate/minute")
+			headerFormat = strings.Replace(headerFormat, "\n", "\t%s\n", 1)
+		}
 		fmt.Fprintf(tableWriter, headerFormat, headerArgs...)
+	}
+
+}
+
+func writeWaiting(opts optionsFlags, tableWriter io.Writer, username string) {
+	if opts.withHeaders {
+		fmt.Fprintf(tableWriter, "Waiting 5 minutes then comparing log output...\n\n")
 	}
 }
 
