@@ -75,7 +75,12 @@ var _ = Describe("Meta", func() {
 				"Waiting 5 minutes then comparing log output...",
 				"",
 				fmt.Sprintf(
-					"Retrieving new log cache metadata as %s...",
+					"Retrieving log cache metadata as %s...",
+					cliConn.usernameResp,
+				),
+				"",
+				fmt.Sprintf(
+					"Retrieving app and service names as %s...",
 					cliConn.usernameResp,
 				),
 				"",
@@ -124,6 +129,11 @@ var _ = Describe("Meta", func() {
 					cliConn.usernameResp,
 				),
 				"",
+				fmt.Sprintf(
+					"Retrieving app and service names as %s...",
+					cliConn.usernameResp,
+				),
+				"",
 				"Source     Source Type  Count   Expired  Cache Duration",
 				"app-1      application  100001  84999    1s",
 				"source-2   platform     100002  84998    4m30s",
@@ -166,6 +176,11 @@ var _ = Describe("Meta", func() {
 			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 				fmt.Sprintf(
 					"Retrieving log cache metadata as %s...",
+					cliConn.usernameResp,
+				),
+				"",
+				fmt.Sprintf(
+					"Retrieving app and service names as %s...",
 					cliConn.usernameResp,
 				),
 				"",
@@ -215,6 +230,11 @@ var _ = Describe("Meta", func() {
 					cliConn.usernameResp,
 				),
 				"",
+				fmt.Sprintf(
+					"Retrieving app and service names as %s...",
+					cliConn.usernameResp,
+				),
+				"",
 				"Source ID  Source     Source Type  Count   Expired  Cache Duration",
 				"source-1   app-1      application  100001  84999    1s",
 				"source-4   app-4      application  99996   85004    13m30s",
@@ -255,6 +275,11 @@ var _ = Describe("Meta", func() {
 			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 				fmt.Sprintf(
 					"Retrieving log cache metadata as %s...",
+					cliConn.usernameResp,
+				),
+				"",
+				fmt.Sprintf(
+					"Retrieving app and service names as %s...",
 					cliConn.usernameResp,
 				),
 				"",
@@ -301,6 +326,11 @@ var _ = Describe("Meta", func() {
 					cliConn.usernameResp,
 				),
 				"",
+				fmt.Sprintf(
+					"Retrieving app and service names as %s...",
+					cliConn.usernameResp,
+				),
+				"",
 				"Source  Source Type  Count   Expired  Cache Duration",
 				"app-2   application  100002  84998    4m30s",
 				"app-1   application  100001  84999    1s",
@@ -341,6 +371,11 @@ var _ = Describe("Meta", func() {
 			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 				fmt.Sprintf(
 					"Retrieving log cache metadata as %s...",
+					cliConn.usernameResp,
+				),
+				"",
+				fmt.Sprintf(
+					"Retrieving app and service names as %s...",
 					cliConn.usernameResp,
 				),
 				"",
@@ -442,6 +477,11 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
+				cliConn.usernameResp,
+			),
+			"",
 			"Source ID  Source  Source Type  Count   Expired  Cache Duration",
 			"source-2   app-1   application  100000  85008    11m45s",
 			"source-1   app-2   application  100000  85008    1s",
@@ -540,6 +580,11 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
+				cliConn.usernameResp,
+			),
+			"",
 			"Source ID  Source        Source Type  Count   Expired  Cache Duration",
 			"source-2   aa-service-2  service      100000  85008    11m45s",
 			"source-3   ab-service-3  service      100000  85008    11m45s",
@@ -579,6 +624,11 @@ var _ = Describe("Meta", func() {
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
 				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
 				cliConn.usernameResp,
 			),
 			"",
@@ -633,7 +683,12 @@ var _ = Describe("Meta", func() {
 			"Waiting 5 minutes then comparing log output...",
 			"",
 			fmt.Sprintf(
-				"Retrieving new log cache metadata as %s...",
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
 				cliConn.usernameResp,
 			),
 			"",
@@ -694,6 +749,11 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
+				cliConn.usernameResp,
+			),
+			"",
 			"Source    Source Type  Count   Expired  Cache Duration",
 			"app-1     application  100000  85008    1s",
 			"source-2  platform     100000  85008    11m45s",
@@ -738,6 +798,11 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
+				cliConn.usernameResp,
+			),
+			"",
 			"Source  Source Type  Count   Expired  Cache Duration",
 			"app-1   application  100000  85008    1s",
 			"",
@@ -776,6 +841,11 @@ var _ = Describe("Meta", func() {
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
 				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
 				cliConn.usernameResp,
 			),
 			"",
@@ -820,6 +890,11 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
+				cliConn.usernameResp,
+			),
+			"",
 			"Source    Source Type  Count   Expired  Cache Duration",
 			"source-2  platform     100000  85008    11m45s",
 			"",
@@ -857,6 +932,11 @@ var _ = Describe("Meta", func() {
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
 				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
 				cliConn.usernameResp,
 			),
 			"",
@@ -899,6 +979,11 @@ var _ = Describe("Meta", func() {
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
 				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
 				cliConn.usernameResp,
 			),
 			"",
@@ -975,7 +1060,7 @@ var _ = Describe("Meta", func() {
 
 		// 51 entries, 2 blank lines, "Retrieving..." preamble and table
 		// header comes to 55 lines.
-		Expect(strings.Split(tableWriter.String(), "\n")).To(HaveLen(55))
+		Expect(strings.Split(tableWriter.String(), "\n")).To(HaveLen(57))
 	})
 
 	It("uses the LOG_CACHE_ADDR environment variable", func() {
