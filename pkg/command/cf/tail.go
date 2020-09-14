@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -45,12 +44,6 @@ type TailOption func(*tailOptions)
 func WithTailNoHeaders() TailOption {
 	return func(o *tailOptions) {
 		o.noHeaders = true
-	}
-}
-
-func WithTailTokenRefreshInterval(interval time.Duration) TailOption {
-	return func(o *tailOptions) {
-		o.tokenRefreshInterval = interval
 	}
 }
 
@@ -144,18 +137,18 @@ func Tail(
 	}
 
 	tokenClient := &tokenHTTPClient{
-		c: c,
+		c:         c,
+		tokenFunc: func() string { return "" },
 	}
 
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		tokenClient.accessToken = getAccessTokenOrPanic(cli)
-
-		go func(tc *tokenHTTPClient) {
-			ticker := time.NewTicker(o.tokenRefreshInterval)
-			for range ticker.C {
-				tc.accessToken = getAccessTokenOrPanic(cli)
+		tokenClient.tokenFunc = func() string {
+			token, err := cli.AccessToken()
+			if err != nil {
+				log.Fatalf("Unable to get Access Token: %s", err)
 			}
-		}(tokenClient)
+			return token
+		}
 	}
 
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(tokenClient))
@@ -212,15 +205,6 @@ func Tail(
 			logcache.WithWalkNameFilter(o.nameFilter),
 		)
 	}
-}
-
-func getAccessTokenOrPanic(cli plugin.CliConnection) string {
-	token, err := cli.AccessToken()
-	if err != nil {
-		log.Fatalf("Unable to get Access Token: %s", err)
-	}
-
-	return token
 }
 
 type lineWriter struct {
@@ -520,13 +504,14 @@ func (b backoff) OnErr(err error) bool {
 }
 
 type tokenHTTPClient struct {
-	c           HTTPClient
-	accessToken string
+	c         HTTPClient
+	tokenFunc func() string
 }
 
 func (c *tokenHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	if len(c.accessToken) > 0 {
-		req.Header.Set("Authorization", c.accessToken)
+	accessToken := c.tokenFunc()
+	if len(accessToken) > 0 {
+		req.Header.Set("Authorization", accessToken)
 	}
 
 	return c.c.Do(req)

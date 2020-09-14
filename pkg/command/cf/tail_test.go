@@ -426,8 +426,6 @@ var _ = Describe("LogCache", func() {
 				fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
 			))
-
-			Expect(cliConn.accessTokenCount).To(Equal(1))
 		})
 
 		It("respects short flag for following", func() {
@@ -490,8 +488,6 @@ var _ = Describe("LogCache", func() {
 				fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
 			))
-
-			Expect(cliConn.accessTokenCount).To(Equal(1))
 		})
 
 		It("does no translation when --new-line is not set", func() {
@@ -554,8 +550,6 @@ var _ = Describe("LogCache", func() {
 				fmt.Sprintf(logFormat, startTime.Add(4*time.Second).Format(timeFormat), "OUT"),
 				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
 			))
-
-			Expect(cliConn.accessTokenCount).To(Equal(1))
 		})
 
 		It("only reports metrics that match -name-filter when set while following", func() {
@@ -653,8 +647,6 @@ var _ = Describe("LogCache", func() {
 				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
 				"body",
 			))
-
-			Expect(cliConn.accessTokenCount).To(Equal(1))
 		})
 
 		It("uses a codepoint string for --new-line", func() {
@@ -726,8 +718,6 @@ var _ = Describe("LogCache", func() {
 				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
 				"body",
 			))
-
-			Expect(cliConn.accessTokenCount).To(Equal(1))
 		})
 
 		It("uses a single rune for --new-line", func() {
@@ -799,8 +789,6 @@ var _ = Describe("LogCache", func() {
 				fmt.Sprintf(logFormat, startTime.Add(5*time.Second).Format(timeFormat), "ERR"),
 				"body",
 			))
-
-			Expect(cliConn.accessTokenCount).To(Equal(1))
 		})
 
 		It("fails when --new-line receives an invalid argument", func() {
@@ -1021,21 +1009,6 @@ var _ = Describe("LogCache", func() {
 			Expect(httpClient.requestHeaders).To(HaveLen(1))
 			Expect(httpClient.requestHeaders[0]).To(HaveLen(1))
 			Expect(httpClient.requestHeaders[0].Get("Authorization")).To(Equal("bearer some-token"))
-		})
-
-		It("refreshes the access token periodically", func() {
-			args := []string{"some-app"}
-			cf.Tail(
-				context.Background(),
-				cliConn,
-				args,
-				httpClient,
-				logger,
-				writer,
-				cf.WithTailTokenRefreshInterval(100*time.Millisecond),
-			)
-
-			Eventually(cliConn.getAccessTokenCount).Should(BeNumerically(">", 1))
 		})
 
 		It("formats the output via text/template", func() {

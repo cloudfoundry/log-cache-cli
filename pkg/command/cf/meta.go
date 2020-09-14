@@ -223,14 +223,15 @@ func createLogCacheClient(c HTTPClient, log Logger, cli plugin.CliConnection) *l
 	}
 
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		token, err := cli.AccessToken()
-		if err != nil {
-			log.Fatalf("Unable to get Access Token: %s", err)
-		}
-
 		c = &tokenHTTPClient{
-			c:           c,
-			accessToken: token,
+			c: c,
+			tokenFunc: func() string {
+				token, err := cli.AccessToken()
+				if err != nil {
+					log.Fatalf("Unable to get Access Token: %s", err)
+				}
+				return token
+			},
 		}
 	}
 
