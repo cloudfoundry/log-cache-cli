@@ -124,7 +124,7 @@ ENVIRONMENT VARIABLES:
 						"-source-type": "Source type of information to show. Available: 'all', 'application', and 'platform'.",
 						"-sort-by":     "Sort by specified column. Available: 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', and 'rate'.",
 						"-noise":       "Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...",
-						"-guid":        "Display raw source GUIDs",
+						"-guid":        "Display raw source GUIDs with no source Names. Incompativle with 'source' and 'source-type' for --sort-by. Incompatible with 'application' for --source-type",
 					},
 				},
 			},
