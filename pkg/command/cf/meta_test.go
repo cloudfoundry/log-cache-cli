@@ -144,108 +144,6 @@ var _ = Describe("Meta", func() {
 			Expect(httpClient.requestCount()).To(Equal(1))
 		})
 
-		It("specifying `--guid` and `--sort-by source-id` sorts by the source id column", func() {
-			httpClient.responseBody = []string{
-				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
-			}
-
-			cliConn.cliCommandResult = [][]string{
-				{
-					capiAppsResponse(map[string]string{
-						"source-1": "app-1",
-						"source-4": "app-4",
-					}),
-				},
-				{
-					capiServiceInstancesResponse(map[string]string{
-						"source-3": "service-3",
-					}),
-				},
-			}
-			cliConn.cliCommandErr = nil
-
-			cf.Meta(
-				context.Background(),
-				cliConn,
-				[]string{"--guid", "--sort-by", "source-id"},
-				httpClient,
-				logger,
-				tableWriter,
-			)
-
-			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
-				fmt.Sprintf(
-					"Retrieving log cache metadata as %s...",
-					cliConn.usernameResp,
-				),
-				"",
-				fmt.Sprintf(
-					"Retrieving app and service names as %s...",
-					cliConn.usernameResp,
-				),
-				"",
-				"Source ID  Source     Source Type  Count   Expired  Cache Duration",
-				"source-1   app-1      application  100001  84999    1s",
-				"source-2   source-2   platform     100002  84998    4m30s",
-				"source-3   service-3  service      99997   85003    9m0s",
-				"source-4   app-4      application  99996   85004    13m30s",
-				"",
-			}))
-
-			Expect(httpClient.requestCount()).To(Equal(1))
-		})
-
-		It("specifying `--guid` and `sort-by source` sorts by the source column", func() {
-			httpClient.responseBody = []string{
-				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
-			}
-
-			cliConn.cliCommandResult = [][]string{
-				{
-					capiAppsResponse(map[string]string{
-						"source-1": "app-1",
-						"source-4": "app-4",
-					}),
-				},
-				{
-					capiServiceInstancesResponse(map[string]string{
-						"source-3": "service-3",
-					}),
-				},
-			}
-			cliConn.cliCommandErr = nil
-
-			cf.Meta(
-				context.Background(),
-				cliConn,
-				[]string{"--guid", "--sort-by", "source"},
-				httpClient,
-				logger,
-				tableWriter,
-			)
-
-			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
-				fmt.Sprintf(
-					"Retrieving log cache metadata as %s...",
-					cliConn.usernameResp,
-				),
-				"",
-				fmt.Sprintf(
-					"Retrieving app and service names as %s...",
-					cliConn.usernameResp,
-				),
-				"",
-				"Source ID  Source     Source Type  Count   Expired  Cache Duration",
-				"source-1   app-1      application  100001  84999    1s",
-				"source-4   app-4      application  99996   85004    13m30s",
-				"source-3   service-3  service      99997   85003    9m0s",
-				"source-2   source-2   platform     100002  84998    4m30s",
-				"",
-			}))
-
-			Expect(httpClient.requestCount()).To(Equal(1))
-		})
-
 		It("specifying `--sort-by count` sorts by the count column", func() {
 			httpClient.responseBody = []string{
 				variedMetaResponseInfo("source-1", "source-2", "source-3", "source-4"),
@@ -405,19 +303,64 @@ var _ = Describe("Meta", func() {
 			Expect(logger.fatalfMessage).To(Equal("Sort by must be 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', or 'rate'."))
 		})
 
-		It("fatally logs when --sort-by source-id is used without --guid", func() {
+		It("fatally logs when --source-type other than 'platform' is used with --guid", func() {
 			Expect(func() {
 				cf.Meta(
 					context.Background(),
 					cliConn,
-					[]string{"--sort-by", "source-id"},
+					[]string{"--guid", "--source-type", "not-platform"},
 					httpClient,
 					logger,
 					tableWriter,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Can't sort by source id column without --guid flag"))
+			Expect(logger.fatalfMessage).To(Equal("Source type must be 'platform' when using the --guid flag"))
+		})
+
+		It("fatally logs when --sort-by source is used with --guid", func() {
+			Expect(func() {
+				cf.Meta(
+					context.Background(),
+					cliConn,
+					[]string{"--guid", "--sort-by", "source"},
+					httpClient,
+					logger,
+					tableWriter,
+				)
+			}).To(Panic())
+
+			Expect(logger.fatalfMessage).To(Equal("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'."))
+		})
+
+		It("fatally logs when --sort-by source-type is used with --guid", func() {
+			Expect(func() {
+				cf.Meta(
+					context.Background(),
+					cliConn,
+					[]string{"--guid", "--sort-by", "source-type"},
+					httpClient,
+					logger,
+					tableWriter,
+				)
+			}).To(Panic())
+
+			Expect(logger.fatalfMessage).To(Equal("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'."))
+		})
+
+		It("fatally logs when --sort-by source-type is used with --guid", func() {
+			Expect(func() {
+				cf.Meta(
+					context.Background(),
+					cliConn,
+					[]string{"--guid", "--sort-by", "source-type"},
+					httpClient,
+					logger,
+					tableWriter,
+				)
+			}).To(Panic())
+
+			Expect(logger.fatalfMessage).To(Equal("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'."))
 		})
 
 		It("fatally logs when --sort-by rate is used without --noise", func() {
@@ -436,7 +379,7 @@ var _ = Describe("Meta", func() {
 		})
 	})
 
-	It("returns app names with app source guids in alphabetical order", func() {
+	It("returns app source guids in alphabetical order with no source type", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo("source-1", "source-2"),
 		}
@@ -460,16 +403,7 @@ var _ = Describe("Meta", func() {
 			tableWriter,
 		)
 
-		Expect(cliConn.cliCommandArgs).To(HaveLen(1))
-		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
-
-		// Or is required because we don't know the order the keys will come
-		// out of the map.
-		Expect(cliConn.cliCommandArgs[0][1]).To(Or(
-			Equal("/v3/apps?guids=source-1,source-2"),
-			Equal("/v3/apps?guids=source-2,source-1"),
-		))
+		Expect(cliConn.cliCommandArgs).To(HaveLen(0))
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
 			fmt.Sprintf(
@@ -477,14 +411,9 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			fmt.Sprintf(
-				"Retrieving app and service names as %s...",
-				cliConn.usernameResp,
-			),
-			"",
-			"Source ID  Source  Source Type  Count   Expired  Cache Duration",
-			"source-2   app-1   application  100000  85008    11m45s",
-			"source-1   app-2   application  100000  85008    1s",
+			"Source ID  Count   Expired  Cache Duration",
+			"source-1   100000  85008    1s",
+			"source-2   100000  85008    11m45s",
 			"",
 		}))
 
@@ -517,82 +446,10 @@ var _ = Describe("Meta", func() {
 		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
-			"source-2  app-1  application  100000  85008  11m45s",
-			"source-1  app-2  application  100000  85008  1s",
+			"source-1  100000  85008  1s",
+			"source-2  100000  85008  11m45s",
 			"",
 		}))
-	})
-
-	It("returns service instance names with service source guids", func() {
-		httpClient.responseBody = []string{
-			metaResponseInfo("source-1", "source-2", "source-3"),
-		}
-
-		cliConn.cliCommandResult = [][]string{
-			{
-				capiAppsResponse(map[string]string{"source-1": "app-1"}),
-			},
-			{
-				// The prefix in the service name is to help test alphabetical
-				// ordering.
-				capiServiceInstancesResponse(map[string]string{
-					"source-2": "aa-service-2",
-					"source-3": "ab-service-3",
-				}),
-			},
-		}
-		cliConn.cliCommandErr = nil
-
-		cf.Meta(
-			context.Background(),
-			cliConn,
-			[]string{"--guid"},
-			httpClient,
-			logger,
-			tableWriter,
-		)
-
-		Expect(cliConn.cliCommandArgs).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[0]).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[0][0]).To(Equal("curl"))
-		uri, err := url.Parse(cliConn.cliCommandArgs[0][1])
-		Expect(err).ToNot(HaveOccurred())
-		Expect(uri.Path).To(Equal("/v3/apps"))
-
-		guidsParam, ok := uri.Query()["guids"]
-		Expect(ok).To(BeTrue())
-		Expect(len(guidsParam)).To(Equal(1))
-		Expect(strings.Split(guidsParam[0], ",")).To(ContainElement("source-1"))
-
-		Expect(cliConn.cliCommandArgs[1]).To(HaveLen(2))
-		Expect(cliConn.cliCommandArgs[1][0]).To(Equal("curl"))
-
-		// Or is required because we don't know the order the keys will come
-		// out of the map.
-		Expect(cliConn.cliCommandArgs[1][1]).To(Or(
-			Equal("/v2/service_instances?guids=source-2,source-3"),
-			Equal("/v2/service_instances?guids=source-3,source-2"),
-		))
-
-		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
-			fmt.Sprintf(
-				"Retrieving log cache metadata as %s...",
-				cliConn.usernameResp,
-			),
-			"",
-			fmt.Sprintf(
-				"Retrieving app and service names as %s...",
-				cliConn.usernameResp,
-			),
-			"",
-			"Source ID  Source        Source Type  Count   Expired  Cache Duration",
-			"source-2   aa-service-2  service      100000  85008    11m45s",
-			"source-3   ab-service-3  service      100000  85008    11m45s",
-			"source-1   app-1         application  100000  85008    1s",
-			"",
-		}))
-
-		Expect(httpClient.requestCount()).To(Equal(1))
 	})
 
 	It("does not display the Source ID column by default", func() {
@@ -950,7 +807,6 @@ var _ = Describe("Meta", func() {
 	It("prints meta scoped to platform with source GUIDs", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo(
-				"source-1",
 				"source-2",
 				"deadbeef-dead-dead-dead-deaddeafbeef",
 			),
@@ -958,7 +814,7 @@ var _ = Describe("Meta", func() {
 
 		cliConn.cliCommandResult = [][]string{
 			{
-				capiAppsResponse(map[string]string{"source-1": "app-1"}),
+				capiAppsResponse(map[string]string{"deadbeef-dead-dead-dead-deaddeafbeef": "app-1"}),
 			},
 			{
 				capiServiceInstancesResponse(nil),
@@ -982,13 +838,8 @@ var _ = Describe("Meta", func() {
 				cliConn.usernameResp,
 			),
 			"",
-			fmt.Sprintf(
-				"Retrieving app and service names as %s...",
-				cliConn.usernameResp,
-			),
-			"",
-			"Source ID  Source    Source Type  Count   Expired  Cache Duration",
-			"source-2   source-2  platform     100000  85008    11m45s",
+			"Source ID  Count   Expired  Cache Duration",
+			"source-2   100000  85008    1s",
 			"",
 		}))
 	})

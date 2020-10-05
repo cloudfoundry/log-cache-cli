@@ -140,10 +140,13 @@ func Meta(
 		}
 	}
 
-	writeAppsAndServicesHeader(opts, tw, username)
-	resources, err := getSourceInfo(currentMeta, cli)
-	if err != nil {
-		log.Fatalf("Failed to read application information: %s", err)
+	resources := make(map[string]source)
+	if !opts.ShowGUID {
+		writeAppsAndServicesHeader(opts, tw, username)
+		resources, err = getSourceInfo(currentMeta, cli)
+		if err != nil {
+			log.Fatalf("Failed to read application information: %s", err)
+		}
 	}
 
 	writeHeaders(opts, tw, username)
@@ -242,11 +245,15 @@ func createLogCacheClient(c HTTPClient, log Logger, cli plugin.CliConnection) *l
 }
 
 func tableFormat(opts optionsFlags, row displayRow) (string, []interface{}) {
-	tableFormat := "%s\t%s\t%d\t%d\t%s\n"
-	items := []interface{}{interface{}(row.Source), interface{}(row.Type), interface{}(row.Count), interface{}(row.Expired), interface{}(row.CacheDuration)}
+	tableFormat := "%d\t%d\t%s\n"
+	items := []interface{}{interface{}(row.Count), interface{}(row.Expired), interface{}(row.CacheDuration)}
+
 	if opts.ShowGUID {
 		tableFormat = "%s\t" + tableFormat
 		items = append([]interface{}{interface{}(row.SourceID)}, items...)
+	} else {
+		tableFormat = "%s\t%s\t" + tableFormat
+		items = append([]interface{}{interface{}(row.Source), interface{}(row.Type)}, items...)
 	}
 
 	if opts.EnableNoise {
@@ -277,12 +284,15 @@ func writeAppsAndServicesHeader(opts optionsFlags, tableWriter io.Writer, userna
 
 func writeHeaders(opts optionsFlags, tableWriter io.Writer, username string) {
 	if opts.withHeaders {
-		headerArgs := []interface{}{"Source", "Source Type", "Count", "Expired", "Cache Duration"}
-		headerFormat := "%s\t%s\t%s\t%s\t%s\n"
+		headerArgs := []interface{}{"Count", "Expired", "Cache Duration"}
+		headerFormat := "%s\t%s\t%s\n"
 
 		if opts.ShowGUID {
 			headerArgs = append([]interface{}{"Source ID"}, headerArgs...)
 			headerFormat = "%s\t" + headerFormat
+		} else {
+			headerArgs = append([]interface{}{"Source", "Source Type"}, headerArgs...)
+			headerFormat = "%s\t%s\t" + headerFormat
 		}
 
 		if opts.EnableNoise {
@@ -305,7 +315,7 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 		SourceType:             "all",
 		EnableNoise:            false,
 		ShowGUID:               false,
-		SortBy:                 "source",
+		SortBy:                 "",
 		withHeaders:            true,
 		metaNoiseSleepDuration: 5 * time.Minute,
 	}
@@ -326,6 +336,22 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 	opts.SourceType = strings.ToLower(opts.SourceType)
 	opts.SortBy = strings.ToLower(opts.SortBy)
 
+	if opts.ShowGUID && (sortBySource.Equal(opts.SortBy) || sortBySourceType.Equal(opts.SortBy)) {
+		log.Fatalf("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'.")
+	}
+
+	// validate what was entered before setting defaults
+	if opts.SortBy == "" {
+		opts.SortBy = string(sortBySource)
+		if opts.ShowGUID {
+			opts.SortBy = string(sortBySourceID)
+		}
+	}
+
+	if opts.ShowGUID && !(sourceTypePlatform.Equal(opts.SourceType) || sourceTypeAll.Equal(opts.SourceType)) {
+		log.Fatalf("Source type must be 'platform' when using the --guid flag")
+	}
+
 	if invalidSourceType(opts.SourceType) {
 		log.Fatalf("Source type must be 'platform', 'application', 'service', or 'all'.")
 	}
@@ -336,10 +362,6 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 
 	if sortByRate.Equal(opts.SortBy) && !opts.EnableNoise {
 		log.Fatalf("Can't sort by rate column without --noise flag")
-	}
-
-	if sortBySourceID.Equal(opts.SortBy) && !opts.ShowGUID {
-		log.Fatalf("Can't sort by source id column without --guid flag")
 	}
 
 	return opts
