@@ -7,6 +7,3 @@ fi
 
 # Remove the log-cache plugin from the CF CLI
 cf uninstall-plugin log-cache
-
-# Remove the standalone log-cache CLI used with k8s
-rm -f /usr/local/bin/lc

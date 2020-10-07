@@ -2,26 +2,16 @@
 ## explicit
 code.cloudfoundry.org/cli/plugin
 code.cloudfoundry.org/cli/plugin/models
-# code.cloudfoundry.org/go-envstruct v1.5.0
-## explicit
-code.cloudfoundry.org/go-envstruct
-# code.cloudfoundry.org/go-log-cache v1.0.1-0.20200722221510-3f87d731aaa9
-## explicit
-code.cloudfoundry.org/go-log-cache
-code.cloudfoundry.org/go-log-cache/internal
-code.cloudfoundry.org/go-log-cache/rpc/logcache_v1
 # code.cloudfoundry.org/go-loggregator v7.1.0+incompatible
 ## explicit
 code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2
-# code.cloudfoundry.org/go-loggregator/v8 v8.0.2-0.20200722201844-b5130958b65d
-## explicit
-code.cloudfoundry.org/go-loggregator/v8/rpc/loggregator_v2
 # code.cloudfoundry.org/log-cache v2.1.0+incompatible
 ## explicit
 code.cloudfoundry.org/log-cache/pkg/client
 code.cloudfoundry.org/log-cache/pkg/marshaler
 code.cloudfoundry.org/log-cache/pkg/rpc/logcache_v1
 # code.cloudfoundry.org/rfc5424 v0.0.0-20180905210152-236a6d29298a
+## explicit
 code.cloudfoundry.org/rfc5424
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
@@ -39,6 +29,7 @@ github.com/golang/protobuf/ptypes/struct
 github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
 # github.com/grpc-ecosystem/grpc-gateway v1.14.0
+## explicit
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/runtime
 github.com/grpc-ecosystem/grpc-gateway/utilities
@@ -48,15 +39,11 @@ github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
 github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
-# github.com/inconshreveable/mousetrap v1.0.0
-## explicit
-github.com/inconshreveable/mousetrap
 # github.com/jessevdk/go-flags v1.4.0
 ## explicit
 github.com/jessevdk/go-flags
-# github.com/mitchellh/go-homedir v1.0.0
+# github.com/kr/pretty v0.1.0
 ## explicit
-github.com/mitchellh/go-homedir
 # github.com/onsi/ginkgo v1.12.0
 ## explicit
 github.com/onsi/ginkgo
@@ -92,16 +79,11 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/spf13/cobra v0.0.3
-## explicit
-github.com/spf13/cobra
-# github.com/spf13/pflag v1.0.3
-## explicit
-github.com/spf13/pflag
 # golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 ## explicit
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+## explicit
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -138,11 +120,13 @@ golang.org/x/text/unicode/norm
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # google.golang.org/genproto v0.0.0-20200304201815-d429ff31ee6c
+## explicit
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
 # google.golang.org/grpc v1.27.1
+## explicit
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
@@ -179,10 +163,11 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
+# gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
+## explicit
 # gopkg.in/fsnotify.v1 v1.4.7
 gopkg.in/fsnotify.v1
 # gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.4
-## explicit
 gopkg.in/yaml.v2
