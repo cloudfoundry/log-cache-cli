@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"code.cloudfoundry.org/log-cache-cli/pkg/command/cf"
+	"code.cloudfoundry.org/log-cache-cli/v3/pkg/command/cf"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
