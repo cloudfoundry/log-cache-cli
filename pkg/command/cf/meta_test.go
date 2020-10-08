@@ -804,6 +804,136 @@ var _ = Describe("Meta", func() {
 		}))
 	})
 
+	It("can filter to uknown", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo(
+				"source-1",
+				"11111111-1111-1111-1111-111111111111",
+			),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiAppsResponse(nil),
+			},
+			{
+				capiServiceInstancesResponse(nil),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
+		args := []string{"--source-type", "unknown"}
+		cf.Meta(
+			context.Background(),
+			cliConn,
+			args,
+			httpClient,
+			logger,
+			tableWriter,
+		)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source                                Source Type  Count   Expired  Cache Duration",
+			"11111111-1111-1111-1111-111111111111  unknown      100000  85008    11m45s",
+			"",
+		}))
+	})
+
+	It("does not return unknown source id's when all isn't provided", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo(
+				"source-1",
+				"11111111-1111-1111-1111-111111111111",
+			),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiAppsResponse(nil),
+			},
+			{
+				capiServiceInstancesResponse(nil),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
+		cf.Meta(
+			context.Background(),
+			cliConn,
+			nil,
+			httpClient,
+			logger,
+			tableWriter,
+		)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			fmt.Sprintf(
+				"Retrieving app and service names as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source    Source Type  Count   Expired  Cache Duration",
+			"source-1  platform     100000  85008    1s",
+			"",
+		}))
+	})
+
+	It("prints unknown when guid is provided", func() {
+		httpClient.responseBody = []string{
+			metaResponseInfo(
+				"source-1",
+				"11111111-1111-1111-1111-111111111111",
+			),
+		}
+
+		cliConn.cliCommandResult = [][]string{
+			{
+				capiAppsResponse(nil),
+			},
+			{
+				capiServiceInstancesResponse(nil),
+			},
+		}
+		cliConn.cliCommandErr = nil
+
+		args := []string{"--guid"}
+		cf.Meta(
+			context.Background(),
+			cliConn,
+			args,
+			httpClient,
+			logger,
+			tableWriter,
+		)
+
+		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
+			fmt.Sprintf(
+				"Retrieving log cache metadata as %s...",
+				cliConn.usernameResp,
+			),
+			"",
+			"Source ID                             Count   Expired  Cache Duration",
+			"source-1                              100000  85008    1s",
+			"11111111-1111-1111-1111-111111111111  100000  85008    11m45s",
+			"",
+		}))
+	})
+
 	It("prints meta scoped to platform with source GUIDs", func() {
 		httpClient.responseBody = []string{
 			metaResponseInfo(
@@ -814,7 +944,7 @@ var _ = Describe("Meta", func() {
 
 		cliConn.cliCommandResult = [][]string{
 			{
-				capiAppsResponse(map[string]string{"deadbeef-dead-dead-dead-deaddeafbeef": "app-1"}),
+				capiAppsResponse(nil),
 			},
 			{
 				capiServiceInstancesResponse(nil),
