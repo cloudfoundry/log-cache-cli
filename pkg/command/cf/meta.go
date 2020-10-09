@@ -24,6 +24,7 @@ const (
 	sourceTypeService     sourceType = "service"
 	sourceTypePlatform    sourceType = "platform"
 	sourceTypeAll         sourceType = "all"
+	sourceTypeDefault     sourceType = "default"
 	sourceTypeUnknown     sourceType = "unknown"
 	MaximumBatchSize      int        = 1000
 )
@@ -196,17 +197,24 @@ func filterRows(opts optionsFlags, rows []displayRow) []displayRow {
 	}
 	filteredRows := []displayRow{}
 	for _, row := range rows {
-		if row.Type == sourceTypeApplication && sourceTypeApplication.Equal(opts.SourceType) {
+		if row.Type == sourceTypeApplication && (sourceTypeApplication.Equal(opts.SourceType) || sourceTypeDefault.Equal(opts.SourceType)) {
 			filteredRows = append(filteredRows, row)
 		}
-		if row.Type == sourceTypePlatform && sourceTypePlatform.Equal(opts.SourceType) {
+		if row.Type == sourceTypePlatform && (sourceTypePlatform.Equal(opts.SourceType) || sourceTypeDefault.Equal(opts.SourceType)) {
 			filteredRows = append(filteredRows, row)
 		}
-		if row.Type == sourceTypeService && sourceTypeService.Equal(opts.SourceType) {
+		if row.Type == sourceTypeService && (sourceTypeService.Equal(opts.SourceType) || sourceTypeDefault.Equal(opts.SourceType)) {
+			filteredRows = append(filteredRows, row)
+		}
+		if row.Type == sourceTypeUnknown && (sourceTypeUnknown.Equal(opts.SourceType) || shouldShowUknownWithGuidFlag(opts)) {
 			filteredRows = append(filteredRows, row)
 		}
 	}
 	return filteredRows
+}
+
+func shouldShowUknownWithGuidFlag(opts optionsFlags) bool {
+	return opts.ShowGUID && !sourceTypePlatform.Equal(opts.SourceType)
 }
 
 type displayRow struct {
@@ -312,7 +320,7 @@ func writeWaiting(opts optionsFlags, tableWriter io.Writer, username string) {
 
 func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 	opts := optionsFlags{
-		SourceType:             "all",
+		SourceType:             "default",
 		EnableNoise:            false,
 		ShowGUID:               false,
 		SortBy:                 "",
@@ -348,7 +356,7 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 		}
 	}
 
-	if opts.ShowGUID && !(sourceTypePlatform.Equal(opts.SourceType) || sourceTypeAll.Equal(opts.SourceType)) {
+	if opts.ShowGUID && !(sourceTypePlatform.Equal(opts.SourceType) || sourceTypeAll.Equal(opts.SourceType) || sourceTypeDefault.Equal(opts.SourceType)) {
 		log.Fatalf("Source type must be 'platform' when using the --guid flag")
 	}
 
@@ -553,6 +561,8 @@ func invalidSourceType(st string) bool {
 		sourceTypePlatform,
 		sourceTypeApplication,
 		sourceTypeService,
+		sourceTypeUnknown,
+		sourceTypeDefault,
 		sourceTypeAll,
 	}
 
