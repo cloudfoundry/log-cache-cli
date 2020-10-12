@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/log-cache-cli/v3/pkg/command/cf"
+	"code.cloudfoundry.org/log-cache-cli/v4/pkg/command/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

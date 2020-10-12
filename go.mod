@@ -1,4 +1,4 @@
-module code.cloudfoundry.org/log-cache-cli/v3
+module code.cloudfoundry.org/log-cache-cli/v4
 
 go 1.14
 
