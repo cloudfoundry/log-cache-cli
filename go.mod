@@ -1,6 +1,6 @@
 module code.cloudfoundry.org/log-cache-cli/v4
 
-go 1.14
+go 1.15
 
 require (
 	code.cloudfoundry.org/cli v6.40.1+incompatible
