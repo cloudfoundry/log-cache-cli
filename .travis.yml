@@ -1,8 +1,11 @@
 language: go
-
+arch:
+  - amd64
+  - arm64
 go:
-  - 1.9.x
-  - 1.10.x
+  - 1.13.x
+  - 1.14.x
+  - 1.15.x
   - master
 
 install: |
@@ -16,3 +19,6 @@ script: go test code.cloudfoundry.org/log-cache-cli/... --race
 matrix:
   allow_failures:
   - go: master
+  exclude:
+  - arch: arm64
+    go: master
