@@ -14,9 +14,9 @@ import (
 	"unicode/utf8"
 
 	"code.cloudfoundry.org/cli/plugin"
-	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
-	logcache "code.cloudfoundry.org/log-cache/pkg/client"
-	logcache_v1 "code.cloudfoundry.org/log-cache/pkg/rpc/logcache_v1"
+	logcache "code.cloudfoundry.org/go-log-cache"
+	logcache_v1 "code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
+	"code.cloudfoundry.org/go-loggregator/v8/rpc/loggregator_v2"
 	"github.com/blang/semver"
 	flags "github.com/jessevdk/go-flags"
 )
