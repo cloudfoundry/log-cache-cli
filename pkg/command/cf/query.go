@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
-	logcache "code.cloudfoundry.org/log-cache/pkg/client"
+	logcache "code.cloudfoundry.org/go-log-cache"
 	flags "github.com/jessevdk/go-flags"
 )
 
