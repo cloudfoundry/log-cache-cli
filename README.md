@@ -114,48 +114,6 @@ Example `cf query` usage:
 cf query "cpu{source_id='73467cc3-261a-472e-80e8-d6eadfd30d98'}" --start 1580231000 --end 1580231060 --step 1
 ```
 
-## Stand alone CLI
-
-### Installing CLI
-
-You can download a pre-built binary from GitHub:
-```
-# Linux
-wget https://github.com/cloudfoundry/log-cache-cli/releases/download/v2.1.0/log-cache-linux
-
-# OSX
-wget https://github.com/cloudfoundry/log-cache-cli/releases/download/v2.1.0/log-cache-darwin
-
-# Windows
-wget https://github.com/cloudfoundry/log-cache-cli/releases/download/v2.1.0/log-cache-windows
-```
-
-Alternatively, you can build from source:
-```
-git clone git@github.com:cloudfoundry/log-cache-cli.git
-cd log-cache-cli
-scripts/install.sh
-```
-
-### Usage
-
-1. Target the Log Cache by setting the environment variable `LOG_CACHE_ADDR`.
-1. Simply run the `log-cache` command to view current metrics stored in Log
-   Cache.
-1. Help can be accessed with the `--help` flag at any command level.
-
-```
-$ log-cache tail --help
-Output logs and metrics for a given source-id
-
-Usage:
-  log-cache tail <source-id> [flags]
-
-Flags:
-  -f, --follow   Output appended to stdout as logs are egressed.
-  -h, --help     help for tail
-```
-
 [log-cache]: https://code.cloudfoundry.org/log-cache-release
 [cf-cli]: https://code.cloudfoundry.org/cli
 
