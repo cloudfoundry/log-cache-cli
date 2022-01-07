@@ -3,7 +3,6 @@ version: 2
 updates:
   - package-ecosystem: "gomod"
     open-pull-requests-limit: 100
-    vendor: true
     directory: "/"
     schedule:
       interval: "daily"
