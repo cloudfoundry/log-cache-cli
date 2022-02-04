@@ -1,23 +1,16 @@
-Log Cache CLI
-=============
+# Log Cache cf CLI Plugin
 
-[![GoDoc][go-doc-badge]][go-doc] [![travis][travis-badge]][travis] [![slack.cloudfoundry.org][slack-badge]][loggregator-slack]
+[![GoDoc][go-doc-badge]][go-doc]
+[![slack.cloudfoundry.org][slack-badge]][logging-and-metrics-slack]
 
-The Log Cache CLI can be installed and used in two ways.
-
- - Standalone CLI for Log Cache
- - Cloud Foundry CLI plugin for Log Cache
-
-## Cloud Foundry CLI plugin
-
-The Log Cache CLI Plugin is a [CF CLI](https://github.com/cloudfoundry/cli) plugin for the [Log
-Cache](https://github.com/cloudfoundry/log-cache) system.
+A [cf CLI](https://github.com/cloudfoundry/cli) plugin for interacting with
+[Log Cache](https://github.com/cloudfoundry/log-cache).
 
 ![Plugin Demo](./docs/Plugin-demo.gif)
 
-### Installing Plugin
+## Installing
 
-The CF plugin is available in the CF-Community repo:
+Install directly from the [Cloud Foundry CLI Plugin Repository](https://github.com/cloudfoundry/cli-plugin-repo):
 ```
 cf install-plugin -r CF-Community "log-cache"
 ```
@@ -44,7 +37,9 @@ cd log-cache-cli
 scripts/install.sh
 ```
 
-### Usage
+## Usage
+
+### Tail Logs
 
 ```
 $ cf tail --help
@@ -70,6 +65,8 @@ OPTIONS:
    --new-line                 Character used for new line substition, must be single unicode character. Default is '\n'.
 ```
 
+### View Meta Information
+
 ```
 $ cf log-meta --help
 NAME:
@@ -88,6 +85,8 @@ OPTIONS:
    --sort-by           Sort by specified column. Available: 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', and 'rate'.
    --source-type       Source type of information to show. Available: 'all', 'application', and 'platform'.
 ```
+
+### Issue PromQL Queries
 
 ```
 cf query --help
@@ -114,12 +113,7 @@ Example `cf query` usage:
 cf query "cpu{source_id='73467cc3-261a-472e-80e8-d6eadfd30d98'}" --start 1580231000 --end 1580231060 --step 1
 ```
 
-[log-cache]: https://code.cloudfoundry.org/log-cache-release
-[cf-cli]: https://code.cloudfoundry.org/cli
-
-[slack-badge]:              https://slack.cloudfoundry.org/badge.svg
-[loggregator-slack]:        https://cloudfoundry.slack.com/archives/loggregator
-[go-doc-badge]:             https://godoc.org/code.cloudfoundry.org/log-cache-cli?status.svg
-[go-doc]:                   https://godoc.org/code.cloudfoundry.org/log-cache-cli
-[travis-badge]:             https://travis-ci.org/cloudfoundry/log-cache-cli.svg?branch=master
-[travis]:                   https://travis-ci.org/cloudfoundry/log-cache-cli?branch=master
+[slack-badge]:               https://slack.cloudfoundry.org/badge.svg
+[logging-and-metrics-slack]: https://cloudfoundry.slack.com/archives/logging-and-metrics
+[go-doc-badge]:              https://godoc.org/code.cloudfoundry.org/log-cache-cli?status.svg
+[go-doc]:                    https://godoc.org/code.cloudfoundry.org/log-cache-cli
