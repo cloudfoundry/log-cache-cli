@@ -8,6 +8,6 @@ WORKSPACE="$SCRIPTS_PATH/.."
 $SCRIPTS_PATH/build.sh
 
 # Install the log-cache plugin to the CF CLI and force overwrite
-cf install-plugin $WORKSPACE/build_artifacts/log-cache-cf-plugin-dev -f
+cf install-plugin $WORKSPACE/bin/log-cache-cf-plugin-dev -f
 
-rm -rf $WORKSPACE/build_artifacts
+rm -rf $WORKSPACE/bin

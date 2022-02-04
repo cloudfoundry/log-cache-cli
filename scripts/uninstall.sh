@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 read -r -p "Are you sure you want to remove the log-cache CLI? [y/N]: " remove_cli
 if [[ ! "$remove_cli" =~ ^[Yy]$ ]]; then

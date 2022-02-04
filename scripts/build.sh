@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -e
 
 version="{\"Major\":0,\"Minor\":0,\"Build\":\"0+dev.0\"}"
@@ -8,8 +9,5 @@ WORKSPACE="$SCRIPTS_PATH/.."
 
 pushd $WORKSPACE
   go get ./...
-popd
-
-pushd "$WORKSPACE/cmd/cf-lc-plugin"
-  go build -ldflags "-X main.version=$version" -o $WORKSPACE/build_artifacts/log-cache-cf-plugin-dev
+  go build -ldflags "-X main.version=$version" -o $WORKSPACE/bin/log-cache-cf-plugin-dev
 popd
