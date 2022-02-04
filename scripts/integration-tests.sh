@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -26,7 +26,7 @@ function setup {
 
     cd $(dirname $0)
 
-    NO_STANDALONE_LC=true ./install.sh
+    ./install.sh
 }
 
 function cleanup_test_app {
