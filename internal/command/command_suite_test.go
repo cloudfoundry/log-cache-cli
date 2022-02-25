@@ -1,4 +1,4 @@
-package cf_test
+package command_test
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/cli/plugin"
-	"code.cloudfoundry.org/cli/plugin/models"
+	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 

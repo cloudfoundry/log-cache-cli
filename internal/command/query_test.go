@@ -1,11 +1,11 @@
-package cf_test
+package command_test
 
 import (
 	"context"
 	"fmt"
 	"net/url"
 
-	"code.cloudfoundry.org/log-cache-cli/v4/pkg/command/cf"
+	cf "code.cloudfoundry.org/log-cache-cli/v4/internal/command"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"

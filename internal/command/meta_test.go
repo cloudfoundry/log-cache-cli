@@ -1,4 +1,4 @@
-package cf_test
+package command_test
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"code.cloudfoundry.org/log-cache-cli/v4/pkg/command/cf"
+	cf "code.cloudfoundry.org/log-cache-cli/v4/internal/command"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
