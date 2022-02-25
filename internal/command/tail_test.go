@@ -1,4 +1,4 @@
-package cf_test
+package command_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/log-cache-cli/v4/pkg/command/cf"
+	cf "code.cloudfoundry.org/log-cache-cli/v4/internal/command"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

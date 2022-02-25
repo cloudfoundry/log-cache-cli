@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/cli/plugin"
-	"code.cloudfoundry.org/log-cache-cli/v4/pkg/command/cf"
+	cf "code.cloudfoundry.org/log-cache-cli/v4/internal/command"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
