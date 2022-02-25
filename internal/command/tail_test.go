@@ -78,6 +78,7 @@ var _ = Describe("LogCache", func() {
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -113,6 +114,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -147,6 +149,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -179,6 +182,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -214,6 +218,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -390,6 +395,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -403,6 +409,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -452,6 +459,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -465,6 +473,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -514,6 +523,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -527,6 +537,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -602,6 +613,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -615,6 +627,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -673,6 +686,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -686,6 +700,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -744,6 +759,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -757,6 +773,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -890,6 +907,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -1582,6 +1600,7 @@ var _ = Describe("LogCache", func() {
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))

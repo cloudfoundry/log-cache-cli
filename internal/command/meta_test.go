@@ -1240,13 +1240,6 @@ var _ = Describe("Meta", func() {
 	})
 })
 
-func generateBatch(count int) []string {
-	x := strings.Repeat("{},", count-1)
-	x += "{}"
-
-	return []string{fmt.Sprintf(`{"batch": [%s]}`, x)}
-}
-
 func metaResponseInfo(sourceIDs ...string) string {
 	var metaInfos []string
 	metaInfos = append(metaInfos, fmt.Sprintf(`"%s": {
