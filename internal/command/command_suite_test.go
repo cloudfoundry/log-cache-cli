@@ -190,10 +190,3 @@ func (s *stubCliConnection) AccessToken() (string, error) {
 	s.accessTokenCount++
 	return s.accessToken, s.accessTokenErr
 }
-
-func (s *stubCliConnection) getAccessTokenCount() int {
-	s.Lock()
-	defer s.Unlock()
-
-	return s.accessTokenCount
-}

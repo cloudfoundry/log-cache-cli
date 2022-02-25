@@ -474,21 +474,6 @@ func checkFeatureVersioning(client *logcache.Client, ctx context.Context, log Lo
 	}
 }
 
-type backoff struct {
-	logcache.AlwaysDoneBackoff
-
-	logger Logger
-}
-
-func newBackoff(log Logger) backoff {
-	return backoff{logger: log}
-}
-
-func (b backoff) OnErr(err error) bool {
-	b.logger.Fatalf("%s", err)
-	return b.AlwaysDoneBackoff.OnErr(err)
-}
-
 type tokenHTTPClient struct {
 	c         HTTPClient
 	tokenFunc func() string
