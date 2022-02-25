@@ -4,13 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"os"
 
 	"code.cloudfoundry.org/cli/plugin"
-	cf "code.cloudfoundry.org/log-cache-cli/v4/internal/command"
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -21,62 +20,36 @@ var version string
 
 type LogCacheCLI struct{}
 
-var commands = make(map[string]cf.Command)
-
 func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
-	if len(args) == 1 && args[0] == "CLI-MESSAGE-UNINSTALL" {
-		// someone's uninstalling the plugin, but we don't need to clean up
-		return
-	}
-
-	if len(args) < 1 {
-		log.Fatalf("Expected at least 1 argument, but got %d.", len(args))
-	}
-
 	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
-
-	commands["query"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c cf.HTTPClient, log cf.Logger, tableWriter io.Writer) {
-		var opts []cf.QueryOption
-		cf.Query(ctx, cli, args, c, log, tableWriter, opts...)
-	}
-
-	commands["tail"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c cf.HTTPClient, log cf.Logger, tableWriter io.Writer) {
-		var opts []cf.TailOption
-		if !isTerminal {
-			opts = append(opts, cf.WithTailNoHeaders())
-		}
-		cf.Tail(ctx, cli, args, c, log, tableWriter, opts...)
-	}
-
-	commands["log-meta"] = func(ctx context.Context, cli plugin.CliConnection, args []string, c cf.HTTPClient, log cf.Logger, tableWriter io.Writer) {
-		var opts []cf.MetaOption
-		if !isTerminal {
-			opts = append(opts, cf.WithMetaNoHeaders())
-		}
-		cf.Meta(
-			ctx,
-			cli,
-			args,
-			c,
-			log,
-			tableWriter,
-			opts...,
-		)
-	}
 
 	skipSSL, err := conn.IsSSLDisabled()
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatal(err)
 	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
 		InsecureSkipVerify: skipSSL,
 	}
 
-	op, ok := commands[args[0]]
-	if !ok {
-		log.Fatalf("Unknown Log Cache command: %s", args[0])
+	l := log.New(os.Stderr, "", 0)
+
+	switch args[0] {
+	case "query":
+		var opts []command.QueryOption
+		command.Query(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
+	case "tail":
+		var opts []command.TailOption
+		if !isTerminal {
+			opts = append(opts, command.WithTailNoHeaders())
+		}
+		command.Tail(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
+	case "log-meta":
+		var opts []command.MetaOption
+		if !isTerminal {
+			opts = append(opts, command.WithMetaNoHeaders())
+		}
+		command.Meta(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
 	}
-	op(context.Background(), conn, args[1:], http.DefaultClient, log.New(os.Stderr, "", 0), os.Stdout)
 }
 
 func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
@@ -151,13 +124,4 @@ ENVIRONMENT VARIABLES:
 
 func main() {
 	plugin.Start(&LogCacheCLI{})
-}
-
-type linesWriter struct {
-	lines []string
-}
-
-func (w *linesWriter) Write(data []byte) (int, error) {
-	w.lines = append(w.lines, string(data))
-	return len(data), nil
 }
