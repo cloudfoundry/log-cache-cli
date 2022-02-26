@@ -21,3 +21,18 @@ type Logger interface {
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
+
+type tokenHTTPClient struct {
+	c         HTTPClient
+	tokenFunc func() string
+}
+
+func (c *tokenHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	accessToken := c.tokenFunc()
+	if len(accessToken) > 0 {
+		req.Header.Set("Authorization", accessToken)
+	}
+
+	return c.c.Do(req)
+
+}
