@@ -1,15 +1,8 @@
 package command
 
 import (
-	"context"
-	"io"
 	"net/http"
-
-	"code.cloudfoundry.org/cli/plugin"
 )
-
-// Command is the interface to implement plugin commands
-type Command func(ctx context.Context, cli plugin.CliConnection, args []string, c HTTPClient, log Logger, w io.Writer)
 
 // Logger is used for outputting log-cache results and errors
 type Logger interface {
