@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("LogCache", func() {
+var _ = Describe("Tail", func() {
 	var (
 		logger     *stubLogger
 		writer     *stubWriter

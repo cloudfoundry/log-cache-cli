@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("LogCache", func() {
+var _ = Describe("Query", func() {
 	Describe("error handling for queries", func() {
 		It("reports an error for a failed request", func() {
 			tc := setup("", 503)
