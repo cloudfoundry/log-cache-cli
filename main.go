@@ -35,8 +35,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 
 	switch args[0] {
 	case "query":
-		var opts []command.QueryOption
-		command.Query(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
+		command.Query(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout)
 	case "tail":
 		var opts []command.TailOption
 		if !isTerminal {
@@ -66,7 +65,7 @@ func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
 				Name:     "tail",
 				HelpText: "Output logs for a source-id/app",
 				UsageDetails: plugin.Usage{
-					Usage: `tail [options] <source-id/app>
+					Usage: `tail [options] SOURCE_ID
 
 ENVIRONMENT VARIABLES:
    LOG_CACHE_ADDR       Overrides the default location of log-cache.
@@ -105,13 +104,13 @@ ENVIRONMENT VARIABLES:
 				Name:     "query",
 				HelpText: "Issues a PromQL query against Log Cache",
 				UsageDetails: plugin.Usage{
-					Usage: `query <promql-query> [options]
+					Usage: `query PROMQL_QUERY [options]
 
 ENVIRONMENT VARIABLES:
    LOG_CACHE_ADDR       Overrides the default location of log-cache.
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
 					Options: map[string]string{
-						"-time":  "Effective time for query execution of an instant query. Cannont be used with --start, --end, or --step. Can be a unix timestamp or RFC3339.",
+						"-time":  "Effective time for query execution of an instant query. Cannot be used with --start, --end, or --step. Can be a unix timestamp or RFC3339.",
 						"-start": "Start time for a range query. Cannont be used with --time. Can be a unix timestamp or RFC3339.",
 						"-end":   "End time for a range query. Cannont be used with --time. Can be a unix timestamp or RFC3339.",
 						"-step":  "Step interval for a range query. Cannot be used with --time.",

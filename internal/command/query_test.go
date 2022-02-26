@@ -61,7 +61,7 @@ var _ = Describe("LogCache", func() {
 				tc.query()
 			}).To(Panic())
 
-			Expect(tc.logger.fatalfMessage).To(HavePrefix(`Must specify a PromQL query`))
+			Expect(tc.logger.fatalfMessage).To(HavePrefix("Incorrect Usage: the required argument `PROMQL_QUERY` was not provided"))
 			Expect(tc.httpClient.requestURLs).To(HaveLen(0))
 		})
 	})

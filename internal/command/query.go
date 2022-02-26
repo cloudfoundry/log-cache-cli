@@ -16,8 +16,6 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
-type QueryOption func(*queryOptions)
-
 func Query(
 	ctx context.Context,
 	cli plugin.CliConnection,
@@ -25,20 +23,16 @@ func Query(
 	c HTTPClient,
 	log Logger,
 	w io.Writer,
-	opts ...QueryOption,
 ) {
 	if len(args) < 1 {
-		log.Fatalf("Must specify a PromQL query")
+		log.Fatalf("Incorrect Usage: the required argument `PROMQL_QUERY` was not provided")
 	}
+
 	query := args[0]
 
 	queryOptions, err := newQueryOptions(cli, args, log)
 	if err != nil {
 		log.Fatalf("%s", err)
-	}
-
-	for _, opt := range opts {
-		opt(&queryOptions)
 	}
 
 	lw := lineWriter{w: w}
