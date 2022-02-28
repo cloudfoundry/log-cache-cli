@@ -47,7 +47,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 		if !isTerminal {
 			opts = append(opts, command.WithMetaNoHeaders())
 		}
-		command.Meta(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
+		command.Meta(conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
 	}
 }
 
