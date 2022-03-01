@@ -17,7 +17,6 @@ import (
 )
 
 func Query(
-	ctx context.Context,
 	cli plugin.CliConnection,
 	args []string,
 	c HTTPClient,
