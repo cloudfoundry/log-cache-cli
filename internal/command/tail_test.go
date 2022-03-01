@@ -1408,42 +1408,7 @@ var _ = Describe("Tail", func() {
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("some-error"))
-		})
-
-		It("fatally logs if there is no API endpoint", func() {
-			cliConn.hasAPIEndpoint = false
-
-			Expect(func() {
-				cf.Tail(
-					context.Background(),
-					cliConn,
-					[]string{"app-name"},
-					httpClient,
-					logger,
-					writer,
-				)
-			}).To(Panic())
-
-			Expect(logger.fatalfMessage).To(Equal("No API endpoint targeted."))
-		})
-
-		It("fatally logs if there is an error while checking for API endpoint", func() {
-			cliConn.hasAPIEndpoint = true
-			cliConn.hasAPIEndpointErr = errors.New("some-error")
-
-			Expect(func() {
-				cf.Tail(
-					context.Background(),
-					cliConn,
-					[]string{"app-name"},
-					httpClient,
-					logger,
-					writer,
-				)
-			}).To(Panic())
-
-			Expect(logger.fatalfMessage).To(Equal("some-error"))
+			Expect(logger.fatalfMessage).To(Equal("Could not determine Log Cache endpoint: some-error"))
 		})
 
 		It("fatally logs if the request returns an error", func() {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
-	logcache "code.cloudfoundry.org/go-log-cache"
 	logcache_v1 "code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
 	flags "github.com/jessevdk/go-flags"
 )
@@ -113,7 +111,7 @@ func Meta(
 	mopts ...MetaOption,
 ) {
 	opts := getOptions(args, log, mopts...)
-	client := createLogCacheClient(c, log, cli)
+	client := newLogCacheClient(c, log, cli)
 	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
 	username, err := cli.Username()
 	if err != nil {
@@ -223,31 +221,6 @@ type displayRow struct {
 	Expired       int64
 	CacheDuration time.Duration
 	Delta         int64
-}
-
-func createLogCacheClient(c HTTPClient, log Logger, cli plugin.CliConnection) *logcache.Client {
-	logCacheEndpoint, err := logCacheEndpoint(cli)
-	if err != nil {
-		log.Fatalf("Could not determine Log Cache endpoint: %s", err)
-	}
-
-	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		c = &tokenHTTPClient{
-			c: c,
-			tokenFunc: func() string {
-				token, err := cli.AccessToken()
-				if err != nil {
-					log.Fatalf("Unable to get Access Token: %s", err)
-				}
-				return token
-			},
-		}
-	}
-
-	return logcache.NewClient(
-		logCacheEndpoint,
-		logcache.WithHTTPClient(c),
-	)
 }
 
 func tableFormat(opts optionsFlags, row displayRow) (string, []interface{}) {
@@ -516,21 +489,6 @@ func maxDuration(a, b time.Duration) time.Duration {
 		return b
 	}
 	return a
-}
-
-func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
-	logCacheAddr := os.Getenv("LOG_CACHE_ADDR")
-
-	if logCacheAddr != "" {
-		return logCacheAddr, nil
-	}
-
-	apiEndpoint, err := cli.ApiEndpoint()
-	if err != nil {
-		return "", err
-	}
-
-	return strings.Replace(apiEndpoint, "api", "log-cache", 1), nil
 }
 
 func invalidSourceType(st string) bool {

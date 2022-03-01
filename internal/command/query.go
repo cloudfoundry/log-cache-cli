@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/cli/plugin"
@@ -36,39 +34,7 @@ func Query(
 
 	lw := lineWriter{w: w}
 
-	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		c = &tokenHTTPClient{
-			c: c,
-			tokenFunc: func() string {
-				token, err := cli.AccessToken()
-				if err != nil {
-					log.Fatalf("Unable to get Access Token: %s", err)
-				}
-				return token
-			},
-		}
-	}
-
-	logCacheAddr := os.Getenv("LOG_CACHE_ADDR")
-	if logCacheAddr == "" {
-		hasAPI, err := cli.HasAPIEndpoint()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-
-		if !hasAPI {
-			log.Fatalf("No API endpoint targeted.")
-		}
-
-		tokenURL, err := cli.ApiEndpoint()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-
-		logCacheAddr = strings.Replace(tokenURL, "api", "log-cache", 1)
-	}
-
-	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
+	client := newLogCacheClient(c, log, cli)
 
 	var res *logcache.PromQLQueryResult
 
