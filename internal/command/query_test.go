@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	cf "code.cloudfoundry.org/log-cache-cli/v4/internal/command"
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -266,7 +266,7 @@ func setup(responseBody string, responseCode int) *testContext {
 }
 
 func (tc *testContext) query(args ...string) {
-	cf.Query(
+	command.Query(
 		context.Background(),
 		tc.cliConnection,
 		args,
