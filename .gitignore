@@ -1,6 +1,13 @@
 # Builds
 bin
 
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
 # IntelliJ
 .idea/
 
@@ -20,3 +27,9 @@ Sessionx.vim
 *~
 tags
 [._]*.un~
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
