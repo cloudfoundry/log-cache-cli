@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -472,19 +471,4 @@ func checkFeatureVersioning(client *logcache.Client, ctx context.Context, log Lo
 			log.Fatalf("Use of --name-filter requires minimum log-cache version 2.1.0")
 		}
 	}
-}
-
-type tokenHTTPClient struct {
-	c         HTTPClient
-	tokenFunc func() string
-}
-
-func (c *tokenHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	accessToken := c.tokenFunc()
-	if len(accessToken) > 0 {
-		req.Header.Set("Authorization", accessToken)
-	}
-
-	return c.c.Do(req)
-
 }
