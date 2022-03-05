@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -39,13 +40,12 @@ func Tail(
 	cli plugin.CliConnection,
 	args []string,
 	c HTTPClient,
-	log Logger,
 	w io.Writer,
 	opts ...TailOption,
 ) {
-	o, err := newTailOptions(cli, args, log)
+	o, err := newTailOptions(cli, args)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Panicf("%s", err)
 	}
 
 	for _, opt := range opts {
@@ -53,7 +53,7 @@ func Tail(
 	}
 
 	sourceID := o.guid
-	formatter := newFormatter(o.providedName, o.follow, formatterKindFromOptions(o), log, o.outputTemplate, o.newLineReplacer)
+	formatter := newFormatter(o.providedName, o.follow, formatterKindFromOptions(o), o.outputTemplate, o.newLineReplacer)
 	lw := lineWriter{w: w}
 
 	defer func() {
@@ -66,31 +66,31 @@ func Tail(
 	if logCacheAddr == "" {
 		hasAPI, err := cli.HasAPIEndpoint()
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 
 		if !hasAPI {
-			log.Fatalf("No API endpoint targeted.")
+			log.Panicf("No API endpoint targeted.")
 		}
 
 		tokenURL, err := cli.ApiEndpoint()
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 
 		user, err := cli.Username()
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 
 		org, err := cli.GetCurrentOrg()
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 
 		space, err := cli.GetCurrentSpace()
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 
 		logCacheAddr = strings.Replace(tokenURL, "api", "log-cache", 1)
@@ -130,7 +130,7 @@ func Tail(
 		tokenClient.tokenFunc = func() string {
 			token, err := cli.AccessToken()
 			if err != nil {
-				log.Fatalf("Unable to get Access Token: %s", err)
+				log.Panicf("Unable to get Access Token: %s", err)
 			}
 			return token
 		}
@@ -138,7 +138,7 @@ func Tail(
 
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(tokenClient))
 
-	checkFeatureVersioning(client, ctx, log, o.nameFilter)
+	checkFeatureVersioning(client, ctx, o.nameFilter)
 
 	if sourceID == "" {
 		// fall back to provided name
@@ -159,7 +159,7 @@ func Tail(
 		)
 
 		if err != nil && !o.follow {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 
 		// we get envelopes in descending order but want to print them ascending
@@ -244,7 +244,7 @@ type tailOptionFlags struct {
 	NameFilter    string `long:"name-filter"`
 }
 
-func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOptions, error) {
+func newTailOptions(cli plugin.CliConnection, args []string) (tailOptions, error) {
 	opts := tailOptionFlags{
 		EndTime: time.Now().UnixNano(),
 	}
@@ -274,15 +274,15 @@ func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOp
 	if opts.OutputFormat != "" {
 		outputTemplate, err = parseOutputFormat(opts.OutputFormat)
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 	}
 
-	id, isService := getGUID(args[0], cli, log)
+	id, isService := getGUID(args[0], cli)
 	o := tailOptions{
 		startTime:            time.Unix(0, opts.StartTime),
 		endTime:              time.Unix(0, opts.EndTime),
-		envelopeType:         translateEnvelopeType(opts.EnvelopeType, log),
+		envelopeType:         translateEnvelopeType(opts.EnvelopeType),
 		lines:                int(opts.Lines),
 		guid:                 id,
 		isService:            isService,
@@ -298,7 +298,7 @@ func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOp
 	if opts.NewLine != "" {
 		o.newLineReplacer, err = parseNewLineArgument(opts.NewLine)
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 	}
 
@@ -371,7 +371,7 @@ func parseOutputFormat(f string) (*template.Template, error) {
 	return templ, nil
 }
 
-func translateEnvelopeType(t string, log Logger) logcache_v1.EnvelopeType {
+func translateEnvelopeType(t string) logcache_v1.EnvelopeType {
 	t = strings.ToUpper(t)
 
 	switch t {
@@ -388,23 +388,23 @@ func translateEnvelopeType(t string, log Logger) logcache_v1.EnvelopeType {
 	case "EVENT":
 		return logcache_v1.EnvelopeType_EVENT
 	default:
-		log.Fatalf("--envelope-type must be LOG, COUNTER, GAUGE, TIMER, EVENT or ANY")
+		log.Panicf("--envelope-type must be LOG, COUNTER, GAUGE, TIMER, EVENT or ANY")
 
-		// Won't get here, but log.Fatalf isn't obvious to the compiler that
+		// Won't get here, but log.Panicf isn't obvious to the compiler that
 		// execution will halt.
 		return logcache_v1.EnvelopeType_ANY
 	}
 }
 
-func getGUID(name string, cli plugin.CliConnection, log Logger) (string, bool) {
+func getGUID(name string, cli plugin.CliConnection) (string, bool) {
 	var id string
-	if id = getAppGUID(name, cli, log); id == "" {
-		return getServiceGUID(name, cli, log), true
+	if id = getAppGUID(name, cli); id == "" {
+		return getServiceGUID(name, cli), true
 	}
 	return id, false
 }
 
-func getAppGUID(appName string, cli plugin.CliConnection, log Logger) string {
+func getAppGUID(appName string, cli plugin.CliConnection) string {
 	r, err := cli.CliCommandWithoutTerminalOutput(
 		"app",
 		appName,
@@ -421,7 +421,7 @@ func getAppGUID(appName string, cli plugin.CliConnection, log Logger) string {
 	return strings.Join(r, "")
 }
 
-func getServiceGUID(serviceName string, cli plugin.CliConnection, log Logger) string {
+func getServiceGUID(serviceName string, cli plugin.CliConnection) string {
 	r, err := cli.CliCommandWithoutTerminalOutput(
 		"service",
 		serviceName,
@@ -462,13 +462,13 @@ func parseNewLineArgument(s string) (rune, error) {
 	return 0, errors.New("--new-line argument must be single unicode character or in the format \\uXXXXX")
 }
 
-func checkFeatureVersioning(client *logcache.Client, ctx context.Context, log Logger, nameFilter string) {
+func checkFeatureVersioning(client *logcache.Client, ctx context.Context, nameFilter string) {
 	version, _ := client.LogCacheVersion(ctx)
 
 	if nameFilter != "" {
 		nameFilterVersion, _ := semver.Parse("2.1.0")
 		if version.LT(nameFilterVersion) {
-			log.Fatalf("Use of --name-filter requires minimum log-cache version 2.1.0")
+			log.Panicf("Use of --name-filter requires minimum log-cache version 2.1.0")
 		}
 	}
 }

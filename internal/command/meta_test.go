@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"strings"
@@ -17,14 +18,12 @@ import (
 
 var _ = Describe("Meta", func() {
 	var (
-		logger      *stubLogger
 		httpClient  *stubHTTPClient
 		cliConn     *stubCliConnection
 		tableWriter *bytes.Buffer
 	)
 
 	BeforeEach(func() {
-		logger = &stubLogger{}
 		httpClient = newStubHTTPClient()
 		cliConn = newStubCliConnection()
 		cliConn.cliCommandResult = [][]string{{"app-guid"}}
@@ -32,6 +31,9 @@ var _ = Describe("Meta", func() {
 		cliConn.orgName = "organization"
 		cliConn.spaceName = "space"
 		tableWriter = bytes.NewBuffer(nil)
+		log.SetOutput(tableWriter)
+		log.SetPrefix("")
+		log.SetFlags(0)
 	})
 
 	Context("when specifying a sort by flag", func() {
@@ -61,7 +63,6 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				[]string{"--noise", "--sort-by", "rate"},
 				httpClient,
-				logger,
 				tableWriter,
 				command.WithMetaNoiseSleepDuration(0),
 			)
@@ -119,7 +120,6 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				[]string{"--sort-by", "source-type"},
 				httpClient,
-				logger,
 				tableWriter,
 			)
 
@@ -166,7 +166,6 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				[]string{"--sort-by", "count"},
 				httpClient,
-				logger,
 				tableWriter,
 			)
 
@@ -214,7 +213,6 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				[]string{"--sort-by", "expired"},
 				httpClient,
-				logger,
 				tableWriter,
 			)
 
@@ -262,7 +260,6 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				[]string{"--sort-by", "cache-duration"},
 				httpClient,
-				logger,
 				tableWriter,
 			)
 
@@ -295,12 +292,12 @@ var _ = Describe("Meta", func() {
 					cliConn,
 					[]string{"--sort-by", "invalid"},
 					httpClient,
-					logger,
 					tableWriter,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Sort by must be 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', or 'rate'."))
+			s := strings.Split(tableWriter.String(), "\n")
+			Expect(s[len(s)-2]).To(Equal("Sort by must be 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', or 'rate'."))
 		})
 
 		It("fatally logs when --source-type other than 'platform' is used with --guid", func() {
@@ -310,12 +307,12 @@ var _ = Describe("Meta", func() {
 					cliConn,
 					[]string{"--guid", "--source-type", "not-platform"},
 					httpClient,
-					logger,
 					tableWriter,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Source type must be 'platform' when using the --guid flag"))
+			s := strings.Split(tableWriter.String(), "\n")
+			Expect(s[len(s)-2]).To(Equal("Source type must be 'platform' when using the --guid flag"))
 		})
 
 		It("fatally logs when --sort-by source is used with --guid", func() {
@@ -325,12 +322,12 @@ var _ = Describe("Meta", func() {
 					cliConn,
 					[]string{"--guid", "--sort-by", "source"},
 					httpClient,
-					logger,
 					tableWriter,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'."))
+			s := strings.Split(tableWriter.String(), "\n")
+			Expect(s[len(s)-2]).To(Equal("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'."))
 		})
 
 		It("fatally logs when --sort-by source-type is used with --guid", func() {
@@ -340,12 +337,12 @@ var _ = Describe("Meta", func() {
 					cliConn,
 					[]string{"--guid", "--sort-by", "source-type"},
 					httpClient,
-					logger,
 					tableWriter,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'."))
+			s := strings.Split(tableWriter.String(), "\n")
+			Expect(s[len(s)-2]).To(Equal("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'."))
 		})
 
 		It("fatally logs when --sort-by source-type is used with --guid", func() {
@@ -355,12 +352,12 @@ var _ = Describe("Meta", func() {
 					cliConn,
 					[]string{"--guid", "--sort-by", "source-type"},
 					httpClient,
-					logger,
 					tableWriter,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'."))
+			s := strings.Split(tableWriter.String(), "\n")
+			Expect(s[len(s)-2]).To(Equal("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'."))
 		})
 
 		It("fatally logs when --sort-by rate is used without --noise", func() {
@@ -370,12 +367,12 @@ var _ = Describe("Meta", func() {
 					cliConn,
 					[]string{"--sort-by", "rate"},
 					httpClient,
-					logger,
 					tableWriter,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Can't sort by rate column without --noise flag"))
+			s := strings.Split(tableWriter.String(), "\n")
+			Expect(s[len(s)-2]).To(Equal("Can't sort by rate column without --noise flag"))
 		})
 	})
 
@@ -399,7 +396,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			[]string{"--guid"},
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -440,7 +436,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			[]string{"--guid"},
 			httpClient,
-			logger,
 			tableWriter,
 			command.WithMetaNoHeaders(),
 		)
@@ -469,7 +464,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			nil,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -526,7 +520,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			[]string{"--noise"},
 			httpClient,
-			logger,
 			tableWriter,
 			command.WithMetaNoiseSleepDuration(0),
 		)
@@ -579,7 +572,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			nil,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -645,7 +637,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			args,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -691,7 +682,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			args,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -737,7 +727,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			args,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -782,7 +771,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			args,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -828,7 +816,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			args,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -872,7 +859,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			nil,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -917,7 +903,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			args,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -958,7 +943,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			args,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -1005,7 +989,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			nil,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -1064,7 +1047,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			nil,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -1095,7 +1077,6 @@ var _ = Describe("Meta", func() {
 			cliConn,
 			nil,
 			httpClient,
-			logger,
 			tableWriter,
 		)
 
@@ -1109,12 +1090,12 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				[]string{"extra-arg"},
 				httpClient,
-				logger,
 				tableWriter,
 			)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(Equal("Invalid arguments, expected 0, got 1."))
+		s := strings.Split(tableWriter.String(), "\n")
+		Expect(s[len(s)-2]).To(Equal("Invalid arguments, expected 0, got 1."))
 	})
 
 	It("fatally logs when scope is not 'platform', 'application' or 'all'", func() {
@@ -1125,12 +1106,12 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				tableWriter,
 			)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(Equal("Source type must be 'platform', 'application', 'service', or 'all'."))
+		s := strings.Split(tableWriter.String(), "\n")
+		Expect(s[len(s)-2]).To(Equal("Source type must be 'platform', 'application', 'service', or 'all'."))
 	})
 
 	It("fatally logs when getting ApiEndpoint fails", func() {
@@ -1142,12 +1123,12 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				nil,
 				httpClient,
-				logger,
 				tableWriter,
 			)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(HavePrefix(`Could not determine Log Cache endpoint: some-error`))
+		s := strings.Split(tableWriter.String(), "\n")
+		Expect(s[len(s)-2]).To(HavePrefix(`Could not determine Log Cache endpoint: some-error`))
 	})
 
 	It("fatally logs when CAPI request fails", func() {
@@ -1164,12 +1145,12 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				nil,
 				httpClient,
-				logger,
 				tableWriter,
 			)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(HavePrefix(`Failed to read application information: some-error`))
+		s := strings.Split(tableWriter.String(), "\n")
+		Expect(s[len(s)-2]).To(HavePrefix(`Failed to read application information: some-error`))
 	})
 
 	It("fatally logs when username cannot be found", func() {
@@ -1192,12 +1173,12 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				nil,
 				httpClient,
-				logger,
 				tableWriter,
 			)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(Equal(`Could not get username: some-error`))
+		s := strings.Split(tableWriter.String(), "\n")
+		Expect(s[len(s)-2]).To(Equal(`Could not get username: some-error`))
 	})
 
 	It("fatally logs when CAPI response is not proper JSON", func() {
@@ -1214,12 +1195,12 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				nil,
 				httpClient,
-				logger,
 				tableWriter,
 			)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(HavePrefix(`Failed to read application information: `))
+		s := strings.Split(tableWriter.String(), "\n")
+		Expect(s[len(s)-2]).To(HavePrefix(`Failed to read application information: `))
 	})
 
 	It("fatally logs when Meta fails", func() {
@@ -1231,12 +1212,12 @@ var _ = Describe("Meta", func() {
 				cliConn,
 				nil,
 				httpClient,
-				logger,
 				tableWriter,
 			)
 		}).To(Panic())
 
-		Expect(logger.fatalfMessage).To(Equal(`Failed to read Meta information: some-error`))
+		s := strings.Split(tableWriter.String(), "\n")
+		Expect(s[len(s)-2]).To(Equal(`Failed to read Meta information: some-error`))
 	})
 })
 

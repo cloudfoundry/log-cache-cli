@@ -21,20 +21,6 @@ func TestCommand(t *testing.T) {
 	RunSpecs(t, "Command Suite")
 }
 
-type stubLogger struct {
-	fatalfMessage  string
-	printfMessages []string
-}
-
-func (l *stubLogger) Fatalf(format string, args ...interface{}) {
-	l.fatalfMessage = fmt.Sprintf(format, args...)
-	panic(l.fatalfMessage)
-}
-
-func (l *stubLogger) Printf(format string, args ...interface{}) {
-	l.printfMessages = append(l.printfMessages, fmt.Sprintf(format, args...))
-}
-
 type stubWriter struct {
 	bytes []byte
 }

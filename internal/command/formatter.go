@@ -35,10 +35,8 @@ type formatter interface {
 	flush() (string, bool)
 }
 
-func newFormatter(sourceID string, following bool, kind formatterKind, log Logger, t *template.Template, newLineReplacer rune) formatter {
-	bf := baseFormatter{
-		log: log,
-	}
+func newFormatter(sourceID string, following bool, kind formatterKind, t *template.Template, newLineReplacer rune) formatter {
+	bf := baseFormatter{}
 
 	switch kind {
 	case prettyFormat:
@@ -63,9 +61,7 @@ func newFormatter(sourceID string, following bool, kind formatterKind, log Logge
 	}
 }
 
-type baseFormatter struct {
-	log Logger
-}
+type baseFormatter struct{}
 
 func (f baseFormatter) flush() (string, bool) {
 	return "", false
@@ -202,7 +198,7 @@ func (f templateFormatter) sourceHeader(sourceID, _, _, user string) (string, bo
 func (f templateFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
 	b := bytes.Buffer{}
 	if err := f.outputTemplate.Execute(&b, e); err != nil {
-		f.log.Fatalf("Output template parsed, but failed to execute: %s", err)
+		log.Panicf("Output template parsed, but failed to execute: %s", err)
 	}
 
 	if b.Len() == 0 {

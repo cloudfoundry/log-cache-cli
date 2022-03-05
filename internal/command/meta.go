@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"regexp"
 	"sort"
@@ -109,16 +110,15 @@ func Meta(
 	cli plugin.CliConnection,
 	args []string,
 	c HTTPClient,
-	log Logger,
 	tableWriter io.Writer,
 	mopts ...MetaOption,
 ) {
-	opts := getOptions(args, log, mopts...)
-	client := createLogCacheClient(c, log, cli)
+	opts := getOptions(args, mopts...)
+	client := createLogCacheClient(c, cli)
 	tw := tabwriter.NewWriter(tableWriter, 0, 2, 2, ' ', 0)
 	username, err := cli.Username()
 	if err != nil {
-		log.Fatalf("Could not get username: %s", err)
+		log.Panicf("Could not get username: %s", err)
 	}
 
 	var originalMeta map[string]*logcache_v1.MetaInfo
@@ -126,7 +126,7 @@ func Meta(
 	writeRetrievingMetaHeader(opts, tw, username)
 	currentMeta, err = client.Meta(ctx)
 	if err != nil {
-		log.Fatalf("Failed to read Meta information: %s", err)
+		log.Panicf("Failed to read Meta information: %s", err)
 	}
 
 	if opts.EnableNoise {
@@ -136,7 +136,7 @@ func Meta(
 		writeRetrievingMetaHeader(opts, tw, username)
 		currentMeta, err = client.Meta(ctx)
 		if err != nil {
-			log.Fatalf("Failed to read Meta information: %s", err)
+			log.Panicf("Failed to read Meta information: %s", err)
 		}
 	}
 
@@ -145,7 +145,7 @@ func Meta(
 		writeAppsAndServicesHeader(opts, tw, username)
 		resources, err = getSourceInfo(currentMeta, cli)
 		if err != nil {
-			log.Fatalf("Failed to read application information: %s", err)
+			log.Panicf("Failed to read application information: %s", err)
 		}
 	}
 
@@ -161,7 +161,7 @@ func Meta(
 	}
 
 	if err = tw.Flush(); err != nil {
-		log.Fatalf("Error writing results")
+		log.Panic("Error writing results")
 	}
 }
 
@@ -226,10 +226,10 @@ type displayRow struct {
 	Delta         int64
 }
 
-func createLogCacheClient(c HTTPClient, log Logger, cli plugin.CliConnection) *logcache.Client {
+func createLogCacheClient(c HTTPClient, cli plugin.CliConnection) *logcache.Client {
 	logCacheEndpoint, err := logCacheEndpoint(cli)
 	if err != nil {
-		log.Fatalf("Could not determine Log Cache endpoint: %s", err)
+		log.Panicf("Could not determine Log Cache endpoint: %s", err)
 	}
 
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
@@ -238,7 +238,7 @@ func createLogCacheClient(c HTTPClient, log Logger, cli plugin.CliConnection) *l
 			tokenFunc: func() string {
 				token, err := cli.AccessToken()
 				if err != nil {
-					log.Fatalf("Unable to get Access Token: %s", err)
+					log.Panicf("Unable to get Access Token: %s", err)
 				}
 				return token
 			},
@@ -319,7 +319,7 @@ func writeWaiting(opts optionsFlags, tableWriter io.Writer, username string) {
 	}
 }
 
-func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
+func getOptions(args []string, mopts ...MetaOption) optionsFlags {
 	opts := optionsFlags{
 		SourceType:             "default",
 		EnableNoise:            false,
@@ -335,18 +335,18 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 
 	args, err := flags.ParseArgs(&opts, args)
 	if err != nil {
-		log.Fatalf("Could not parse flags: %s", err)
+		log.Panicf("Could not parse flags: %s", err)
 	}
 
 	if len(args) > 0 {
-		log.Fatalf("Invalid arguments, expected 0, got %d.", len(args))
+		log.Panicf("Invalid arguments, expected 0, got %d.", len(args))
 	}
 
 	opts.SourceType = strings.ToLower(opts.SourceType)
 	opts.SortBy = strings.ToLower(opts.SortBy)
 
 	if opts.ShowGUID && (sortBySource.Equal(opts.SortBy) || sortBySourceType.Equal(opts.SortBy)) {
-		log.Fatalf("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'.")
+		log.Panic("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'.")
 	}
 
 	// validate what was entered before setting defaults
@@ -358,19 +358,19 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 	}
 
 	if opts.ShowGUID && !(sourceTypePlatform.Equal(opts.SourceType) || sourceTypeAll.Equal(opts.SourceType) || sourceTypeDefault.Equal(opts.SourceType)) {
-		log.Fatalf("Source type must be 'platform' when using the --guid flag")
+		log.Panic("Source type must be 'platform' when using the --guid flag")
 	}
 
 	if invalidSourceType(opts.SourceType) {
-		log.Fatalf("Source type must be 'platform', 'application', 'service', or 'all'.")
+		log.Panic("Source type must be 'platform', 'application', 'service', or 'all'.")
 	}
 
 	if invalidSortBy(opts.SortBy) {
-		log.Fatalf("Sort by must be 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', or 'rate'.")
+		log.Panic("Sort by must be 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', or 'rate'.")
 	}
 
 	if sortByRate.Equal(opts.SortBy) && !opts.EnableNoise {
-		log.Fatalf("Can't sort by rate column without --noise flag")
+		log.Panic("Can't sort by rate column without --noise flag")
 	}
 
 	return opts

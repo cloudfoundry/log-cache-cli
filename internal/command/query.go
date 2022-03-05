@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -23,18 +24,17 @@ func Query(
 	cli plugin.CliConnection,
 	args []string,
 	c HTTPClient,
-	log Logger,
 	w io.Writer,
 	opts ...QueryOption,
 ) {
 	if len(args) < 1 {
-		log.Fatalf("Must specify a PromQL query")
+		log.Panic("Must specify a PromQL query")
 	}
 	query := args[0]
 
-	queryOptions, err := newQueryOptions(cli, args, log)
+	queryOptions, err := newQueryOptions(cli, args)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Panicf("%s", err)
 	}
 
 	for _, opt := range opts {
@@ -49,7 +49,7 @@ func Query(
 			tokenFunc: func() string {
 				token, err := cli.AccessToken()
 				if err != nil {
-					log.Fatalf("Unable to get Access Token: %s", err)
+					log.Panicf("Unable to get Access Token: %s", err)
 				}
 				return token
 			},
@@ -60,16 +60,16 @@ func Query(
 	if logCacheAddr == "" {
 		hasAPI, err := cli.HasAPIEndpoint()
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 
 		if !hasAPI {
-			log.Fatalf("No API endpoint targeted.")
+			log.Panic("No API endpoint targeted.")
 		}
 
 		tokenURL, err := cli.ApiEndpoint()
 		if err != nil {
-			log.Fatalf("%s", err)
+			log.Panicf("%s", err)
 		}
 
 		logCacheAddr = strings.Replace(tokenURL, "api", "log-cache", 1)
@@ -131,7 +131,7 @@ type queryOptionFlags struct {
 	Step  string `long:"step"`
 }
 
-func newQueryOptions(cli plugin.CliConnection, args []string, log Logger) (queryOptions, error) {
+func newQueryOptions(cli plugin.CliConnection, args []string) (queryOptions, error) {
 	opts := queryOptionFlags{}
 
 	args, err := flags.ParseArgs(&opts, args)

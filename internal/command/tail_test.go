@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"strconv"
@@ -17,7 +18,6 @@ import (
 
 var _ = Describe("LogCache", func() {
 	var (
-		logger     *stubLogger
 		writer     *stubWriter
 		httpClient *stubHTTPClient
 		cliConn    *stubCliConnection
@@ -28,13 +28,15 @@ var _ = Describe("LogCache", func() {
 	BeforeEach(func() {
 		startTime = time.Now().Truncate(time.Second).Add(-time.Minute)
 		timeFormat = "2006-01-02T15:04:05.00-0700"
-		logger = &stubLogger{}
 		writer = &stubWriter{}
-
+		log.SetOutput(writer)
+		log.SetPrefix("")
+		log.SetFlags(0)
 		httpClient = newStubHTTPClient()
 		httpClient.responseBody = []string{responseBody(startTime)}
 
 		cliConn = newStubCliConnection()
+		cliConn.cliCommandResult = [][]string{{""}, {""}}
 	})
 
 	It("removes headers when not printing to a tty", func() {
@@ -43,7 +45,6 @@ var _ = Describe("LogCache", func() {
 			cliConn,
 			[]string{"app-name"},
 			httpClient,
-			logger,
 			writer,
 			command.WithTailNoHeaders(),
 		)
@@ -72,7 +73,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 			Expect(httpClient.requestURLs).To(HaveLen(1))
@@ -108,7 +108,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -143,7 +142,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -176,7 +174,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -212,7 +209,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -248,7 +244,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -274,7 +269,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -300,7 +294,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -330,7 +323,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -360,7 +352,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -389,7 +380,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"--follow", "app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -453,7 +443,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"-f", "app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -517,7 +506,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"-f", "app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -578,7 +566,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -607,7 +594,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"-f", "app-name", "--new-line"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -680,7 +666,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"-f", "app-name", "--new-line=\\u1234"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -753,7 +738,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"-f", "app-name", "--new-line=🎶"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -818,7 +802,6 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					[]string{"-f", "app-name", "--new-line=hi"},
 					httpClient,
-					logger,
 					writer,
 				)
 			}
@@ -835,7 +818,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 			Expect(httpClient.requestURLs).To(HaveLen(1))
@@ -855,7 +837,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 			Expect(httpClient.requestHeaders[0]).To(BeEmpty())
@@ -869,7 +850,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"--follow", "app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -885,7 +865,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"--follow", "app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -901,7 +880,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -938,7 +916,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -965,7 +942,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -984,7 +960,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -1001,7 +976,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -1020,7 +994,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -1041,7 +1014,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -1060,7 +1032,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -1075,7 +1046,6 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).ToNot(Panic())
@@ -1089,12 +1059,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("--envelope-type must be LOG, COUNTER, GAUGE, TIMER, EVENT or ANY"))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("--envelope-type must be LOG, COUNTER, GAUGE, TIMER, EVENT or ANY"))
 		})
 
 		It("fatally logs when envelope-type and type are both present", func() {
@@ -1111,12 +1082,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("--envelope-type cannot be used with --envelope-class"))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("--envelope-type cannot be used with --envelope-class"))
 		})
 
 		It("fatally logs if output-format and json flags are given", func() {
@@ -1133,12 +1105,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Cannot use output-format and json flags together"))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("Cannot use output-format and json flags together"))
 		})
 
 		It("fatally logs if an output-format is malformed", func() {
@@ -1149,12 +1122,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal(`template: OutputFormat:1: function "INVALID" not defined`))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal(`template: OutputFormat:1: function "INVALID" not defined`))
 		})
 
 		It("fatally logs if an output-format won't execute", func() {
@@ -1170,12 +1144,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal(`Output template parsed, but failed to execute: template: OutputFormat:1:2: executing "OutputFormat" at <.invalid>: can't evaluate field invalid in type *loggregator_v2.Envelope`))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal(`Output template parsed, but failed to execute: template: OutputFormat:1:2: executing "OutputFormat" at <.invalid>: can't evaluate field invalid in type *loggregator_v2.Envelope`))
 		})
 
 		It("fatally logs if lines is greater than 1000", func() {
@@ -1189,12 +1164,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Lines cannot be greater than 1000."))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("Lines cannot be greater than 1000."))
 		})
 
 		It("accepts 0 for --lines", func() {
@@ -1208,7 +1184,6 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).ToNot(Panic())
@@ -1224,12 +1199,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("unknown user"))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("unknown user"))
 		})
 
 		It("fatally logs if org name cannot be fetched", func() {
@@ -1242,12 +1218,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Organization could not be fetched"))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("Organization could not be fetched"))
 		})
 
 		It("fatally logs if space cannot be fetched", func() {
@@ -1260,12 +1237,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("unknown space"))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("unknown space"))
 		})
 
 		It("fatally logs if the start > end", func() {
@@ -1276,12 +1254,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
 		})
 
 		It("fatally logs if the name-filter regex is invalid", func() {
@@ -1292,12 +1271,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					args,
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Invalid name filter '*foo'. Ensure your name-filter is a valid regex."))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("Invalid name filter '*foo'. Ensure your name-filter is a valid regex."))
 		})
 
 		It("fatally logs if too many arguments are given", func() {
@@ -1307,12 +1287,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					[]string{"one", "two"},
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Expected 1 argument, got 2."))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("Expected 1 argument, got 2."))
 		})
 
 		It("fatally logs if not enough arguments are given", func() {
@@ -1322,12 +1303,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					[]string{},
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Expected 1 argument, got 0."))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("Expected 1 argument, got 0."))
 		})
 
 		Context("when name-filter argument is not supplied", func() {
@@ -1341,7 +1323,6 @@ var _ = Describe("LogCache", func() {
 						cliConn,
 						args,
 						httpClient,
-						logger,
 						writer,
 					)
 				}).NotTo(Panic())
@@ -1364,7 +1345,6 @@ var _ = Describe("LogCache", func() {
 						cliConn,
 						args,
 						httpClient,
-						logger,
 						writer,
 					)
 				}).NotTo(Panic())
@@ -1385,12 +1365,13 @@ var _ = Describe("LogCache", func() {
 						cliConn,
 						args,
 						httpClient,
-						logger,
 						writer,
 					)
 				}).To(Panic())
 
-				Expect(logger.fatalfMessage).To(Equal("Use of --name-filter requires minimum log-cache version 2.1.0"))
+				r := writer.lines()
+				Expect(len(r)).To(Not(BeZero()))
+				Expect(r[len(r)-1]).To(Equal("Use of --name-filter requires minimum log-cache version 2.1.0"))
 			})
 		})
 
@@ -1403,12 +1384,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					[]string{"app-name"},
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("some-error"))
+			r := writer.lines()
+			Expect(len(r)).To(Not(BeZero()))
+			Expect(r[len(r)-1]).To(Equal("some-error"))
 		})
 
 		It("fatally logs if there is no API endpoint", func() {
@@ -1420,12 +1402,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					[]string{"app-name"},
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("No API endpoint targeted."))
+			r := writer.lines()
+			Expect(len(r)).ToNot(BeZero())
+			Expect(r[len(r)-1]).To(Equal("No API endpoint targeted."))
 		})
 
 		It("fatally logs if there is an error while checking for API endpoint", func() {
@@ -1438,12 +1421,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					[]string{"app-name"},
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("some-error"))
+			r := writer.lines()
+			Expect(len(r)).ToNot(BeZero())
+			Expect(r[len(r)-1]).To(Equal("some-error"))
 		})
 
 		It("fatally logs if the request returns an error", func() {
@@ -1455,12 +1439,13 @@ var _ = Describe("LogCache", func() {
 					cliConn,
 					[]string{"app-name"},
 					httpClient,
-					logger,
 					writer,
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("some-error"))
+			r := writer.lines()
+			Expect(len(r)).ToNot(BeZero())
+			Expect(r[len(r)-1]).To(Equal("some-error"))
 		})
 	})
 
@@ -1487,7 +1472,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -1515,12 +1499,12 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
 			logFormat := "   %s [%s/%s] GAUGE %s:%f %s %s:%f %s"
 			Expect(writer.lines()).To(Equal([]string{
+				"catch this instead",
 				fmt.Sprintf(
 					"Retrieving logs for service %s in org %s / space %s as %s...",
 					"app-name",
@@ -1531,8 +1515,6 @@ var _ = Describe("LogCache", func() {
 				"",
 				fmt.Sprintf(logFormat, startTime.Format(timeFormat), "app-name", "0", "some-name", 99.0, "my-unit", "some-other-name", 101.0, "my-unit"),
 			}))
-
-			Expect(logger.printfMessages).To(ContainElement("catch this instead"))
 		})
 
 		It("calls the log cache api", func() {
@@ -1542,7 +1524,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -1564,7 +1545,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -1593,7 +1573,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				args,
 				httpClient,
-				logger,
 				writer,
 			)
 
@@ -1609,6 +1588,8 @@ var _ = Describe("LogCache", func() {
 
 			counterFormat := "   %s [%s/%s] COUNTER %s:%d"
 			Expect(writer.lines()).To(Equal([]string{
+				"app not found",
+				"service not found",
 				fmt.Sprintf(
 					"Retrieving logs for source %s as %s...",
 					"app-name",
@@ -1617,9 +1598,6 @@ var _ = Describe("LogCache", func() {
 				"",
 				fmt.Sprintf(counterFormat, startTime.Format(timeFormat), "app-name", "0", "some-name", 99),
 			}))
-
-			Expect(logger.printfMessages).To(ContainElement("app not found"))
-			Expect(logger.printfMessages).To(ContainElement("service not found"))
 		})
 
 		It("uses the LOG_CACHE_ADDR environment variable", func() {
@@ -1634,7 +1612,6 @@ var _ = Describe("LogCache", func() {
 				cliConn,
 				[]string{"app-name"},
 				httpClient,
-				logger,
 				writer,
 			)
 			Expect(httpClient.requestURLs).To(HaveLen(1))

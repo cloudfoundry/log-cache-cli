@@ -3,6 +3,7 @@ package command_test
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
@@ -16,7 +17,7 @@ var _ = Describe("LogCache", func() {
 		It("reports an error for a failed request", func() {
 			tc := setup("", 503)
 
-			tc.query(`placeholder-for-a-query`)
+			tc.query("placeholder-for-a-query")
 
 			Expect(tc.writer.lines()).To(Equal([]string{
 				"Could not process query: unexpected status code 503",
@@ -61,7 +62,7 @@ var _ = Describe("LogCache", func() {
 				tc.query()
 			}).To(Panic())
 
-			Expect(tc.logger.fatalfMessage).To(HavePrefix(`Must specify a PromQL query`))
+			Expect(tc.writer.lines()[0]).To(HavePrefix(`Must specify a PromQL query`))
 			Expect(tc.httpClient.requestURLs).To(HaveLen(0))
 		})
 	})
@@ -74,7 +75,7 @@ var _ = Describe("LogCache", func() {
 				tc.query(`egress{source_id="doppler"}`, "--start", "123", "--end", "456")
 			}).To(Panic())
 
-			Expect(tc.logger.fatalfMessage).To(HavePrefix(
+			Expect(tc.writer.lines()[0]).To(HavePrefix(
 				"When issuing a range query, you must specify all of --start, --end, and --step",
 			))
 		})
@@ -86,7 +87,7 @@ var _ = Describe("LogCache", func() {
 				tc.query(`egress{source_id="doppler"}`, "--time", "123", "--start", "321")
 			}).To(Panic())
 
-			Expect(tc.logger.fatalfMessage).To(HavePrefix(
+			Expect(tc.writer.lines()[0]).To(HavePrefix(
 				"When issuing an instant query, you cannot specify --start, --end, or --step",
 			))
 		})
@@ -153,7 +154,7 @@ var _ = Describe("LogCache", func() {
 						tc.query(`egress{source_id="doppler"}`, "--time", timeArg)
 					}).To(Panic())
 
-					Expect(tc.logger.fatalfMessage).To(HavePrefix(
+					Expect(tc.writer.lines()[0]).To(HavePrefix(
 						fmt.Sprintf("Couldn't parse --time: invalid time format: %s", timeArg),
 					))
 				},
@@ -230,7 +231,7 @@ var _ = Describe("LogCache", func() {
 						)
 					}).To(Panic())
 
-					Expect(tc.logger.fatalfMessage).To(HavePrefix(
+					Expect(tc.writer.lines()[0]).To(HavePrefix(
 						fmt.Sprintf("Couldn't parse --%s: invalid time format: %s", invalidField, invalidArg),
 					))
 				},
@@ -248,7 +249,6 @@ var _ = Describe("LogCache", func() {
 type testContext struct {
 	cliConnection *stubCliConnection
 	httpClient    *stubHTTPClient
-	logger        *stubLogger
 	writer        *stubWriter
 }
 
@@ -257,11 +257,15 @@ func setup(responseBody string, responseCode int) *testContext {
 	httpClient.responseBody = []string{responseBody}
 	httpClient.responseCode = responseCode
 
+	w := &stubWriter{}
+	log.SetOutput(w)
+	log.SetPrefix("")
+	log.SetFlags(0)
+
 	return &testContext{
 		cliConnection: newStubCliConnection(),
 		httpClient:    httpClient,
-		logger:        &stubLogger{},
-		writer:        &stubWriter{},
+		writer:        w,
 	}
 }
 
@@ -271,7 +275,6 @@ func (tc *testContext) query(args ...string) {
 		tc.cliConnection,
 		args,
 		tc.httpClient,
-		tc.logger,
 		tc.writer,
 	)
 }

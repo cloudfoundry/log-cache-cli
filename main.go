@@ -31,24 +31,26 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 		InsecureSkipVerify: skipSSL,
 	}
 
-	l := log.New(os.Stderr, "", 0)
+	log.SetOutput(os.Stderr)
+	log.SetPrefix("")
+	log.SetFlags(0)
 
 	switch args[0] {
 	case "query":
 		var opts []command.QueryOption
-		command.Query(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
+		command.Query(context.Background(), conn, args[1:], http.DefaultClient, os.Stdout, opts...)
 	case "tail":
 		var opts []command.TailOption
 		if !isTerminal {
 			opts = append(opts, command.WithTailNoHeaders())
 		}
-		command.Tail(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
+		command.Tail(context.Background(), conn, args[1:], http.DefaultClient, os.Stdout, opts...)
 	case "log-meta":
 		var opts []command.MetaOption
 		if !isTerminal {
 			opts = append(opts, command.WithMetaNoHeaders())
 		}
-		command.Meta(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
+		command.Meta(context.Background(), conn, args[1:], http.DefaultClient, os.Stdout, opts...)
 	}
 }
 
