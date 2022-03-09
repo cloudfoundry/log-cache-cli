@@ -1,0 +1,29 @@
+name: release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semver version to cut a release for (ie. 4.0.3)'
+        required: true
+
+jobs:
+  test:
+    uses: ./.github/workflows/unit-tests.yml@main
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - run: |
+          GOOS=linux go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-linux
+          GOOS=darwin go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-darwin
+          GOOS=windows go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-windows
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+      - run: |
+          gh release create -d -t "Log Cache CLI v$VERSION" --generate-notes ./bin/*
+        env:
+          VERSION: ${{ github.event.inputs.version }}
