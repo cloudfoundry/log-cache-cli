@@ -1,4 +1,4 @@
-package cf_test
+package command_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/log-cache-cli/v4/pkg/command/cf"
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -38,14 +38,14 @@ var _ = Describe("LogCache", func() {
 	})
 
 	It("removes headers when not printing to a tty", func() {
-		cf.Tail(
+		command.Tail(
 			context.Background(),
 			cliConn,
 			[]string{"app-name"},
 			httpClient,
 			logger,
 			writer,
-			cf.WithTailNoHeaders(),
+			command.WithTailNoHeaders(),
 		)
 
 		logFormat := "   %s [APP/PROC/WEB/0] %s log body"
@@ -67,7 +67,7 @@ var _ = Describe("LogCache", func() {
 		})
 
 		It("reports successful results", func() {
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -78,6 +78,7 @@ var _ = Describe("LogCache", func() {
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -102,7 +103,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				deprecatedTagsResponseBody(startTime),
 			}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -113,6 +114,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -136,7 +138,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				counterResponseBody(startTime),
 			}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -147,6 +149,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -168,7 +171,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				gaugeResponseBody(startTime),
 			}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -179,6 +182,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -203,7 +207,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				[]string{"app-name"},
@@ -214,6 +218,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -238,7 +243,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				[]string{"app-name"},
@@ -264,7 +269,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--envelope-type", "any", "--json", "app-name"}
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -290,7 +295,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--envelope-class", "metrics", "--json", "app-name"}
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -320,7 +325,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--envelope-class", "logs", "--json", "app-name"}
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -350,7 +355,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--name-filter", "egress", "--json", "app-name"}
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -379,7 +384,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				[]string{"--follow", "app-name"},
@@ -390,6 +395,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -403,6 +409,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -441,7 +448,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				[]string{"-f", "app-name"},
@@ -452,6 +459,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -465,6 +473,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -503,7 +512,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				[]string{"-f", "app-name"},
@@ -514,6 +523,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -527,6 +537,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -562,7 +573,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			args := []string{"--name-filter", "egress", "--follow", "app-name"}
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				args,
@@ -591,7 +602,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				[]string{"-f", "app-name", "--new-line"},
@@ -602,6 +613,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -615,6 +627,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -662,7 +675,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				[]string{"-f", "app-name", "--new-line=\\u1234"},
@@ -673,6 +686,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -686,6 +700,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -733,7 +748,7 @@ var _ = Describe("LogCache", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 			defer cancel()
 			now := time.Now()
-			cf.Tail(
+			command.Tail(
 				ctx,
 				cliConn,
 				[]string{"-f", "app-name", "--new-line=🎶"},
@@ -744,6 +759,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 
 			start, err := strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
@@ -757,6 +773,7 @@ var _ = Describe("LogCache", func() {
 			Expect(envelopeType).To(Equal("ANY"))
 
 			requestURL, err = url.Parse(httpClient.requestURLs[1])
+			Expect(err).ToNot(HaveOccurred())
 			start, err = strconv.ParseInt(requestURL.Query().Get("start_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(start).To(Equal(startTime.Add(-28*time.Second).UnixNano() + 1))
@@ -796,7 +813,7 @@ var _ = Describe("LogCache", func() {
 			defer cancel()
 
 			wrapperFunc := func() {
-				cf.Tail(
+				command.Tail(
 					ctx,
 					cliConn,
 					[]string{"-f", "app-name", "--new-line=hi"},
@@ -813,7 +830,7 @@ var _ = Describe("LogCache", func() {
 			os.Setenv("LOG_CACHE_ADDR", "https://different-log-cache:8080")
 			defer os.Unsetenv("LOG_CACHE_ADDR")
 
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -833,7 +850,7 @@ var _ = Describe("LogCache", func() {
 			os.Setenv("LOG_CACHE_SKIP_AUTH", "true")
 			defer os.Unsetenv("LOG_CACHE_SKIP_AUTH")
 
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -847,7 +864,7 @@ var _ = Describe("LogCache", func() {
 		It("follow retries for empty responses", func() {
 			httpClient.responseBody = []string{emptyResponseBody()}
 
-			go cf.Tail(
+			go command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"--follow", "app-name"},
@@ -863,7 +880,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = nil
 			httpClient.responseErr = errors.New("some-error")
 
-			go cf.Tail(
+			go command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"--follow", "app-name"},
@@ -879,7 +896,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseBody = []string{
 				eventResponseBody(startTime),
 			}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},
@@ -890,6 +907,7 @@ var _ = Describe("LogCache", func() {
 
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -915,7 +933,7 @@ var _ = Describe("LogCache", func() {
 				"--lines", "99",
 				"app-name",
 			}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -942,7 +960,7 @@ var _ = Describe("LogCache", func() {
 				"-n", "99",
 				"app-name",
 			}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -961,7 +979,7 @@ var _ = Describe("LogCache", func() {
 			args := []string{
 				"app-name",
 			}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -978,7 +996,7 @@ var _ = Describe("LogCache", func() {
 
 		It("requests the app guid", func() {
 			args := []string{"some-app"}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -997,7 +1015,7 @@ var _ = Describe("LogCache", func() {
 		It("places the auth token in the 'Authorization' header", func() {
 			args := []string{"some-app"}
 			cliConn.accessToken = "bearer some-token"
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1018,7 +1036,7 @@ var _ = Describe("LogCache", func() {
 				"app-guid",
 			}
 
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1037,7 +1055,7 @@ var _ = Describe("LogCache", func() {
 				"app-guid",
 			}
 
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1052,7 +1070,7 @@ var _ = Describe("LogCache", func() {
 		It("allows for empty end time with populated start time", func() {
 			args := []string{"--start-time", "1000", "app-name"}
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1066,7 +1084,7 @@ var _ = Describe("LogCache", func() {
 		It("fatally logs if envelope-type is invalid", func() {
 			args := []string{"--envelope-type", "invalid", "some-app"}
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1088,7 +1106,7 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1110,7 +1128,7 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1126,7 +1144,7 @@ var _ = Describe("LogCache", func() {
 		It("fatally logs if an output-format is malformed", func() {
 			args := []string{"--output-format", "{{INVALID}}", "app-guid"}
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1147,7 +1165,7 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1166,7 +1184,7 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1185,7 +1203,7 @@ var _ = Describe("LogCache", func() {
 				"some-app",
 			}
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1201,7 +1219,7 @@ var _ = Describe("LogCache", func() {
 			args := []string{"app-name"}
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1219,7 +1237,7 @@ var _ = Describe("LogCache", func() {
 			args := []string{"app-name"}
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1237,7 +1255,7 @@ var _ = Describe("LogCache", func() {
 			args := []string{"app-name"}
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1253,7 +1271,7 @@ var _ = Describe("LogCache", func() {
 		It("fatally logs if the start > end", func() {
 			args := []string{"--start-time", "1000", "--end-time", "100", "app-name"}
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1269,7 +1287,7 @@ var _ = Describe("LogCache", func() {
 		It("fatally logs if the name-filter regex is invalid", func() {
 			args := []string{"--name-filter", "*foo", "app-name"}
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					args,
@@ -1284,7 +1302,7 @@ var _ = Describe("LogCache", func() {
 
 		It("fatally logs if too many arguments are given", func() {
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"one", "two"},
@@ -1299,7 +1317,7 @@ var _ = Describe("LogCache", func() {
 
 		It("fatally logs if not enough arguments are given", func() {
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					[]string{},
@@ -1318,7 +1336,7 @@ var _ = Describe("LogCache", func() {
 				httpClient.serverVersion = "2.0.3"
 
 				Expect(func() {
-					cf.Tail(
+					command.Tail(
 						context.Background(),
 						cliConn,
 						args,
@@ -1341,7 +1359,7 @@ var _ = Describe("LogCache", func() {
 				httpClient.serverVersion = "2.1.0"
 
 				Expect(func() {
-					cf.Tail(
+					command.Tail(
 						context.Background(),
 						cliConn,
 						args,
@@ -1362,7 +1380,7 @@ var _ = Describe("LogCache", func() {
 				httpClient.serverVersion = "2.0.3"
 
 				Expect(func() {
-					cf.Tail(
+					command.Tail(
 						context.Background(),
 						cliConn,
 						args,
@@ -1380,7 +1398,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.apiEndpointErr = errors.New("some-error")
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"app-name"},
@@ -1397,7 +1415,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.hasAPIEndpoint = false
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"app-name"},
@@ -1415,7 +1433,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.hasAPIEndpointErr = errors.New("some-error")
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"app-name"},
@@ -1432,7 +1450,7 @@ var _ = Describe("LogCache", func() {
 			httpClient.responseErr = errors.New("some-error")
 
 			Expect(func() {
-				cf.Tail(
+				command.Tail(
 					context.Background(),
 					cliConn,
 					[]string{"app-name"},
@@ -1464,7 +1482,7 @@ var _ = Describe("LogCache", func() {
 				{"service-guid"},
 			}
 			args := []string{"service-name"}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1492,7 +1510,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.cliCommandErr = []error{errors.New("catch this instead")}
 
 			args := []string{"app-name"}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1519,7 +1537,7 @@ var _ = Describe("LogCache", func() {
 
 		It("calls the log cache api", func() {
 			args := []string{"service-name"}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1541,7 +1559,7 @@ var _ = Describe("LogCache", func() {
 
 		It("requests the service guid", func() {
 			args := []string{"some-service"}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1570,7 +1588,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.cliCommandErr = []error{errors.New("app not found"), errors.New("service not found")}
 
 			args := []string{"app-name"}
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				args,
@@ -1582,6 +1600,7 @@ var _ = Describe("LogCache", func() {
 			Expect(httpClient.requestURLs).To(HaveLen(1))
 
 			requestURL, err := url.Parse(httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
 			end, err := strconv.ParseInt(requestURL.Query().Get("end_time"), 10, 64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(end).To(BeNumerically("~", time.Now().UnixNano(), 10000000))
@@ -1610,7 +1629,7 @@ var _ = Describe("LogCache", func() {
 			cliConn.cliCommandResult = [][]string{{""}, {""}}
 			cliConn.cliCommandErr = []error{errors.New("app not found"), errors.New("service not found")}
 
-			cf.Tail(
+			command.Tail(
 				context.Background(),
 				cliConn,
 				[]string{"app-name"},

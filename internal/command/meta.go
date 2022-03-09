@@ -1,4 +1,4 @@
-package cf
+package command
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"os"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -274,19 +273,21 @@ func tableFormat(opts optionsFlags, row displayRow) (string, []interface{}) {
 
 func writeRetrievingMetaHeader(opts optionsFlags, tableWriter io.Writer, username string) {
 	if opts.withHeaders {
-		fmt.Fprintf(tableWriter, fmt.Sprintf(
+		fmt.Fprintf(
+			tableWriter,
 			"Retrieving log cache metadata as %s...\n\n",
 			username,
-		))
+		)
 	}
 }
 
 func writeAppsAndServicesHeader(opts optionsFlags, tableWriter io.Writer, username string) {
 	if opts.withHeaders {
-		fmt.Fprintf(tableWriter, fmt.Sprintf(
+		fmt.Fprintf(
+			tableWriter,
 			"Retrieving app and service names as %s...\n\n",
 			username,
-		))
+		)
 	}
 }
 
@@ -373,18 +374,6 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 	}
 
 	return opts
-}
-
-func displayRate(rate int) string {
-	var output string
-
-	if rate >= MaximumBatchSize {
-		output = fmt.Sprintf(">%d", MaximumBatchSize-1)
-	} else {
-		output = strconv.Itoa(rate)
-	}
-
-	return output
 }
 
 func sortRows(opts optionsFlags, rows []displayRow) {
@@ -528,17 +517,6 @@ func maxDuration(a, b time.Duration) time.Duration {
 		return b
 	}
 	return a
-}
-
-func truncate(count int, entries map[string]*logcache_v1.MetaInfo) map[string]*logcache_v1.MetaInfo {
-	truncated := make(map[string]*logcache_v1.MetaInfo)
-	for k, v := range entries {
-		if len(truncated) >= count {
-			break
-		}
-		truncated[k] = v
-	}
-	return truncated
 }
 
 func logCacheEndpoint(cli plugin.CliConnection) (string, error) {

@@ -1,4 +1,4 @@
-package cf_test
+package command_test
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"code.cloudfoundry.org/log-cache-cli/v4/pkg/command/cf"
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -56,14 +56,14 @@ var _ = Describe("Meta", func() {
 			}
 			cliConn.cliCommandErr = nil
 
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				[]string{"--noise", "--sort-by", "rate"},
 				httpClient,
 				logger,
 				tableWriter,
-				cf.WithMetaNoiseSleepDuration(0),
+				command.WithMetaNoiseSleepDuration(0),
 			)
 
 			Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
@@ -114,7 +114,7 @@ var _ = Describe("Meta", func() {
 			}
 			cliConn.cliCommandErr = nil
 
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				[]string{"--sort-by", "source-type"},
@@ -161,7 +161,7 @@ var _ = Describe("Meta", func() {
 			}
 			cliConn.cliCommandErr = nil
 
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				[]string{"--sort-by", "count"},
@@ -209,7 +209,7 @@ var _ = Describe("Meta", func() {
 			}
 			cliConn.cliCommandErr = nil
 
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				[]string{"--sort-by", "expired"},
@@ -257,7 +257,7 @@ var _ = Describe("Meta", func() {
 			}
 			cliConn.cliCommandErr = nil
 
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				[]string{"--sort-by", "cache-duration"},
@@ -290,7 +290,7 @@ var _ = Describe("Meta", func() {
 
 		It("fatally logs when --sort-by is not valid", func() {
 			Expect(func() {
-				cf.Meta(
+				command.Meta(
 					context.Background(),
 					cliConn,
 					[]string{"--sort-by", "invalid"},
@@ -305,7 +305,7 @@ var _ = Describe("Meta", func() {
 
 		It("fatally logs when --source-type other than 'platform' is used with --guid", func() {
 			Expect(func() {
-				cf.Meta(
+				command.Meta(
 					context.Background(),
 					cliConn,
 					[]string{"--guid", "--source-type", "not-platform"},
@@ -320,7 +320,7 @@ var _ = Describe("Meta", func() {
 
 		It("fatally logs when --sort-by source is used with --guid", func() {
 			Expect(func() {
-				cf.Meta(
+				command.Meta(
 					context.Background(),
 					cliConn,
 					[]string{"--guid", "--sort-by", "source"},
@@ -335,7 +335,7 @@ var _ = Describe("Meta", func() {
 
 		It("fatally logs when --sort-by source-type is used with --guid", func() {
 			Expect(func() {
-				cf.Meta(
+				command.Meta(
 					context.Background(),
 					cliConn,
 					[]string{"--guid", "--sort-by", "source-type"},
@@ -350,7 +350,7 @@ var _ = Describe("Meta", func() {
 
 		It("fatally logs when --sort-by source-type is used with --guid", func() {
 			Expect(func() {
-				cf.Meta(
+				command.Meta(
 					context.Background(),
 					cliConn,
 					[]string{"--guid", "--sort-by", "source-type"},
@@ -365,7 +365,7 @@ var _ = Describe("Meta", func() {
 
 		It("fatally logs when --sort-by rate is used without --noise", func() {
 			Expect(func() {
-				cf.Meta(
+				command.Meta(
 					context.Background(),
 					cliConn,
 					[]string{"--sort-by", "rate"},
@@ -394,7 +394,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			[]string{"--guid"},
@@ -435,14 +435,14 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			[]string{"--guid"},
 			httpClient,
 			logger,
 			tableWriter,
-			cf.WithMetaNoHeaders(),
+			command.WithMetaNoHeaders(),
 		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
@@ -464,7 +464,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -521,14 +521,14 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			[]string{"--noise"},
 			httpClient,
 			logger,
 			tableWriter,
-			cf.WithMetaNoiseSleepDuration(0),
+			command.WithMetaNoiseSleepDuration(0),
 		)
 
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
@@ -574,7 +574,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -640,7 +640,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "application"}
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			args,
@@ -686,7 +686,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "service"}
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			args,
@@ -732,7 +732,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "PLATFORM"}
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			args,
@@ -777,7 +777,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "all"}
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			args,
@@ -823,7 +823,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "unknown"}
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			args,
@@ -867,7 +867,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -912,7 +912,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--guid"}
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			args,
@@ -953,7 +953,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		args := []string{"--source-type", "PLATFORM", "--guid"}
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			args,
@@ -1000,7 +1000,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -1059,7 +1059,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -1090,7 +1090,7 @@ var _ = Describe("Meta", func() {
 		}
 		cliConn.cliCommandErr = nil
 
-		cf.Meta(
+		command.Meta(
 			context.Background(),
 			cliConn,
 			nil,
@@ -1104,7 +1104,7 @@ var _ = Describe("Meta", func() {
 
 	It("fatally logs when it receives too many arguments", func() {
 		Expect(func() {
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				[]string{"extra-arg"},
@@ -1120,7 +1120,7 @@ var _ = Describe("Meta", func() {
 	It("fatally logs when scope is not 'platform', 'application' or 'all'", func() {
 		args := []string{"--source-type", "invalid"}
 		Expect(func() {
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				args,
@@ -1137,7 +1137,7 @@ var _ = Describe("Meta", func() {
 		cliConn.apiEndpointErr = errors.New("some-error")
 
 		Expect(func() {
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -1159,7 +1159,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = []error{errors.New("some-error")}
 
 		Expect(func() {
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -1187,7 +1187,7 @@ var _ = Describe("Meta", func() {
 		cliConn.usernameErr = errors.New("some-error")
 
 		Expect(func() {
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -1209,7 +1209,7 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		Expect(func() {
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -1226,7 +1226,7 @@ var _ = Describe("Meta", func() {
 		httpClient.responseErr = errors.New("some-error")
 
 		Expect(func() {
-			cf.Meta(
+			command.Meta(
 				context.Background(),
 				cliConn,
 				nil,
@@ -1239,13 +1239,6 @@ var _ = Describe("Meta", func() {
 		Expect(logger.fatalfMessage).To(Equal(`Failed to read Meta information: some-error`))
 	})
 })
-
-func generateBatch(count int) []string {
-	x := strings.Repeat("{},", count-1)
-	x += "{}"
-
-	return []string{fmt.Sprintf(`{"batch": [%s]}`, x)}
-}
 
 func metaResponseInfo(sourceIDs ...string) string {
 	var metaInfos []string

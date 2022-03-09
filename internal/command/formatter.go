@@ -1,4 +1,4 @@
-package cf
+package command
 
 import (
 	"bytes"
@@ -122,7 +122,7 @@ func (f prettyFormatter) sourceHeader(sourceID, _, _, user string) (string, bool
 }
 
 func (f prettyFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
-	return fmt.Sprintf("%s", envelopeWrapper{sourceID: f.sourceID, Envelope: e, newLine: f.newLine}), true
+	return envelopeWrapper{sourceID: f.sourceID, Envelope: e, newLine: f.newLine}.String(), true
 }
 
 type jsonFormatter struct {
@@ -251,7 +251,7 @@ func (e envelopeWrapper) String() string {
 			values = append(values, fmt.Sprintf("%s:%f %s", k, v.Value, v.Unit))
 		}
 
-		sort.Sort(sort.StringSlice(values))
+		sort.Strings(values)
 
 		return fmt.Sprintf("%sGAUGE %s",
 			e.header(ts),

@@ -1,4 +1,4 @@
-package cf_test
+package command_test
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/cli/plugin"
-	"code.cloudfoundry.org/cli/plugin/models"
+	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -189,11 +189,4 @@ func (s *stubCliConnection) AccessToken() (string, error) {
 
 	s.accessTokenCount++
 	return s.accessToken, s.accessTokenErr
-}
-
-func (s *stubCliConnection) getAccessTokenCount() int {
-	s.Lock()
-	defer s.Unlock()
-
-	return s.accessTokenCount
 }
