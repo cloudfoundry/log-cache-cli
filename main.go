@@ -3,19 +3,18 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-// version is set via ldflags at compile time. It should be JSON encoded
-// plugin.VersionType. If it does not unmarshal, the plugin version will be
-// left empty.
+// semver version is set via ldflags at compile time
 var version string
 
 type LogCacheCLI struct{}
@@ -53,10 +52,15 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 }
 
 func (c *LogCacheCLI) GetMetadata() plugin.PluginMetadata {
-	var v plugin.VersionType
-	// Ignore the error. If this doesn't unmarshal, then we want the default
-	// VersionType.
-	_ = json.Unmarshal([]byte(version), &v)
+	// ignore any errors and use the default plugin.VersionType if version
+	// cannot be parsed
+	split := strings.Split(version, ".")
+	v := plugin.VersionType{}
+	if len(split) == 3 {
+		v.Major = readOrZero(split[0])
+		v.Minor = readOrZero(split[1])
+		v.Build = readOrZero(split[2])
+	}
 
 	return plugin.PluginMetadata{
 		Name:    "log-cache",
@@ -120,6 +124,14 @@ ENVIRONMENT VARIABLES:
 			},
 		},
 	}
+}
+
+func readOrZero(s string) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return n
 }
 
 func main() {
