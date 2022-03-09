@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    uses: ./.github/workflows/unit-tests.yml@main
+    uses: ./.github/workflows/unit-tests.yml
   release:
     needs: test
     runs-on: ubuntu-latest
