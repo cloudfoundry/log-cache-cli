@@ -2,7 +2,7 @@
 
 set -e
 
-version="{\"Major\":0,\"Minor\":0,\"Build\":\"0+dev.0\"}"
+version="0.0.0"
 
 SCRIPTS_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 WORKSPACE="$SCRIPTS_PATH/.."
