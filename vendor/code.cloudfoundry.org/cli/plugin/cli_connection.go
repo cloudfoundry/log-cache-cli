@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"code.cloudfoundry.org/cli/plugin/models"
+	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 )
 
 type cliConnection struct {
@@ -82,7 +82,7 @@ func (c *cliConnection) callCliCommand(silently bool, args ...string) ([]string,
 		disableTerminalOutputErr error
 	)
 
-	c.withClientDo(func(client *rpc.Client) error {
+	_ = c.withClientDo(func(client *rpc.Client) error {
 		disableTerminalOutputErr = client.Call("CliRpcCmd.DisableTerminalOutput", silently, &success)
 		callCoreCommandErr = client.Call("CliRpcCmd.CallCoreCommand", args, &success)
 		getOutputAndResetErr = client.Call("CliRpcCmd.GetOutputAndReset", success, &cmdOutput)

@@ -1,6 +1,6 @@
 package plugin
 
-import "code.cloudfoundry.org/cli/plugin/models"
+import plugin_models "code.cloudfoundry.org/cli/plugin/models"
 
 /**
 	Command interface needs to be implemented for a runnable plugin of `cf`
@@ -54,10 +54,11 @@ type VersionType struct {
 }
 
 type PluginMetadata struct {
-	Name          string
-	Version       VersionType
-	MinCliVersion VersionType
-	Commands      []Command
+	Name           string
+	Version        VersionType
+	LibraryVersion VersionType
+	MinCliVersion  VersionType
+	Commands       []Command
 }
 
 type Usage struct {
