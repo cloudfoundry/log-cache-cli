@@ -37,6 +37,10 @@ cd log-cache-cli
 scripts/install.sh
 ```
 
+## Contributing
+
+Please review the [Release Guide](https://github.com/cloudfoundry/log-cache-cli/wiki/Release-Guide) for details on how to release a new version of the plugin.
+
 ## Usage
 
 ### Tail Logs
