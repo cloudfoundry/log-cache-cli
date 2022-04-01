@@ -26,4 +26,5 @@ jobs:
       - run: |
           gh release create -d -t "Log Cache CLI v$VERSION" --generate-notes ./bin/*
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.event.inputs.version }}
