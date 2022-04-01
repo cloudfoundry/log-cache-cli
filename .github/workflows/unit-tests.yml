@@ -1,6 +1,5 @@
-name: unit-tests
+name: Unit test and lint
 on:
-  workflow_call:
   pull_request:
     branches:
     - main
