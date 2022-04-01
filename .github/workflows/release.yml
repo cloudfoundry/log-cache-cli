@@ -8,7 +8,6 @@ on:
 
 jobs:
   release:
-    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -22,7 +21,8 @@ jobs:
         env:
           VERSION: ${{ github.event.inputs.version }}
       - run: |
-          gh release create -d -t "v$VERSION" --generate-notes "v$VERSION" ./bin/*
+          go_version=`go version | { read _ _ v _; echo ${v#go}; }`
+          gh release create -d -t "v$VERSION" --generate-notes "v$VERSION" --notes ":sparkles: built with go$go_version" ./bin/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.event.inputs.version }}
