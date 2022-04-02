@@ -10,9 +10,9 @@ permissions:
 
 jobs:
   test:
-    uses: ./.github/workflows/test.yml@main
+    uses: ./.github/workflows/test.yml
   lint:
-    uses: ./.github/workflows/lint.yml@main
+    uses: ./.github/workflows/lint.yml
   dependabot:
     needs: [test, lint]
     runs-on: ubuntu-latest
