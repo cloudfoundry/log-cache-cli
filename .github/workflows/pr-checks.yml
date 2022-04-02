@@ -1,13 +1,20 @@
-name: Approve and merge Dependabot PR
+name: PR checks
 
-on: pull_request_target
+pull_request:
+  branches:
+  - main
 
 permissions:
   pull-requests: write
   contents: write
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml@main
+  lint:
+    uses: ./.github/workflows/lint.yml@main
   dependabot:
+    needs: [test, lint]
     runs-on: ubuntu-latest
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
@@ -21,9 +28,9 @@ jobs:
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Auto-merge for Dependabot PRs
+      - name: Auto-merge if not a major bump
         if: ${{ steps.dependabot-metadata.outputs.update-type != 'version-update:semver-major' }}
-        run: gh pr merge --auto --rebase "$PR_URL"
+        run: gh pr merge --rebase "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
