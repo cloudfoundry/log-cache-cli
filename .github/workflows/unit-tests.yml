@@ -23,3 +23,12 @@ jobs:
         with:
           go-version: 1.18
       - run: go test -v -race ./...
+  dependabot-auto-merge:
+    needs: [lint, test]
+    if: ${{ github.event.pull_request && github.event.pull_request.user.login == 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
