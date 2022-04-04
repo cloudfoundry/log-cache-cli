@@ -1,21 +1,16 @@
-name: PR checks
+name: Dependabot
 
 on:
   pull_request:
     branches:
-    - main
+    - 'main'
 
 permissions:
   pull-requests: write
   contents: write
 
 jobs:
-  test:
-    uses: ./.github/workflows/test.yml
-  lint:
-    uses: ./.github/workflows/lint.yml
-  dependabot:
-    needs: [test, lint]
+  approve-and-set-auto-merge:
     runs-on: ubuntu-latest
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
