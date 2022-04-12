@@ -7,6 +7,11 @@ linters:
     - gocyclo
     # Inspects source code for security problems.
     - gosec
+linters-settings:
+  gosec:
+    excludes:
+      # Ignore the fact that we might set TLS InsecureSkipVerify
+      - G402
 issues:
   # Disable max issues per linter.
   max-issues-per-linter: 0
