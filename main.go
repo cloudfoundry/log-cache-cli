@@ -11,7 +11,7 @@ import (
 
 	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 // semver version is set via ldflags at compile time
@@ -20,7 +20,7 @@ var version string
 type LogCacheCLI struct{}
 
 func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
-	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
+	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
 
 	skipSSL, err := conn.IsSSLDisabled()
 	if err != nil {
