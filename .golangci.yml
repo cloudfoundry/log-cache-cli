@@ -8,6 +8,10 @@ linters:
     # Inspects source code for security problems.
     - gosec
 linters-settings:
+  gocyclo:
+    # Minimal code complexity to report.
+    # https://github.com/fzipp/gocyclo#readme
+    min-complexity: 15
   gosec:
     excludes:
       # Ignore the fact that we might set TLS InsecureSkipVerify
