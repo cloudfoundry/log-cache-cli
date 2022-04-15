@@ -52,8 +52,7 @@ func Tail(
 		opt(&o)
 	}
 
-	sourceID := o.guid
-	formatter := newFormatter(o.providedName, o.follow, formatterKindFromOptions(o), log, o.outputTemplate, o.newLineReplacer)
+	formatter := newFormatter(o.source.Name, o.follow, formatterKindFromOptions(o), log, o.outputTemplate, o.newLineReplacer)
 	lw := lineWriter{w: w}
 
 	defer func() {
@@ -95,17 +94,16 @@ func Tail(
 
 		logCacheAddr = strings.Replace(tokenURL, "api", "log-cache", 1)
 
-		headerPrinter := formatter.appHeader
-		if o.isService {
+		headerPrinter := formatter.sourceHeader
+		switch o.source.Type {
+		case sourceTypeApplication:
+			headerPrinter = formatter.appHeader
+		case sourceTypeService:
 			headerPrinter = formatter.serviceHeader
-		}
-		if sourceID == "" {
-			// not an app or service, use generic header
-			headerPrinter = formatter.sourceHeader
 		}
 
 		if !o.noHeaders {
-			header, ok := headerPrinter(o.providedName, org.Name, space.Name, user)
+			header, ok := headerPrinter(o.source.Name, org.Name, space.Name, user)
 			if ok {
 				lw.Write(header)
 				lw.Write("")
@@ -140,9 +138,10 @@ func Tail(
 
 	checkFeatureVersioning(client, ctx, log, o.nameFilter)
 
-	if sourceID == "" {
+	sourceID := o.source.GUID
+	if o.source.Type == sourceTypeUnknown {
 		// fall back to provided name
-		sourceID = o.providedName
+		sourceID = o.source.Name
 	}
 
 	walkStartTime := time.Now().Add(-5 * time.Second).UnixNano()
@@ -217,9 +216,7 @@ type tailOptions struct {
 	lines         int
 	follow        bool
 
-	guid                 string
-	isService            bool
-	providedName         string
+	source               source
 	outputTemplate       *template.Template
 	jsonOutput           bool
 	tokenRefreshInterval time.Duration
@@ -277,15 +274,16 @@ func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOp
 		}
 	}
 
-	id, isService := getGUID(args[0], cli, log)
+	source := source{Name: args[0]}
+
+	populateSource(&source, cli, log)
+
 	o := tailOptions{
 		startTime:            time.Unix(0, opts.StartTime),
 		endTime:              time.Unix(0, opts.EndTime),
 		envelopeType:         translateEnvelopeType(opts.EnvelopeType, log),
 		lines:                int(opts.Lines),
-		guid:                 id,
-		isService:            isService,
-		providedName:         args[0],
+		source:               source,
 		follow:               opts.Follow,
 		outputTemplate:       outputTemplate,
 		jsonOutput:           opts.JSONOutput,
@@ -395,12 +393,18 @@ func translateEnvelopeType(t string, log Logger) logcache_v1.EnvelopeType {
 	}
 }
 
-func getGUID(name string, cli plugin.CliConnection, log Logger) (string, bool) {
-	var id string
-	if id = getAppGUID(name, cli, log); id == "" {
-		return getServiceGUID(name, cli, log), true
+func populateSource(s *source, cli plugin.CliConnection, log Logger) {
+	if guid := getAppGUID(s.Name, cli, log); guid != "" {
+		s.GUID = guid
+		s.Type = sourceTypeApplication
+		return
 	}
-	return id, false
+	if guid := getServiceGUID(s.Name, cli, log); guid != "" {
+		s.GUID = guid
+		s.Type = sourceTypeService
+		return
+	}
+	s.Type = sourceTypeUnknown
 }
 
 func getAppGUID(appName string, cli plugin.CliConnection, log Logger) string {
