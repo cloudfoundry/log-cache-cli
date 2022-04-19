@@ -6,8 +6,7 @@ import (
 	"net/url"
 
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
