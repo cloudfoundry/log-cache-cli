@@ -196,10 +196,9 @@ type lineWriter struct {
 	w io.Writer
 }
 
-func (w *lineWriter) Write(line string) error {
+func (w *lineWriter) Write(line string) {
 	line = strings.TrimSuffix(line, "\n") + "\n"
-	_, err := w.w.Write([]byte(line))
-	return err
+	_, _ = w.w.Write([]byte(line))
 }
 
 const (
