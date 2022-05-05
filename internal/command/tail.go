@@ -196,10 +196,9 @@ type lineWriter struct {
 	w io.Writer
 }
 
-func (w *lineWriter) Write(line string) error {
+func (w *lineWriter) Write(line string) {
 	line = strings.TrimSuffix(line, "\n") + "\n"
-	_, err := w.w.Write([]byte(line))
-	return err
+	_, _ = w.w.Write([]byte(line))
 }
 
 const (
@@ -356,7 +355,7 @@ func (o tailOptions) validate() error {
 
 	_, err := regexp.Compile(o.nameFilter)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Invalid name filter '%s'. Ensure your name-filter is a valid regex.", o.nameFilter))
+		return fmt.Errorf("Invalid name filter '%s'. Ensure your name-filter is a valid regex.", o.nameFilter)
 	}
 
 	return nil

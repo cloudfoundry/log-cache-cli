@@ -1926,38 +1926,6 @@ var eventResponseTemplate = `{
 	}
 }`
 
-var invalidTimestampResponse = `{
-	"envelopes": {
-		"batch": [
-			{
-				"source_id": "app-name",
-				"timestamp":"not-a-timestamp",
-				"instance_id":"0",
-				"deprecated_tags": {
-					"source_type":{"text":"APP/PROC/WEB"}
-				},
-				"log":{"payload":"bG9nIGJvZHk="}
-			}
-		]
-	}
-}`
-
-var invalidPayloadResponse = `{
-	"envelopes": {
-		"batch": [
-			{
-				"source_id": "app-name",
-				"timestamp":"0",
-				"instance_id":"0",
-				"deprecated_tags": {
-					"source_type":{"text":"APP/PROC/WEB"}
-				},
-				"log":{"payload":"~*&#"}
-			}
-		]
-	}
-}`
-
 var mixedResponseTemplate = `{
 	"envelopes": {
 		"batch": [
