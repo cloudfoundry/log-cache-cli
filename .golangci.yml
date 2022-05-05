@@ -11,7 +11,7 @@ linters-settings:
   gocyclo:
     # Minimal code complexity to report.
     # https://github.com/fzipp/gocyclo#readme
-    min-complexity: 15
+    min-complexity: 28
   gosec:
     excludes:
       # Ignore the fact that we might set TLS InsecureSkipVerify
