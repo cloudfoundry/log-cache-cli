@@ -96,9 +96,9 @@ func Tail(
 
 		headerPrinter := formatter.sourceHeader
 		switch o.source.Type {
-		case sourceTypeApplication:
+		case _application:
 			headerPrinter = formatter.appHeader
-		case sourceTypeService:
+		case _service:
 			headerPrinter = formatter.serviceHeader
 		}
 
@@ -139,7 +139,7 @@ func Tail(
 	checkFeatureVersioning(client, ctx, log, o.nameFilter)
 
 	sourceID := o.source.GUID
-	if o.source.Type == sourceTypeUnknown {
+	if o.source.Type == _unknown {
 		// fall back to provided name
 		sourceID = o.source.Name
 	}
@@ -396,15 +396,15 @@ func translateEnvelopeType(t string, log Logger) logcache_v1.EnvelopeType {
 func populateSource(s *source, cli plugin.CliConnection, log Logger) {
 	if guid := getAppGUID(s.Name, cli, log); guid != "" {
 		s.GUID = guid
-		s.Type = sourceTypeApplication
+		s.Type = _application
 		return
 	}
 	if guid := getServiceGUID(s.Name, cli, log); guid != "" {
 		s.GUID = guid
-		s.Type = sourceTypeService
+		s.Type = _service
 		return
 	}
-	s.Type = sourceTypeUnknown
+	s.Type = _unknown
 }
 
 func getAppGUID(appName string, cli plugin.CliConnection, log Logger) string {
