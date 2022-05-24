@@ -20,10 +20,6 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
-const (
-	timeFormat = "2006-01-02T15:04:05.00-0700"
-)
-
 type TailOption func(*tailOptions)
 
 func WithTailNoHeaders() TailOption {
