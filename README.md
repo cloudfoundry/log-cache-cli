@@ -1,10 +1,11 @@
 # Log Cache cf CLI Plugin
 
 [![GoDoc][go-doc-badge]][go-doc]
-[![slack.cloudfoundry.org][slack-badge]][logging-and-metrics-slack]
 
 A [cf CLI](https://github.com/cloudfoundry/cli) plugin for interacting with
 [Log Cache](https://github.com/cloudfoundry/log-cache).
+
+If you have any questions, or want to get attention for a PR or issue please reach out on the [#logging-and-metrics channel in the cloudfoundry slack](https://cloudfoundry.slack.com/archives/CUW93AF3M)
 
 ![Plugin Demo](./docs/Plugin-demo.gif)
 
@@ -37,7 +38,7 @@ cd log-cache-cli
 scripts/install.sh
 ```
 
-## Contributing
+## Creating Releases
 
 Please review the [Release Guide](https://github.com/cloudfoundry/log-cache-cli/wiki/Release-Guide) for details on how to release a new version of the plugin.
 
@@ -117,7 +118,5 @@ Example `cf query` usage:
 cf query "cpu{source_id='73467cc3-261a-472e-80e8-d6eadfd30d98'}" --start 1580231000 --end 1580231060 --step 1
 ```
 
-[slack-badge]:               https://slack.cloudfoundry.org/badge.svg
-[logging-and-metrics-slack]: https://cloudfoundry.slack.com/archives/logging-and-metrics
 [go-doc-badge]:              https://godoc.org/code.cloudfoundry.org/log-cache-cli?status.svg
 [go-doc]:                    https://godoc.org/code.cloudfoundry.org/log-cache-cli
