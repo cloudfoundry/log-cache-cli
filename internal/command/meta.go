@@ -19,18 +19,6 @@ import (
 )
 
 const (
-	sourceTypeApplication sourceType = "application"
-	sourceTypeService     sourceType = "service"
-	sourceTypePlatform    sourceType = "platform"
-	sourceTypeAll         sourceType = "all"
-	sourceTypeDefault     sourceType = "default"
-	sourceTypeUnknown     sourceType = "unknown"
-	MaximumBatchSize      int        = 1000
-)
-
-type sourceType string
-
-const (
 	sortBySourceID      sortBy = "source-id"
 	sortBySource        sortBy = "source"
 	sortBySourceType    sortBy = "source-type"
@@ -174,9 +162,9 @@ func toDisplayRows(resources map[string]source, currentMeta, originalMeta map[st
 			dR.Type = source.Type
 			dR.Source = source.Name
 		} else if appOrServiceRegex.MatchString(sourceID) {
-			dR.Type = sourceTypeUnknown
+			dR.Type = _unknown
 		} else {
-			dR.Type = sourceTypePlatform
+			dR.Type = _platform
 		}
 		if originalMeta[sourceID] != nil {
 			diff := (m.Count + m.Expired) - (originalMeta[sourceID].Count + originalMeta[sourceID].Expired)
@@ -191,21 +179,21 @@ func toDisplayRows(resources map[string]source, currentMeta, originalMeta map[st
 }
 
 func filterRows(opts optionsFlags, rows []displayRow) []displayRow {
-	if sourceTypeAll.Equal(opts.SourceType) {
+	if _all.Equal(opts.SourceType) {
 		return rows
 	}
 	filteredRows := []displayRow{}
 	for _, row := range rows {
-		if row.Type == sourceTypeApplication && (sourceTypeApplication.Equal(opts.SourceType) || sourceTypeDefault.Equal(opts.SourceType)) {
+		if row.Type == _application && (_application.Equal(opts.SourceType) || _default.Equal(opts.SourceType)) {
 			filteredRows = append(filteredRows, row)
 		}
-		if row.Type == sourceTypePlatform && (sourceTypePlatform.Equal(opts.SourceType) || sourceTypeDefault.Equal(opts.SourceType)) {
+		if row.Type == _platform && (_platform.Equal(opts.SourceType) || _default.Equal(opts.SourceType)) {
 			filteredRows = append(filteredRows, row)
 		}
-		if row.Type == sourceTypeService && (sourceTypeService.Equal(opts.SourceType) || sourceTypeDefault.Equal(opts.SourceType)) {
+		if row.Type == _service && (_service.Equal(opts.SourceType) || _default.Equal(opts.SourceType)) {
 			filteredRows = append(filteredRows, row)
 		}
-		if row.Type == sourceTypeUnknown && (sourceTypeUnknown.Equal(opts.SourceType) || shouldShowUknownWithGuidFlag(opts)) {
+		if row.Type == _unknown && (_unknown.Equal(opts.SourceType) || shouldShowUknownWithGuidFlag(opts)) {
 			filteredRows = append(filteredRows, row)
 		}
 	}
@@ -213,7 +201,7 @@ func filterRows(opts optionsFlags, rows []displayRow) []displayRow {
 }
 
 func shouldShowUknownWithGuidFlag(opts optionsFlags) bool {
-	return opts.ShowGUID && !sourceTypePlatform.Equal(opts.SourceType)
+	return opts.ShowGUID && !_platform.Equal(opts.SourceType)
 }
 
 type displayRow struct {
@@ -357,7 +345,7 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 		}
 	}
 
-	if opts.ShowGUID && !(sourceTypePlatform.Equal(opts.SourceType) || sourceTypeAll.Equal(opts.SourceType) || sourceTypeDefault.Equal(opts.SourceType)) {
+	if opts.ShowGUID && !(_platform.Equal(opts.SourceType) || _all.Equal(opts.SourceType) || _default.Equal(opts.SourceType)) {
 		log.Fatalf("Source type must be 'platform' when using the --guid flag")
 	}
 
@@ -380,20 +368,20 @@ func sortRows(opts optionsFlags, rows []displayRow) {
 	switch opts.SortBy {
 	case string(sortBySourceID):
 		sort.Slice(rows, func(i, j int) bool {
-			if rows[i].Type == sourceTypeUnknown && rows[j].Type != sourceTypeUnknown {
+			if rows[i].Type == _unknown && rows[j].Type != _unknown {
 				return false
 			}
-			if rows[j].Type == sourceTypeUnknown && rows[i].Type != sourceTypeUnknown {
+			if rows[j].Type == _unknown && rows[i].Type != _unknown {
 				return true
 			}
 			return rows[i].SourceID < rows[j].SourceID
 		})
 	case string(sortBySource):
 		sort.Slice(rows, func(i, j int) bool {
-			if rows[i].Type == sourceTypeUnknown && rows[j].Type != sourceTypeUnknown {
+			if rows[i].Type == _unknown && rows[j].Type != _unknown {
 				return false
 			}
-			if rows[j].Type == sourceTypeUnknown && rows[i].Type != sourceTypeUnknown {
+			if rows[j].Type == _unknown && rows[i].Type != _unknown {
 				return true
 			}
 			return rows[i].Source < rows[j].Source
@@ -446,7 +434,7 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 		}
 
 		for _, res := range r.Resources {
-			res.Type = sourceTypeApplication
+			res.Type = _application
 			resources[res.GUID] = res
 		}
 	}
@@ -474,7 +462,7 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 			resources[res.Metadata.GUID] = source{
 				GUID: res.Metadata.GUID,
 				Name: res.Entity.Name,
-				Type: sourceTypeService,
+				Type: _service,
 			}
 		}
 	}
@@ -536,12 +524,12 @@ func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
 
 func invalidSourceType(st string) bool {
 	validSourceTypes := []sourceType{
-		sourceTypePlatform,
-		sourceTypeApplication,
-		sourceTypeService,
-		sourceTypeUnknown,
-		sourceTypeDefault,
-		sourceTypeAll,
+		_platform,
+		_application,
+		_service,
+		_unknown,
+		_default,
+		_all,
 	}
 
 	if st == "" {
