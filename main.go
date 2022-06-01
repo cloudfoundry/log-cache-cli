@@ -27,7 +27,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 		log.Fatal(err)
 	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: skipSSL,
+		InsecureSkipVerify: skipSSL, //nolint:gosec
 	}
 
 	l := log.New(os.Stderr, "", 0)
