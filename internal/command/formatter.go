@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/go-loggregator/v8/rpc/loggregator_v2"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const timeFormat = "2006-01-02T15:04:05.00-0700"
@@ -132,12 +132,11 @@ type jsonFormatter struct {
 
 	following bool
 	es        []*loggregator_v2.Envelope
-	marshaler jsonpb.Marshaler
 }
 
 func (f *jsonFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
 	if f.following {
-		output, err := f.marshaler.MarshalToString(e)
+		output, err := protojson.Marshal(e)
 		if err != nil {
 			log.Printf("failed to marshal envelope: %s", err)
 			return "", false
@@ -156,7 +155,7 @@ func (f *jsonFormatter) flush() (string, bool) {
 		return "", false
 	}
 
-	output, err := f.marshaler.MarshalToString(&loggregator_v2.EnvelopeBatch{
+	output, err := protojson.Marshal(&loggregator_v2.EnvelopeBatch{
 		Batch: f.es,
 	})
 	if err != nil {

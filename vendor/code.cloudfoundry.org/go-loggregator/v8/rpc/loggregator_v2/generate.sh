@@ -1,25 +1,19 @@
 #!/bin/bash
 
-dir_resolve()
-{
-    cd "$1" 2>/dev/null || return $?  # cd to desired directory; if fail, quell any error messages but return exit status
-    echo "`pwd -P`" # output full, link-resolved path
-}
+set -eu
 
-set -e
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}"; )" &> /dev/null && pwd 2> /dev/null; )";
 
-TARGET=`dirname $0`
-TARGET=`dir_resolve $TARGET`
-cd $TARGET
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
-go get github.com/golang/protobuf/{proto,protoc-gen-go}
+TMP_DIR=$(mktemp -d)
+git clone https://github.com/cloudfoundry/loggregator-api.git $TMP_DIR/loggregator-api
 
+pushd $SCRIPT_DIR/../..
+    protoc -I=$TMP_DIR --go_out=. --go-grpc_out=. $TMP_DIR/loggregator-api/v2/*.proto
+    mv code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2/* rpc/loggregator_v2/
+    rm -rf code.cloudfoundry.org
+popd
 
-tmp_dir=$(mktemp -d)
-mkdir -p $tmp_dir/loggregator
-
-cp $GOPATH/src/github.com/cloudfoundry/loggregator-api/v2/*proto $tmp_dir/loggregator
-
-protoc $tmp_dir/loggregator/*.proto --go_out=plugins=grpc:. --proto_path=$tmp_dir/loggregator
-
-rm -r $tmp_dir
+rm -rf $TMP_DIR
