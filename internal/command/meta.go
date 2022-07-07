@@ -13,57 +13,13 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/http"
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/platform"
 
 	"code.cloudfoundry.org/cli/plugin"
 	logcache "code.cloudfoundry.org/go-log-cache"
 	logcache_v1 "code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
 	flags "github.com/jessevdk/go-flags"
 )
-
-const (
-	sortBySourceID      sortBy = "source-id"
-	sortBySource        sortBy = "source"
-	sortBySourceType    sortBy = "source-type"
-	sortByCount         sortBy = "count"
-	sortByExpired       sortBy = "expired"
-	sortByCacheDuration sortBy = "cache-duration"
-	sortByRate          sortBy = "rate"
-)
-
-type sortBy string
-
-func (st sourceType) Equal(value string) bool {
-	return string(st) == value
-}
-
-func (sb sortBy) Equal(value string) bool {
-	return string(sb) == value
-}
-
-type source struct {
-	GUID string `json:"guid"`
-	Name string `json:"name"`
-	Type sourceType
-}
-
-type sourceInfo struct {
-	Resources []source `json:"resources"`
-}
-
-type serviceInstance struct {
-	Metadata struct {
-		GUID string `json:"guid"`
-	} `json:"metadata"`
-	Entity struct {
-		Name string `json:"name"`
-	} `json:"entity"`
-}
-
-type servicesResponse struct {
-	Resources []serviceInstance `json:"resources"`
-}
-
-type Tailer func(sourceID string) []string
 
 type optionsFlags struct {
 	SourceType  string `long:"source-type"`
@@ -130,7 +86,7 @@ func Meta(
 		}
 	}
 
-	resources := make(map[string]source)
+	resources := make(map[string]platform.Source)
 	if !opts.ShowGUID {
 		writeAppsAndServicesHeader(opts, tw, username)
 		resources, err = getSourceInfo(currentMeta, cli)
@@ -155,7 +111,7 @@ func Meta(
 	}
 }
 
-func toDisplayRows(resources map[string]source, currentMeta, originalMeta map[string]*logcache_v1.MetaInfo) []displayRow {
+func toDisplayRows(resources map[string]platform.Source, currentMeta, originalMeta map[string]*logcache_v1.MetaInfo) []displayRow {
 	var rows []displayRow
 	for sourceID, m := range currentMeta {
 		dR := displayRow{Source: sourceID, SourceID: sourceID, Count: m.Count, Expired: m.Expired, CacheDuration: cacheDuration(m)}
@@ -164,9 +120,9 @@ func toDisplayRows(resources map[string]source, currentMeta, originalMeta map[st
 			dR.Type = source.Type
 			dR.Source = source.Name
 		} else if appOrServiceRegex.MatchString(sourceID) {
-			dR.Type = _unknown
+			dR.Type = platform.UnknownType
 		} else {
-			dR.Type = _platform
+			dR.Type = platform.PlatformType
 		}
 		if originalMeta[sourceID] != nil {
 			diff := (m.Count + m.Expired) - (originalMeta[sourceID].Count + originalMeta[sourceID].Expired)
@@ -181,21 +137,21 @@ func toDisplayRows(resources map[string]source, currentMeta, originalMeta map[st
 }
 
 func filterRows(opts optionsFlags, rows []displayRow) []displayRow {
-	if _all.Equal(opts.SourceType) {
+	if platform.AllType.Equal(opts.SourceType) {
 		return rows
 	}
 	filteredRows := []displayRow{}
 	for _, row := range rows {
-		if row.Type == _application && (_application.Equal(opts.SourceType) || _default.Equal(opts.SourceType)) {
+		if row.Type == platform.ApplicationType && (platform.ApplicationType.Equal(opts.SourceType) || platform.DefaultType.Equal(opts.SourceType)) {
 			filteredRows = append(filteredRows, row)
 		}
-		if row.Type == _platform && (_platform.Equal(opts.SourceType) || _default.Equal(opts.SourceType)) {
+		if row.Type == platform.PlatformType && (platform.PlatformType.Equal(opts.SourceType) || platform.DefaultType.Equal(opts.SourceType)) {
 			filteredRows = append(filteredRows, row)
 		}
-		if row.Type == _service && (_service.Equal(opts.SourceType) || _default.Equal(opts.SourceType)) {
+		if row.Type == platform.ServiceType && (platform.ServiceType.Equal(opts.SourceType) || platform.DefaultType.Equal(opts.SourceType)) {
 			filteredRows = append(filteredRows, row)
 		}
-		if row.Type == _unknown && (_unknown.Equal(opts.SourceType) || shouldShowUknownWithGuidFlag(opts)) {
+		if row.Type == platform.UnknownType && (platform.UnknownType.Equal(opts.SourceType) || shouldShowUknownWithGuidFlag(opts)) {
 			filteredRows = append(filteredRows, row)
 		}
 	}
@@ -203,13 +159,13 @@ func filterRows(opts optionsFlags, rows []displayRow) []displayRow {
 }
 
 func shouldShowUknownWithGuidFlag(opts optionsFlags) bool {
-	return opts.ShowGUID && !_platform.Equal(opts.SourceType)
+	return opts.ShowGUID && !platform.PlatformType.Equal(opts.SourceType)
 }
 
 type displayRow struct {
 	Source        string
 	SourceID      string
-	Type          sourceType
+	Type          platform.SourceType
 	Count         int64
 	Expired       int64
 	CacheDuration time.Duration
@@ -332,19 +288,19 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 	opts.SourceType = strings.ToLower(opts.SourceType)
 	opts.SortBy = strings.ToLower(opts.SortBy)
 
-	if opts.ShowGUID && (sortBySource.Equal(opts.SortBy) || sortBySourceType.Equal(opts.SortBy)) {
+	if opts.ShowGUID && (platform.SortBySource.Equal(opts.SortBy) || platform.SortBySourceType.Equal(opts.SortBy)) {
 		log.Fatalf("When using --guid, sort by must be 'source-id', 'count', 'expired', 'cache-duration', or 'rate'.")
 	}
 
 	// validate what was entered before setting defaults
 	if opts.SortBy == "" {
-		opts.SortBy = string(sortBySource)
+		opts.SortBy = string(platform.SortBySource)
 		if opts.ShowGUID {
-			opts.SortBy = string(sortBySourceID)
+			opts.SortBy = string(platform.SortBySourceID)
 		}
 	}
 
-	if opts.ShowGUID && !(_platform.Equal(opts.SourceType) || _all.Equal(opts.SourceType) || _default.Equal(opts.SourceType)) {
+	if opts.ShowGUID && !(platform.PlatformType.Equal(opts.SourceType) || platform.AllType.Equal(opts.SourceType) || platform.DefaultType.Equal(opts.SourceType)) {
 		log.Fatalf("Source type must be 'platform' when using the --guid flag")
 	}
 
@@ -356,7 +312,7 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 		log.Fatalf("Sort by must be 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', or 'rate'.")
 	}
 
-	if sortByRate.Equal(opts.SortBy) && !opts.EnableNoise {
+	if platform.SortByRate.Equal(opts.SortBy) && !opts.EnableNoise {
 		log.Fatalf("Can't sort by rate column without --noise flag")
 	}
 
@@ -365,55 +321,55 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 
 func sortRows(opts optionsFlags, rows []displayRow) {
 	switch opts.SortBy {
-	case string(sortBySourceID):
+	case string(platform.SortBySourceID):
 		sort.Slice(rows, func(i, j int) bool {
-			if rows[i].Type == _unknown && rows[j].Type != _unknown {
+			if rows[i].Type == platform.UnknownType && rows[j].Type != platform.UnknownType {
 				return false
 			}
-			if rows[j].Type == _unknown && rows[i].Type != _unknown {
+			if rows[j].Type == platform.UnknownType && rows[i].Type != platform.UnknownType {
 				return true
 			}
 			return rows[i].SourceID < rows[j].SourceID
 		})
-	case string(sortBySource):
+	case string(platform.SortBySource):
 		sort.Slice(rows, func(i, j int) bool {
-			if rows[i].Type == _unknown && rows[j].Type != _unknown {
+			if rows[i].Type == platform.UnknownType && rows[j].Type != platform.UnknownType {
 				return false
 			}
-			if rows[j].Type == _unknown && rows[i].Type != _unknown {
+			if rows[j].Type == platform.UnknownType && rows[i].Type != platform.UnknownType {
 				return true
 			}
 			return rows[i].Source < rows[j].Source
 		})
-	case string(sortBySourceType):
+	case string(platform.SortBySourceType):
 		sort.Slice(rows, func(i, j int) bool {
 			return rows[i].Type < rows[j].Type
 		})
-	case string(sortByCount):
+	case string(platform.SortByCount):
 		sort.Slice(rows, func(i, j int) bool {
 			return rows[i].Count < rows[j].Count
 		})
-	case string(sortByExpired):
+	case string(platform.SortByExpired):
 		sort.Slice(rows, func(i, j int) bool {
 			return rows[i].Expired < rows[j].Expired
 		})
-	case string(sortByCacheDuration):
+	case string(platform.SortByCacheDuration):
 		sort.Slice(rows, func(i, j int) bool {
 			return rows[i].CacheDuration < rows[j].CacheDuration
 		})
-	case string(sortByRate):
+	case string(platform.SortByRate):
 		sort.Slice(rows, func(i, j int) bool {
 			return rows[i].Delta < rows[j].Delta
 		})
 	}
 }
 
-func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection) (map[string]source, error) {
+func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConnection) (map[string]platform.Source, error) {
 	var (
-		resources map[string]source
+		resources map[string]platform.Source
 		sourceIDs []string
 	)
-	resources = make(map[string]source)
+	resources = make(map[string]platform.Source)
 
 	meta := make(map[string]int)
 	for k := range metaInfo {
@@ -426,14 +382,14 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 		return nil, err
 	}
 	for _, rb := range appInfo {
-		var r sourceInfo
+		var r platform.SourceInfo
 		err := json.NewDecoder(strings.NewReader(rb)).Decode(&r)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, res := range r.Resources {
-			res.Type = _application
+			res.Type = platform.ApplicationType
 			resources[res.GUID] = res
 		}
 	}
@@ -452,16 +408,16 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 	}
 
 	for _, rb := range serviceInfo {
-		var r servicesResponse
+		var r platform.ServicesResponse
 		err := json.NewDecoder(strings.NewReader(rb)).Decode(&r)
 		if err != nil {
 			return nil, err
 		}
 		for _, res := range r.Resources {
-			resources[res.Metadata.GUID] = source{
+			resources[res.Metadata.GUID] = platform.Source{
 				GUID: res.Metadata.GUID,
 				Name: res.Entity.Name,
-				Type: _service,
+				Type: platform.ServiceType,
 			}
 		}
 	}
@@ -522,13 +478,13 @@ func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
 }
 
 func invalidSourceType(st string) bool {
-	validSourceTypes := []sourceType{
-		_platform,
-		_application,
-		_service,
-		_unknown,
-		_default,
-		_all,
+	validSourceTypes := []platform.SourceType{
+		platform.PlatformType,
+		platform.ApplicationType,
+		platform.ServiceType,
+		platform.UnknownType,
+		platform.DefaultType,
+		platform.AllType,
 	}
 
 	if st == "" {
@@ -545,14 +501,14 @@ func invalidSourceType(st string) bool {
 }
 
 func invalidSortBy(sb string) bool {
-	validSortBy := []sortBy{
-		sortBySourceID,
-		sortBySource,
-		sortBySourceType,
-		sortByCount,
-		sortByExpired,
-		sortByCacheDuration,
-		sortByRate,
+	validSortBy := []platform.SortBy{
+		platform.SortBySourceID,
+		platform.SortBySource,
+		platform.SortBySourceType,
+		platform.SortByCount,
+		platform.SortByExpired,
+		platform.SortByCacheDuration,
+		platform.SortByRate,
 	}
 
 	if sb == "" {

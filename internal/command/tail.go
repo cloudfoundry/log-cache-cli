@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/http"
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/platform"
 
 	"code.cloudfoundry.org/cli/plugin"
 	logcache "code.cloudfoundry.org/go-log-cache"
@@ -94,9 +95,9 @@ func Tail(
 
 		headerPrinter := formatter.sourceHeader
 		switch o.source.Type {
-		case _application:
+		case platform.ApplicationType:
 			headerPrinter = formatter.appHeader
-		case _service:
+		case platform.ServiceType:
 			headerPrinter = formatter.serviceHeader
 		}
 
@@ -132,7 +133,7 @@ func Tail(
 	checkFeatureVersioning(client, ctx, log, o.nameFilter)
 
 	sourceID := o.source.GUID
-	if o.source.Type == _unknown {
+	if o.source.Type == platform.UnknownType {
 		// fall back to provided name
 		sourceID = o.source.Name
 	}
@@ -209,7 +210,7 @@ type tailOptions struct {
 	lines         int
 	follow        bool
 
-	source               source
+	source               platform.Source
 	outputTemplate       *template.Template
 	jsonOutput           bool
 	tokenRefreshInterval time.Duration
@@ -267,7 +268,7 @@ func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOp
 		}
 	}
 
-	source := source{Name: args[0]}
+	source := platform.Source{Name: args[0]}
 
 	populateSource(&source, cli, log)
 
@@ -386,18 +387,18 @@ func translateEnvelopeType(t string, log Logger) logcache_v1.EnvelopeType {
 	}
 }
 
-func populateSource(s *source, cli plugin.CliConnection, log Logger) {
+func populateSource(s *platform.Source, cli plugin.CliConnection, log Logger) {
 	if guid := getAppGUID(s.Name, cli, log); guid != "" {
 		s.GUID = guid
-		s.Type = _application
+		s.Type = platform.ApplicationType
 		return
 	}
 	if guid := getServiceGUID(s.Name, cli, log); guid != "" {
 		s.GUID = guid
-		s.Type = _service
+		s.Type = platform.ServiceType
 		return
 	}
-	s.Type = _unknown
+	s.Type = platform.UnknownType
 }
 
 func getAppGUID(appName string, cli plugin.CliConnection, log Logger) string {
