@@ -12,6 +12,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/http"
+
 	"code.cloudfoundry.org/cli/plugin"
 	logcache "code.cloudfoundry.org/go-log-cache"
 	logcache_v1 "code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
@@ -96,7 +98,7 @@ func Meta(
 	ctx context.Context,
 	cli plugin.CliConnection,
 	args []string,
-	c HTTPClient,
+	c http.Client,
 	log Logger,
 	tableWriter io.Writer,
 	mopts ...MetaOption,
@@ -214,23 +216,20 @@ type displayRow struct {
 	Delta         int64
 }
 
-func createLogCacheClient(c HTTPClient, log Logger, cli plugin.CliConnection) *logcache.Client {
+func createLogCacheClient(c http.Client, log Logger, cli plugin.CliConnection) *logcache.Client {
 	logCacheEndpoint, err := logCacheEndpoint(cli)
 	if err != nil {
 		log.Fatalf("Could not determine Log Cache endpoint: %s", err)
 	}
 
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		c = &tokenHTTPClient{
-			c: c,
-			tokenFunc: func() string {
-				token, err := cli.AccessToken()
-				if err != nil {
-					log.Fatalf("Unable to get Access Token: %s", err)
-				}
-				return token
-			},
-		}
+		c = http.NewTokenClient(c, func() string {
+			token, err := cli.AccessToken()
+			if err != nil {
+				log.Fatalf("Unable to get Access Token: %s", err)
+			}
+			return token
+		})
 	}
 
 	return logcache.NewClient(
