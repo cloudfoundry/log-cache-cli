@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/http"
+
 	"code.cloudfoundry.org/cli/plugin"
 	logcache "code.cloudfoundry.org/go-log-cache"
 	flags "github.com/jessevdk/go-flags"
@@ -22,7 +24,7 @@ func Query(
 	ctx context.Context,
 	cli plugin.CliConnection,
 	args []string,
-	c HTTPClient,
+	c http.Client,
 	log Logger,
 	w io.Writer,
 	opts ...QueryOption,
@@ -44,16 +46,13 @@ func Query(
 	lw := lineWriter{w: w}
 
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		c = &tokenHTTPClient{
-			c: c,
-			tokenFunc: func() string {
-				token, err := cli.AccessToken()
-				if err != nil {
-					log.Fatalf("Unable to get Access Token: %s", err)
-				}
-				return token
-			},
-		}
+		c = http.NewTokenClient(c, func() string {
+			token, err := cli.AccessToken()
+			if err != nil {
+				log.Fatalf("Unable to get Access Token: %s", err)
+			}
+			return token
+		})
 	}
 
 	logCacheAddr := os.Getenv("LOG_CACHE_ADDR")

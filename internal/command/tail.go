@@ -12,6 +12,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/http"
+
 	"code.cloudfoundry.org/cli/plugin"
 	logcache "code.cloudfoundry.org/go-log-cache"
 	logcache_v1 "code.cloudfoundry.org/go-log-cache/rpc/logcache_v1"
@@ -34,7 +36,7 @@ func Tail(
 	ctx context.Context,
 	cli plugin.CliConnection,
 	args []string,
-	c HTTPClient,
+	c http.Client,
 	log Logger,
 	w io.Writer,
 	opts ...TailOption,
@@ -115,22 +117,17 @@ func Tail(
 		return formatter.formatEnvelope(e)
 	}
 
-	tokenClient := &tokenHTTPClient{
-		c:         c,
-		tokenFunc: func() string { return "" },
-	}
-
 	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		tokenClient.tokenFunc = func() string {
+		c = http.NewTokenClient(c, func() string {
 			token, err := cli.AccessToken()
 			if err != nil {
 				log.Fatalf("Unable to get Access Token: %s", err)
 			}
 			return token
-		}
+		})
 	}
 
-	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(tokenClient))
+	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
 
 	checkFeatureVersioning(client, ctx, log, o.nameFilter)
 
