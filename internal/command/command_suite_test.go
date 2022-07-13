@@ -138,6 +138,7 @@ type stubCliConnection struct {
 func newStubCliConnection() *stubCliConnection {
 	return &stubCliConnection{
 		hasAPIEndpoint: true,
+		accessToken:    "fake-token",
 	}
 }
 

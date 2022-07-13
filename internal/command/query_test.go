@@ -2,245 +2,226 @@ package command_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"log"
 	"net/url"
 
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
+	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/query"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("LogCache", func() {
-	Describe("error handling for queries", func() {
-		It("reports an error for a failed request", func() {
-			tc := setup("", 503)
+var _ = Describe("Query", func() {
+	var instantSuccessResp string
+	var rangeSuccessResp string
 
-			tc.query(`placeholder-for-a-query`)
+	BeforeEach(func() {
+		instantSuccessResp = `{"status":"success","data":{"resultType":"scalar","result":[1.234,"2.5"]}}`
+		rangeSuccessResp = `{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"__name__":"egress"},"values":[[1.234,"2.5"]]}]}}`
+	})
 
-			Expect(tc.writer.lines()).To(Equal([]string{
-				"Could not process query: unexpected status code 503",
-			}))
+	DescribeTable("Validating command line args",
+		func(query, time, start, end, step string, expectedErr error) {
+			tc := setup(instantSuccessResp, 200)
+
+			var args []string
+			if query != "" {
+				args = append(args, query)
+			}
+			if time != "" {
+				args = append(args, "--time", time)
+			}
+			if start != "" {
+				args = append(args, "--start", start)
+			}
+			if end != "" {
+				args = append(args, "--end", end)
+			}
+			if step != "" {
+				args = append(args, "--step", step)
+			}
+			err := tc.query(args)
+			if expectedErr != nil {
+				Expect(err).Should(MatchError(expectedErr))
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("when no args are provided", "", "", "", "", "", query.ErrNoQuery),
+		Entry("when no query is provided but other flags are provided", "", "", "1657680966", "1657680966", "15s", query.ErrNoQuery),
+		Entry("when only a query is provided", `egress{source_id="doppler"}`, "", "", "", "", nil),
+		Entry("when a time flag is provided (Unix Timestamp)", `egress{source_id="doppler"}`, "1657680966", "", "", "", nil),
+		Entry("when a time flag is provided (RFC3339 DateTime)", `egress{source_id="doppler"}`, "2019-10-12T07:20:50.52Z", "", "", "", nil),
+		Entry("when a bad time flag is provided", `egress{source_id="doppler"}`, "badtime", "", "", "", query.ArgError{Arg: "-time"}),
+		Entry("when time and start flags are provided", `egress{source_id="doppler"}`, "1657680966", "1657680966", "", "", query.ArgError{Arg: "-time", Msg: "cannot use flag along with -start, -end, or -step"}),
+		Entry("when time and end flags are provided", `egress{source_id="doppler"}`, "1657680966", "", "1657680966", "", query.ArgError{Arg: "-time", Msg: "cannot use flag along with -start, -end, or -step"}),
+		Entry("when time and step flags are provided", `egress{source_id="doppler"}`, "1657680966", "", "", "15s", query.ArgError{Arg: "-time", Msg: "cannot use flag along with -start, -end, or -step"}),
+		Entry("when start, end, and step flags are provided (Unix Timestamp)", `egress{source_id="doppler"}`, "", "1657680966", "1657680970", "1ns", nil),
+		Entry("when start, end, and step flags are provided (RFC3339 DateTime)", `egress{source_id="doppler"}`, "", "2019-10-12T07:20:50.52Z", "2019-11-12T07:20:50.52Z", "1h", nil),
+		Entry("when a bad start flag is provided", `egress{source_id="doppler"}`, "", "badstart", "2019-11-12T07:20:50.52Z", "1m", query.ArgError{Arg: "-start"}),
+		Entry("when a bad end flag is provided", `egress{source_id="doppler"}`, "", "2019-10-12T07:20:50.52Z", "badend", "1m", query.ArgError{Arg: "-end"}),
+		// TODO: setup test for bad step flag
+		// Entry("when a bad step flag is provided", `egress{source_id="doppler"}`, "", "2019-10-12T07:20:50.52Z", "2019-11-12T07:20:50.52Z", "badstep", query.ArgError{Arg: "-step"}),
+	)
+
+	Describe("Instant query", func() {
+		var args = []string{
+			`egress{source_id="doppler"}`,
+		}
+
+		It("makes an authenticated request to the Log Cache query endpoint", func() {
+			tc := setup(instantSuccessResp, 200)
+
+			err := tc.query(args)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(tc.httpClient.requestHeaders).To(HaveLen(1))
+			Expect(tc.httpClient.requestHeaders[0].Get("Authorization")).To(Equal("fake-token"))
+			Expect(tc.cliConnection.accessTokenCount).To(Equal(1))
+
+			Expect(tc.httpClient.requestURLs).To(HaveLen(1))
+			requestURL, err := url.Parse(tc.httpClient.requestURLs[0])
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(requestURL.Path).To(Equal("/api/v1/query"))
 		})
 
-		It("reports an error for a failed request", func() {
-			tc := setup("", 500)
+		It("puts the correct params in the URL", func() {
+			tc := setup(instantSuccessResp, 200)
 
-			tc.query(`placeholder-for-a-query`)
+			err := tc.query(args)
+			Expect(err).NotTo(HaveOccurred())
 
-			Expect(tc.writer.lines()).To(Equal([]string{
-				"Could not process query: unexpected end of JSON input (status code 500)",
-			}))
+			Expect(tc.httpClient.requestURLs).To(HaveLen(1))
+			requestURL, err := url.Parse(tc.httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
+
+			params := requestURL.Query()
+			Expect(params.Get("query")).To(Equal(`egress{source_id="doppler"}`))
+			Expect(params.Has("time")).To(BeFalse())
 		})
 
-		It("reports the returned error message for an invalid PromQL query", func() {
-			json := `{"status":"error","errorType":"bad_data","error": "query does not request any source_ids"}`
-			tc := setup(json, 400)
+		It("prints out the result", func() {
+			tc := setup(instantSuccessResp, 200)
 
-			tc.query(`not-a-valid-query`)
+			err := tc.query(args)
+			Expect(err).NotTo(HaveOccurred())
 
-			Expect(tc.writer.lines()).To(Equal([]string{
-				"The PromQL API returned an error (bad_data): query does not request any source_ids",
-			}))
+			Expect(tc.writer.lines()).To(Equal([]string{`{"resultType":"scalar","result":[1.234,"2.5"]}`}))
+			Expect(tc.cliConnection.accessTokenCount).To(Equal(1))
 		})
 
-		It("hints at authorization failures when receiving a 404", func() {
-			tc := setup("", 404)
+		Context("when the -time flag is provided", func() {
+			It("is included in the request to Log Cache", func() {
+				tc := setup(instantSuccessResp, 200)
 
-			tc.query(`not-a-valid-query`)
+				args := make([]string, 0, 3)
+				args = append(args, `egress{source_id="doppler"}`)
+				args = append(args, "--time", "2019-10-12T07:20:50.52Z")
+				err := tc.query(args)
+				Expect(err).NotTo(HaveOccurred())
 
-			Expect(tc.writer.lines()).To(Equal([]string{
-				"Could not process query: unexpected status code 404 (check authorization?)",
-			}))
-		})
+				Expect(tc.httpClient.requestURLs).To(HaveLen(1))
+				requestURL, err := url.Parse(tc.httpClient.requestURLs[0])
+				Expect(err).NotTo(HaveOccurred())
 
-		It("exits with an error when no query is provided", func() {
-			tc := setup("", 200)
+				Expect(requestURL.Path).To(Equal("/api/v1/query"))
 
-			Expect(func() {
-				tc.query()
-			}).To(Panic())
-
-			Expect(tc.logger.fatalfMessage).To(HavePrefix(`Must specify a PromQL query`))
-			Expect(tc.httpClient.requestURLs).To(HaveLen(0))
+				Expect(requestURL.Query().Get("time")).To(Equal("1570864850.520"))
+			})
 		})
 	})
 
-	Describe("parsing command line flags", func() {
-		It("gives you an error if you supply only a subset of --start, --end, or --step", func() {
-			tc := setup("", 200)
+	Describe("Range query", func() {
+		var args = []string{
+			`egress{source_id="doppler"}`,
+			"--start", "2019-10-12T07:20:50.52Z",
+			"--end", "2019-10-12T08:20:50.52Z",
+			"--step", "15s",
+		}
 
-			Expect(func() {
-				tc.query(`egress{source_id="doppler"}`, "--start", "123", "--end", "456")
-			}).To(Panic())
+		It("makes an authenticated request to the Log Cache query_range endpoint", func() {
+			tc := setup(rangeSuccessResp, 200)
 
-			Expect(tc.logger.fatalfMessage).To(HavePrefix(
-				"When issuing a range query, you must specify all of --start, --end, and --step",
-			))
+			err := tc.query(args)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(tc.httpClient.requestURLs).To(HaveLen(1))
+			requestURL, err := url.Parse(tc.httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(tc.httpClient.requestHeaders).To(HaveLen(1))
+			Expect(tc.httpClient.requestHeaders[0].Get("Authorization")).To(Equal("fake-token"))
+			Expect(tc.cliConnection.accessTokenCount).To(Equal(1))
+
+			Expect(requestURL.Path).To(Equal("/api/v1/query_range"))
 		})
 
-		It("gives you an error if you mix --time with --start, --end, or --step", func() {
-			tc := setup("", 200)
+		It("puts the correct params in the URL", func() {
+			tc := setup(rangeSuccessResp, 200)
 
-			Expect(func() {
-				tc.query(`egress{source_id="doppler"}`, "--time", "123", "--start", "321")
-			}).To(Panic())
+			err := tc.query(args)
+			Expect(err).NotTo(HaveOccurred())
 
-			Expect(tc.logger.fatalfMessage).To(HavePrefix(
-				"When issuing an instant query, you cannot specify --start, --end, or --step",
-			))
+			Expect(tc.httpClient.requestURLs).To(HaveLen(1))
+			requestURL, err := url.Parse(tc.httpClient.requestURLs[0])
+			Expect(err).ToNot(HaveOccurred())
+
+			params := requestURL.Query()
+			Expect(params.Get("query")).To(Equal(`egress{source_id="doppler"}`))
+			Expect(params.Get("start")).To(Equal("1570864850.520"))
+			Expect(params.Get("end")).To(Equal("1570868450.520"))
+			Expect(params.Get("step")).To(Equal("15s"))
 		})
 
-		Context("when issuing an instant query", func() {
-			It("passes the query to the /api/v1/query when no flags are provided", func() {
-				json := `{"status":"success","data":{"resultType":"scalar","result":[1.234,"2.5"]}}`
-				tc := setup(json, 200)
+		It("prints out the result", func() {
+			tc := setup(rangeSuccessResp, 200)
 
-				tc.query(`egress{source_id="doppler"}`)
-				Expect(tc.httpClient.requestURLs).To(HaveLen(1))
+			err := tc.query(args)
+			Expect(err).NotTo(HaveOccurred())
 
-				requestURL, err := url.Parse(tc.httpClient.requestURLs[0])
-				Expect(err).ToNot(HaveOccurred())
+			Expect(tc.writer.lines()).To(Equal([]string{`{"resultType":"matrix","result":[{"metric":{"__name__":"egress"},"values":[[1.234,"2.5"]]}]}`}))
+		})
+	})
 
-				Expect(requestURL.Path).To(Equal("/api/v1/query"))
-				params := requestURL.Query()
-				query := params.Get("query")
-				Expect(query).To(Equal(`egress{source_id="doppler"}`))
+	Describe("Error handling", func() {
+		var (
+			args = []string{
+				"fake-query",
+			}
 
-				_, found := params["time"]
-				Expect(found).To(BeFalse())
+			errResp = `{"status":"error","errorType":"bad_data","error": "query does not request any source_ids"}`
+		)
 
-				Expect(tc.writer.lines()).To(Equal([]string{json}))
-				Expect(tc.cliConnection.accessTokenCount).To(Equal(1))
+		Context("when client fails to make request", func() {
+			It("returns a ClientError", func() {
+				tc := setup(errResp, 500)
+				tc.httpClient.responseErr = errors.New("client error")
+
+				err := tc.query(args)
+				Expect(err).To(MatchError(query.ClientError{Msg: "client error"}))
 			})
-
-			It("passes the query and time correctly to the /api/v1/query when the --time flag is provided", func() {
-				tc := setup("", 200)
-
-				tc.query(
-					`egress{source_id="doppler"}`,
-					"--time", "123",
-				)
-				Expect(tc.httpClient.requestURLs).To(HaveLen(1))
-
-				requestURL, err := url.Parse(tc.httpClient.requestURLs[0])
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(requestURL.Path).To(Equal("/api/v1/query"))
-				query := requestURL.Query().Get("query")
-				Expect(query).To(Equal(`egress{source_id="doppler"}`))
-				time := requestURL.Query().Get("time")
-				Expect(time).To(Equal("123.000"))
-			})
-
-			DescribeTable("with valid times",
-				func(timeArg string) {
-					tc := setup("", 200)
-
-					Expect(func() {
-						tc.query(`egress{source_id="doppler"}`, "--time", timeArg)
-					}).NotTo(Panic())
-				},
-				Entry("with a valid integer", "123456789"),
-				Entry("with a valid RFC3339 timestamp", "2018-02-23T19:00:00Z"),
-			)
-
-			DescribeTable("with invalid times",
-				func(timeArg string) {
-					tc := setup("", 200)
-
-					Expect(func() {
-						tc.query(`egress{source_id="doppler"}`, "--time", timeArg)
-					}).To(Panic())
-
-					Expect(tc.logger.fatalfMessage).To(HavePrefix(
-						fmt.Sprintf("Couldn't parse --time: invalid time format: %s", timeArg),
-					))
-				},
-				Entry("with an arbitary string", "asdfkj"),
-				Entry("with an unsupported duration", "5d"),
-				Entry("with a malformed RFC3339 timestamp", "2018-02-23T19:00:00"),
-			)
 		})
 
-		Context("when issuing a range query", func() {
-			It("correctly uses the /api/v1/query_range endpoint when the --start, --end, and --step flags are provided", func() {
-				json := `{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"__name__":"egress"},"values":[[1.234,"2.5"]]}]}}`
-				tc := setup(json, 200)
+		Context("when status code is not 200", func() {
+			It("returns a RequestError", func() {
+				tc := setup(errResp, 400)
 
-				tc.query(
-					`egress{source_id="doppler"}`,
-					"--start", "123",
-					"--end", "456",
-					"--step", "15s",
-				)
-				Expect(tc.httpClient.requestURLs).To(HaveLen(1))
-
-				requestURL, err := url.Parse(tc.httpClient.requestURLs[0])
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(requestURL.Path).To(Equal("/api/v1/query_range"))
-				start := requestURL.Query().Get("start")
-				Expect(start).To(Equal("123.000"))
-				end := requestURL.Query().Get("end")
-				Expect(end).To(Equal("456.000"))
-				step := requestURL.Query().Get("step")
-				Expect(step).To(Equal("15s"))
-
-				Expect(tc.writer.lines()).To(Equal([]string{json}))
-				Expect(tc.cliConnection.accessTokenCount).To(Equal(1))
+				err := tc.query(args)
+				Expect(err).To(MatchError(query.RequestError{Type: "bad_data", Msg: "query does not request any source_ids"}))
 			})
-
-			DescribeTable("with valid times",
-				func(startArg, endArg, stepArg string) {
-					tc := setup("", 200)
-
-					Expect(func() {
-						tc.query(
-							`egress{source_id="doppler"}`,
-							"--start", startArg,
-							"--end", endArg,
-							"--step", stepArg,
-						)
-					}).NotTo(Panic())
-				},
-				Entry("with a valid integer timestamps", "123456789", "987654321", "15s"),
-				Entry("with a valid RFC3339 timestamps", "2018-02-23T19:00:00Z", "2018-08-23T19:00:00Z", "1m"),
-				Entry("with mixed timestamps", "123456789", "2018-08-23T19:00:00Z", "1m"),
-			)
-
-			DescribeTable("with invalid times",
-				func(invalidField, invalidArg string) {
-					tc := setup("", 200)
-
-					args := map[string]string{
-						"start": "123",
-						"end":   "456",
-						"step":  "15s",
-					}
-
-					args[invalidField] = invalidArg
-
-					Expect(func() {
-						tc.query(
-							`egress{source_id="doppler"}`,
-							"--start", args["start"],
-							"--end", args["end"],
-							"--step", args["step"],
-						)
-					}).To(Panic())
-
-					Expect(tc.logger.fatalfMessage).To(HavePrefix(
-						fmt.Sprintf("Couldn't parse --%s: invalid time format: %s", invalidField, invalidArg),
-					))
-				},
-				Entry("with an arbitary string for start", "start", "asdfkj"),
-				Entry("with an arbitary string for end", "end", "asdfkj"),
-				Entry("with an unsupported duration for start", "start", "5d"),
-				Entry("with an unsupported duration for end", "end", "5d"),
-				Entry("with a malformed RFC3339 timestamp for start", "start", "2018-02-23T19:00:00"),
-				Entry("with a malformed RFC3339 timestamp for end", "end", "2018-02-23T19:00:00"),
-			)
 		})
+
+		// TODO: get this test working
+		// Context("when request body fails to unmarshal", func() {
+		// 	It("returns a UnMarshalError", func() {
+		// 		tc := setup(`{"status":"success"}`, 200)
+
+		// 		err := tc.query(args)
+		// 		Expect(err).To(MatchError(query.MarshalError{Msg: ""}))
+		// 	})
+		// })
 	})
 })
 
@@ -256,21 +237,22 @@ func setup(responseBody string, responseCode int) *testContext {
 	httpClient.responseBody = []string{responseBody}
 	httpClient.responseCode = responseCode
 
+	writer := &stubWriter{}
+	log.SetOutput(writer)
+
 	return &testContext{
 		cliConnection: newStubCliConnection(),
 		httpClient:    httpClient,
 		logger:        &stubLogger{},
-		writer:        &stubWriter{},
+		writer:        writer,
 	}
 }
 
-func (tc *testContext) query(args ...string) {
-	command.Query(
+func (tc *testContext) query(args []string) error {
+	return command.Query(
 		context.Background(),
 		tc.cliConnection,
 		args,
 		tc.httpClient,
-		tc.logger,
-		tc.writer,
 	)
 }

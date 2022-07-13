@@ -2,6 +2,11 @@
 // with Log Cache.
 package command
 
+import (
+	"log"
+	"os"
+)
+
 type sourceType string
 
 const (
@@ -12,3 +17,9 @@ const (
 	_default     sourceType = "default"
 	_unknown     sourceType = "unknown"
 )
+
+func init() {
+	log.SetOutput(os.Stdout)
+	log.SetPrefix("")
+	log.SetFlags(0)
+}
