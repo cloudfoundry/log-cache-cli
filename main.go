@@ -98,7 +98,7 @@ ENVIRONMENT VARIABLES:
    LOG_CACHE_ADDR       Overrides the default location of log-cache.
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
 					Options: map[string]string{
-						"-source-type": "Source type of information to show. Available: 'all', 'application', 'service', 'platform', and 'unknown'. Excludes unknown sources unless 'all' or 'unknown' is selected, or `--guid` is used.",
+						"-source-type": "Source type of information to show. Available: 'all', 'application', 'service', 'platform', and 'unknown'. Excludes unknown sources unless 'all' or 'unknown' is selected, or `--guid` is used. To receive information on platform or unknown source id's, you must have the doppler.firehose, or logs.admin scope.",
 						"-sort-by":     "Sort by specified column. Available: 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', and 'rate'.",
 						"-noise":       "Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...",
 						"-guid":        "Display raw source GUIDs with no source Names. Incompatible with 'source' and 'source-type' for --sort-by. Only allows 'platform' for --source-type",
