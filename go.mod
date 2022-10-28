@@ -9,7 +9,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/onsi/ginkgo/v2 v2.4.0
-	github.com/onsi/gomega v1.22.1
+	github.com/onsi/gomega v1.23.0
 	golang.org/x/term v0.1.0
 	google.golang.org/protobuf v1.28.1
 )
@@ -19,7 +19,7 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-cmp v0.5.8 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect

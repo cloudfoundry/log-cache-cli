@@ -3,7 +3,7 @@ package command_test
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -77,7 +77,7 @@ func (s *stubHTTPClient) Do(r *http.Request) (*http.Response, error) {
 	if r.URL.Path == "/api/v1/info" {
 		return &http.Response{
 			StatusCode: http.StatusOK,
-			Body: ioutil.NopCloser(strings.NewReader(
+			Body: io.NopCloser(strings.NewReader(
 				fmt.Sprintf(`{"version": "%s"}`, s.serverVersion),
 			)),
 		}, nil
@@ -93,7 +93,7 @@ func (s *stubHTTPClient) Do(r *http.Request) (*http.Response, error) {
 
 	resp := &http.Response{
 		StatusCode: s.responseCode,
-		Body: ioutil.NopCloser(
+		Body: io.NopCloser(
 			strings.NewReader(body),
 		),
 	}
