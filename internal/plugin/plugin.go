@@ -1,3 +1,4 @@
+// Package plugin implements the Plugin interface required by the cf CLI.
 package plugin
 
 import (
@@ -14,10 +15,12 @@ import (
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/semver"
 )
 
+// Plugin implements the cf CLI's Plugin interface.
 type Plugin struct {
 	version plugin.VersionType
 }
 
+// New returns a new Plugin.
 func New(version string) *Plugin {
 	return &Plugin{
 		version: semver.ParseStr(version),
