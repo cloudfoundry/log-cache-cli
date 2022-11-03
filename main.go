@@ -16,6 +16,5 @@ import "code.cloudfoundry.org/log-cache-cli/v4/internal/plugin"
 var version string
 
 func main() {
-	p := plugin.New(version)
-	p.Start()
+	plugin.New(version).Start()
 }
