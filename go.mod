@@ -8,7 +8,7 @@ require (
 	code.cloudfoundry.org/go-loggregator/v8 v8.0.6-0.20220627224345-4b007d7cf474
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/onsi/ginkgo/v2 v2.6.1
+	github.com/onsi/ginkgo/v2 v2.7.0
 	github.com/onsi/gomega v1.24.2
 	golang.org/x/term v0.4.0
 	google.golang.org/protobuf v1.28.1
