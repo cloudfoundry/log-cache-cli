@@ -8,9 +8,9 @@ require (
 	code.cloudfoundry.org/go-loggregator/v8 v8.0.6-0.20220627224345-4b007d7cf474
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/onsi/ginkgo/v2 v2.8.0
+	github.com/onsi/ginkgo/v2 v2.8.1
 	github.com/onsi/gomega v1.26.0
-	golang.org/x/term v0.4.0
+	golang.org/x/term v0.5.0
 	google.golang.org/protobuf v1.28.1
 )
 
@@ -23,10 +23,10 @@ require (
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
-	golang.org/x/net v0.5.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
-	golang.org/x/tools v0.5.0 // indirect
+	golang.org/x/net v0.6.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 	google.golang.org/genproto v0.0.0-20220627200112-0a929928cb33 // indirect
 	google.golang.org/grpc v1.47.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
