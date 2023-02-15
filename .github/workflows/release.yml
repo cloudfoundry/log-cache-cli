@@ -21,6 +21,7 @@ jobs:
           GOOS=windows go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-windows
         env:
           VERSION: ${{ github.event.inputs.version }}
+          CGO_ENABLED: 0
       - run: |
           go_version=`go version | { read _ _ v _; echo ${v#go}; }`
           gh release create -d -t "v$VERSION" --generate-notes "v$VERSION" --notes ":sparkles: built with go$go_version" ./bin/*
