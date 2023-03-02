@@ -4,8 +4,6 @@ code.cloudfoundry.org/go-log-cache/v2 v2.0.0 h1:OtZ7Q+IKU++80PMdRUvsnfGjdCMQU0Mx
 code.cloudfoundry.org/go-log-cache/v2 v2.0.0/go.mod h1:w9CBx8xuJzPThbDwXQPSdYYSdW3rhM6yYQF33ofNX6o=
 code.cloudfoundry.org/go-loggregator/v9 v9.0.3 h1:+rxFxl+qFN42oVGzh5uhnQRkyMt3H6dPsM9YCrfmpQw=
 code.cloudfoundry.org/go-loggregator/v9 v9.0.3/go.mod h1:M3KaLTzcbSuXf9xRjFk4nexDK2h8/NDsQ+nzh+45cfk=
-github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdnnjpJbkM4JQ=
-github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
