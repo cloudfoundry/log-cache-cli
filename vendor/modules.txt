@@ -10,9 +10,6 @@ code.cloudfoundry.org/go-log-cache/v2/rpc/logcache_v1
 # code.cloudfoundry.org/go-loggregator/v9 v9.0.3
 ## explicit; go 1.18
 code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2
-# github.com/blang/semver v3.5.1+incompatible
-## explicit
-github.com/blang/semver
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
 github.com/blang/semver/v4
