@@ -1944,7 +1944,6 @@ var mixedResponseTemplate = `{
 				"source_id": "app-name",
 				"instance_id":"%[2]s",
 				"timestamp":"%[1]d",
-				"instance_id":"%[2]s",
 				"counter":{"name":"some-name","total":99}
 			},
 			{
