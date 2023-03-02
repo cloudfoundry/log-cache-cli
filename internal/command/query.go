@@ -14,7 +14,7 @@ import (
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/http"
 
 	"code.cloudfoundry.org/cli/plugin"
-	logcache "code.cloudfoundry.org/go-log-cache"
+	logcache "code.cloudfoundry.org/go-log-cache/v2"
 	flags "github.com/jessevdk/go-flags"
 )
 
