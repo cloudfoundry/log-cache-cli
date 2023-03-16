@@ -11,7 +11,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.0
 	github.com/onsi/gomega v1.27.3
 	golang.org/x/term v0.6.0
-	google.golang.org/protobuf v1.29.1
+	google.golang.org/protobuf v1.30.0
 )
 
 require (
