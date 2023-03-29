@@ -2,9 +2,11 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -131,23 +133,22 @@ type jsonFormatter struct {
 	baseFormatter
 
 	following bool
-	es        []*loggregator_v2.Envelope
+	es        []string
 }
 
 func (f *jsonFormatter) formatEnvelope(e *loggregator_v2.Envelope) (string, bool) {
-	if f.following {
-		output, err := protojson.Marshal(e)
-		if err != nil {
-			log.Printf("failed to marshal envelope: %s", err)
-			return "", false
-		}
-
-		return string(output), true
+	output, err := jsonEnvelope(e)
+	if err != nil {
+		log.Printf("failed to marshal envelope: %s", err)
+		return "", false
 	}
 
-	f.es = append(f.es, e)
+	if !f.following {
+		f.es = append(f.es, string(output))
+		return "", false
+	}
 
-	return "", false
+	return string(output), true
 }
 
 func (f *jsonFormatter) flush() (string, bool) {
@@ -155,15 +156,44 @@ func (f *jsonFormatter) flush() (string, bool) {
 		return "", false
 	}
 
-	output, err := protojson.Marshal(&loggregator_v2.EnvelopeBatch{
-		Batch: f.es,
-	})
-	if err != nil {
-		log.Printf("failed to marshal envelopes: %s", err)
-		return "", false
-	}
+	output := fmt.Sprintf(`{"batch":[%s]}`, strings.Join(f.es, ","))
 
 	return string(output), true
+}
+
+type LogEnvelopeForMarshalling struct {
+	Timestamp      string            `json:"timestamp"`
+	SourceId       string            `json:"source_id"`
+	InstanceID     string            `json:"instance_id"`
+	DeprecatedTags map[string]string `json:"deprecated_tags,omitempty"`
+	Tags           map[string]string `json:"tags"`
+	Log            Log               `json:"log"`
+}
+
+type Log struct {
+	Payload string `json:"payload"`
+}
+
+func jsonEnvelope(e *loggregator_v2.Envelope) ([]byte, error) {
+	switch e.Message.(type) {
+	case *loggregator_v2.Envelope_Log:
+		depTags := map[string]string{}
+		for tag, value := range e.GetDeprecatedTags() {
+			depTags[tag] = value.String()
+		}
+		m := LogEnvelopeForMarshalling{
+			Timestamp:      strconv.FormatInt(e.GetTimestamp(), 10),
+			SourceId:       e.GetSourceId(),
+			InstanceID:     e.GetInstanceId(),
+			Tags:           e.GetTags(),
+			DeprecatedTags: depTags,
+			Log:            Log{Payload: string(e.GetLog().GetPayload())},
+		}
+
+		return json.Marshal(m)
+	default:
+		return protojson.Marshal(e)
+	}
 }
 
 type templateFormatter struct {
