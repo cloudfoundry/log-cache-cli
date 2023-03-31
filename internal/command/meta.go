@@ -95,7 +95,6 @@ func WithMetaNoiseSleepDuration(d time.Duration) MetaOption {
 
 // Meta returns the metadata from Log Cache
 func Meta(
-	ctx context.Context,
 	cli plugin.CliConnection,
 	args []string,
 	c http.Client,
@@ -114,7 +113,7 @@ func Meta(
 	var originalMeta map[string]*logcache_v1.MetaInfo
 	var currentMeta map[string]*logcache_v1.MetaInfo
 	writeRetrievingMetaHeader(opts, tw, username)
-	currentMeta, err = client.Meta(ctx)
+	currentMeta, err = client.Meta(context.TODO())
 	if err != nil {
 		log.Fatalf("Failed to read Meta information: %s", err)
 	}
@@ -124,7 +123,7 @@ func Meta(
 		writeWaiting(opts, tw, username)
 		time.Sleep(opts.metaNoiseSleepDuration)
 		writeRetrievingMetaHeader(opts, tw, username)
-		currentMeta, err = client.Meta(ctx)
+		currentMeta, err = client.Meta(context.TODO())
 		if err != nil {
 			log.Fatalf("Failed to read Meta information: %s", err)
 		}

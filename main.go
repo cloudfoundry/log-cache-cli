@@ -35,7 +35,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 	switch args[0] {
 	case "query":
 		var opts []command.QueryOption
-		command.Query(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
+		command.Query(conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
 	case "tail":
 		var opts []command.TailOption
 		if !isTerminal {
@@ -47,7 +47,7 @@ func (c *LogCacheCLI) Run(conn plugin.CliConnection, args []string) {
 		if !isTerminal {
 			opts = append(opts, command.WithMetaNoHeaders())
 		}
-		command.Meta(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
+		command.Meta(conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
 	}
 }
 
