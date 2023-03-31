@@ -7,10 +7,15 @@ on:
   pull_request:
     branches:
     - main
+  schedule:
+  - cron: '40 1 * * 2'
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-go@v4
