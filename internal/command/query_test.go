@@ -1,7 +1,6 @@
 package command_test
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 
@@ -266,7 +265,6 @@ func setup(responseBody string, responseCode int) *testContext {
 
 func (tc *testContext) query(args ...string) {
 	command.Query(
-		context.Background(),
 		tc.cliConnection,
 		args,
 		tc.httpClient,

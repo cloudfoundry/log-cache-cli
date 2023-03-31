@@ -2,7 +2,6 @@ package command_test
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -57,7 +56,6 @@ var _ = Describe("Meta", func() {
 			cliConn.cliCommandErr = nil
 
 			command.Meta(
-				context.Background(),
 				cliConn,
 				[]string{"--noise", "--sort-by", "rate"},
 				httpClient,
@@ -115,7 +113,6 @@ var _ = Describe("Meta", func() {
 			cliConn.cliCommandErr = nil
 
 			command.Meta(
-				context.Background(),
 				cliConn,
 				[]string{"--sort-by", "source-type"},
 				httpClient,
@@ -162,7 +159,6 @@ var _ = Describe("Meta", func() {
 			cliConn.cliCommandErr = nil
 
 			command.Meta(
-				context.Background(),
 				cliConn,
 				[]string{"--sort-by", "count"},
 				httpClient,
@@ -210,7 +206,6 @@ var _ = Describe("Meta", func() {
 			cliConn.cliCommandErr = nil
 
 			command.Meta(
-				context.Background(),
 				cliConn,
 				[]string{"--sort-by", "expired"},
 				httpClient,
@@ -258,7 +253,6 @@ var _ = Describe("Meta", func() {
 			cliConn.cliCommandErr = nil
 
 			command.Meta(
-				context.Background(),
 				cliConn,
 				[]string{"--sort-by", "cache-duration"},
 				httpClient,
@@ -291,7 +285,6 @@ var _ = Describe("Meta", func() {
 		It("fatally logs when --sort-by is not valid", func() {
 			Expect(func() {
 				command.Meta(
-					context.Background(),
 					cliConn,
 					[]string{"--sort-by", "invalid"},
 					httpClient,
@@ -306,7 +299,6 @@ var _ = Describe("Meta", func() {
 		It("fatally logs when --source-type other than 'platform' is used with --guid", func() {
 			Expect(func() {
 				command.Meta(
-					context.Background(),
 					cliConn,
 					[]string{"--guid", "--source-type", "not-platform"},
 					httpClient,
@@ -321,7 +313,6 @@ var _ = Describe("Meta", func() {
 		It("fatally logs when --sort-by source is used with --guid", func() {
 			Expect(func() {
 				command.Meta(
-					context.Background(),
 					cliConn,
 					[]string{"--guid", "--sort-by", "source"},
 					httpClient,
@@ -336,7 +327,6 @@ var _ = Describe("Meta", func() {
 		It("fatally logs when --sort-by source-type is used with --guid", func() {
 			Expect(func() {
 				command.Meta(
-					context.Background(),
 					cliConn,
 					[]string{"--guid", "--sort-by", "source-type"},
 					httpClient,
@@ -351,7 +341,6 @@ var _ = Describe("Meta", func() {
 		It("fatally logs when --sort-by source-type is used with --guid", func() {
 			Expect(func() {
 				command.Meta(
-					context.Background(),
 					cliConn,
 					[]string{"--guid", "--sort-by", "source-type"},
 					httpClient,
@@ -366,7 +355,6 @@ var _ = Describe("Meta", func() {
 		It("fatally logs when --sort-by rate is used without --noise", func() {
 			Expect(func() {
 				command.Meta(
-					context.Background(),
 					cliConn,
 					[]string{"--sort-by", "rate"},
 					httpClient,
@@ -395,7 +383,6 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		command.Meta(
-			context.Background(),
 			cliConn,
 			[]string{"--guid"},
 			httpClient,
@@ -436,7 +423,6 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		command.Meta(
-			context.Background(),
 			cliConn,
 			[]string{"--guid"},
 			httpClient,
@@ -465,7 +451,6 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		command.Meta(
-			context.Background(),
 			cliConn,
 			nil,
 			httpClient,
@@ -522,7 +507,6 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		command.Meta(
-			context.Background(),
 			cliConn,
 			[]string{"--noise"},
 			httpClient,
@@ -575,7 +559,6 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		command.Meta(
-			context.Background(),
 			cliConn,
 			nil,
 			httpClient,
@@ -641,7 +624,6 @@ var _ = Describe("Meta", func() {
 
 		args := []string{"--source-type", "application"}
 		command.Meta(
-			context.Background(),
 			cliConn,
 			args,
 			httpClient,
@@ -687,7 +669,6 @@ var _ = Describe("Meta", func() {
 
 		args := []string{"--source-type", "service"}
 		command.Meta(
-			context.Background(),
 			cliConn,
 			args,
 			httpClient,
@@ -733,7 +714,6 @@ var _ = Describe("Meta", func() {
 
 		args := []string{"--source-type", "PLATFORM"}
 		command.Meta(
-			context.Background(),
 			cliConn,
 			args,
 			httpClient,
@@ -778,7 +758,6 @@ var _ = Describe("Meta", func() {
 
 		args := []string{"--source-type", "all"}
 		command.Meta(
-			context.Background(),
 			cliConn,
 			args,
 			httpClient,
@@ -824,7 +803,6 @@ var _ = Describe("Meta", func() {
 
 		args := []string{"--source-type", "unknown"}
 		command.Meta(
-			context.Background(),
 			cliConn,
 			args,
 			httpClient,
@@ -868,7 +846,6 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		command.Meta(
-			context.Background(),
 			cliConn,
 			nil,
 			httpClient,
@@ -913,7 +890,6 @@ var _ = Describe("Meta", func() {
 
 		args := []string{"--guid"}
 		command.Meta(
-			context.Background(),
 			cliConn,
 			args,
 			httpClient,
@@ -954,7 +930,6 @@ var _ = Describe("Meta", func() {
 
 		args := []string{"--source-type", "PLATFORM", "--guid"}
 		command.Meta(
-			context.Background(),
 			cliConn,
 			args,
 			httpClient,
@@ -1001,7 +976,6 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		command.Meta(
-			context.Background(),
 			cliConn,
 			nil,
 			httpClient,
@@ -1060,7 +1034,6 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		command.Meta(
-			context.Background(),
 			cliConn,
 			nil,
 			httpClient,
@@ -1091,7 +1064,6 @@ var _ = Describe("Meta", func() {
 		cliConn.cliCommandErr = nil
 
 		command.Meta(
-			context.Background(),
 			cliConn,
 			nil,
 			httpClient,
@@ -1105,7 +1077,6 @@ var _ = Describe("Meta", func() {
 	It("fatally logs when it receives too many arguments", func() {
 		Expect(func() {
 			command.Meta(
-				context.Background(),
 				cliConn,
 				[]string{"extra-arg"},
 				httpClient,
@@ -1121,7 +1092,6 @@ var _ = Describe("Meta", func() {
 		args := []string{"--source-type", "invalid"}
 		Expect(func() {
 			command.Meta(
-				context.Background(),
 				cliConn,
 				args,
 				httpClient,
@@ -1138,7 +1108,6 @@ var _ = Describe("Meta", func() {
 
 		Expect(func() {
 			command.Meta(
-				context.Background(),
 				cliConn,
 				nil,
 				httpClient,
@@ -1160,7 +1129,6 @@ var _ = Describe("Meta", func() {
 
 		Expect(func() {
 			command.Meta(
-				context.Background(),
 				cliConn,
 				nil,
 				httpClient,
@@ -1188,7 +1156,6 @@ var _ = Describe("Meta", func() {
 
 		Expect(func() {
 			command.Meta(
-				context.Background(),
 				cliConn,
 				nil,
 				httpClient,
@@ -1210,7 +1177,6 @@ var _ = Describe("Meta", func() {
 
 		Expect(func() {
 			command.Meta(
-				context.Background(),
 				cliConn,
 				nil,
 				httpClient,
@@ -1227,7 +1193,6 @@ var _ = Describe("Meta", func() {
 
 		Expect(func() {
 			command.Meta(
-				context.Background(),
 				cliConn,
 				nil,
 				httpClient,
