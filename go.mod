@@ -10,7 +10,7 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/onsi/ginkgo/v2 v2.9.2
 	github.com/onsi/gomega v1.27.5
-	golang.org/x/term v0.6.0
+	golang.org/x/term v0.7.0
 	google.golang.org/protobuf v1.30.0
 )
 
@@ -26,7 +26,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
