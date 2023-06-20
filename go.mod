@@ -5,7 +5,7 @@ go 1.20
 require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
 	code.cloudfoundry.org/go-log-cache/v2 v2.0.2
-	code.cloudfoundry.org/go-loggregator/v9 v9.0.5
+	code.cloudfoundry.org/go-loggregator/v9 v9.0.6
 	github.com/blang/semver/v4 v4.0.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/onsi/ginkgo/v2 v2.11.0
