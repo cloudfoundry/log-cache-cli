@@ -7,7 +7,7 @@ code.cloudfoundry.org/cli/plugin/models
 code.cloudfoundry.org/go-log-cache/v2
 code.cloudfoundry.org/go-log-cache/v2/internal
 code.cloudfoundry.org/go-log-cache/v2/rpc/logcache_v1
-# code.cloudfoundry.org/go-loggregator/v9 v9.0.5
+# code.cloudfoundry.org/go-loggregator/v9 v9.0.6
 ## explicit; go 1.18
 code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2
 # github.com/blang/semver/v4 v4.0.0

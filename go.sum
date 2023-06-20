@@ -2,8 +2,8 @@ code.cloudfoundry.org/cli v7.1.0+incompatible h1:1Zn3I+epQBaBvnZAaTudCQQ0WdqcWtj
 code.cloudfoundry.org/cli v7.1.0+incompatible/go.mod h1:e4d+EpbwevNhyTZKybrLlyTvpH+W22vMsmdmcTxs/Fo=
 code.cloudfoundry.org/go-log-cache/v2 v2.0.2 h1:5v/+8Xa8yZtpcH7sKlsipiWu43aQzF3dqzS4oRZG274=
 code.cloudfoundry.org/go-log-cache/v2 v2.0.2/go.mod h1:Z6PNbfRBE8ZLKlJcMJm7U7amlumM/xQESaoeOTFgbU0=
-code.cloudfoundry.org/go-loggregator/v9 v9.0.5 h1:3WrojABw2Xqv6f0nVoDPgrliSHtpwyJv4p3HpV9EBeI=
-code.cloudfoundry.org/go-loggregator/v9 v9.0.5/go.mod h1:gtMVfsHp/P0HxyzcFHsSfjcU9p1iflOvBnBk9JmiBSk=
+code.cloudfoundry.org/go-loggregator/v9 v9.0.6 h1:L2zNzSMqo6kwLw4p5/c6PF7Wur4WCnvar9+MbOevYMs=
+code.cloudfoundry.org/go-loggregator/v9 v9.0.6/go.mod h1:yc3+eazjM8HC8NSTtaUIsSSalWf5rNOEbKTtvr61Z+8=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
