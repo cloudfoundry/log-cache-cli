@@ -1,42 +1,20 @@
 # Log Cache cf CLI Plugin
 
-[![GoDoc][go-doc-badge]][go-doc]
+A [Cloud Foundry CLI](https://github.com/cloudfoundry/cli) plugin for interacting with the
+[Log Cache BOSH release](https://github.com/cloudfoundry/log-cache-release).
 
-A [cf CLI](https://github.com/cloudfoundry/cli) plugin for interacting with
-[Log Cache](https://github.com/cloudfoundry/log-cache).
-
-If you have any questions, or want to get attention for a PR or issue please reach out on the [#logging-and-metrics channel in the cloudfoundry slack](https://cloudfoundry.slack.com/archives/CUW93AF3M)
+If you have any questions, or want to get attention for a PR or issue please reach out on the [#logging-and-metrics channel in Cloud Foundry slack](https://cloudfoundry.slack.com/archives/CUW93AF3M)
 
 ![Plugin Demo](./docs/Plugin-demo.gif)
 
 ## Installing
 
 Install directly from the [Cloud Foundry CLI Plugin Repository](https://github.com/cloudfoundry/cli-plugin-repo):
-```
+```bash
 cf install-plugin -r CF-Community "log-cache"
 ```
 
-Or, you can download a pre-built binary from GitHub:
-```
-# Linux
-wget https://github.com/cloudfoundry/log-cache-cli/releases/latest/download/log-cache-cf-plugin-linux
-cf install-plugin -f log-cache-cf-plugin-linux
-
-# OSX
-wget https://github.com/cloudfoundry/log-cache-cli/releases/latest/download/log-cache-cf-plugin-darwin
-cf install-plugin -f log-cache-cf-plugin-darwin
-
-# Windows
-wget https://github.com/cloudfoundry/log-cache-cli/releases/latest/download/log-cache-cf-plugin-windows
-cf install-plugin -f log-cache-cf-plugin-windows
-```
-
-Alternatively, you can build from source:
-```
-git clone git@github.com:cloudfoundry/log-cache-cli.git
-cd log-cache-cli
-scripts/install.sh
-```
+Or, download a pre-built binary from [releases](https://github.com/cloudfoundry/log-cache-cli/releases/latest).
 
 ## Creating Releases
 
