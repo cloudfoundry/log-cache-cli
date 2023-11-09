@@ -2,6 +2,7 @@
 ## explicit
 code.cloudfoundry.org/cli/plugin
 code.cloudfoundry.org/cli/plugin/models
+code.cloudfoundry.org/cli/plugin/pluginfakes
 # code.cloudfoundry.org/go-log-cache/v2 v2.0.5
 ## explicit; go 1.19
 code.cloudfoundry.org/go-log-cache/v2
