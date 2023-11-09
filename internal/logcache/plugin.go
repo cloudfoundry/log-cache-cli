@@ -2,14 +2,8 @@ package logcache
 
 import (
 	"context"
-	"crypto/tls"
-	"log"
-	"net/http"
-	"os"
 
 	"code.cloudfoundry.org/cli/plugin"
-	"code.cloudfoundry.org/log-cache-cli/v4/internal/command"
-	"golang.org/x/term"
 )
 
 type LogCache struct {
@@ -21,38 +15,16 @@ func New(version plugin.VersionType) *LogCache {
 }
 
 func (lc *LogCache) Run(conn plugin.CliConnection, args []string) {
-	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
-
-	skipSSL, err := conn.IsSSLDisabled()
-	if err != nil {
-		log.Fatal(err)
-	}
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: skipSSL, //nolint:gosec
-	}
-
-	l := log.New(os.Stderr, "", 0)
-
-	switch args[0] {
-	case "query":
-		var opts []command.QueryOption
-		command.Query(conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
-	case "tail":
-		var opts []command.TailOption
-		if !isTerminal {
-			opts = append(opts, command.WithTailNoHeaders())
-		}
-		command.Tail(context.Background(), conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
-	case "log-meta":
-		var opts []command.MetaOption
-		if !isTerminal {
-			opts = append(opts, command.WithMetaNoHeaders())
-		}
-		command.Meta(conn, args[1:], http.DefaultClient, l, os.Stdout, opts...)
-	}
+	ctx := context.WithValue(context.Background(), "conn", conn)
+	rootCmd.SetArgs(args)
+	rootCmd.ExecuteContext(ctx)
 }
 
 func (lc *LogCache) GetMetadata() plugin.PluginMetadata {
+	cmds := rootCmd.Commands()
+	for _, cmd := range cmds {
+		cmd.Flags().FlagUsages()
+	}
 	return plugin.PluginMetadata{
 		Name:    "log-cache",
 		Version: lc.version,

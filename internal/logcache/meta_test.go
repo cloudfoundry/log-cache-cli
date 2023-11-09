@@ -2,14 +2,23 @@ package logcache_test
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
-	"code.cloudfoundry.org/cli/plugin/pluginfakes"
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/logcache"
 )
 
 func TestMetaCmd_Run(t *testing.T) {
-	var b bytes.Buffer
+	b := &bytes.Buffer{}
 	cmd := logcache.MetaCmd{}
-	cmd.Run(&pluginfakes.FakeCliConnection{}, []string{})
+	cmd.SetOut(b)
+	cmd.SetArgs([]string{"--in", "testisawesome"})
+	cmd.Execute()
+	out, err := io.ReadAll(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != "testisawesome" {
+		t.Fatalf("expected \"%s\" got \"%s\"", "testisawesome", string(out))
+	}
 }
