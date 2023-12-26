@@ -7,8 +7,8 @@ code.cloudfoundry.org/cli/plugin/models
 code.cloudfoundry.org/go-log-cache/v2
 code.cloudfoundry.org/go-log-cache/v2/internal
 code.cloudfoundry.org/go-log-cache/v2/rpc/logcache_v1
-# code.cloudfoundry.org/go-loggregator/v9 v9.0.8
-## explicit; go 1.18
+# code.cloudfoundry.org/go-loggregator/v9 v9.1.0
+## explicit; go 1.19
 code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
@@ -88,8 +88,8 @@ github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
 # github.com/stretchr/testify v1.7.0
 ## explicit; go 1.13
-# golang.org/x/net v0.17.0
-## explicit; go 1.17
+# golang.org/x/net v0.19.0
+## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -108,8 +108,8 @@ golang.org/x/sys/windows
 # golang.org/x/term v0.15.0
 ## explicit; go 1.18
 golang.org/x/term
-# golang.org/x/text v0.13.0
-## explicit; go 1.17
+# golang.org/x/text v0.14.0
+## explicit; go 1.18
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
@@ -134,18 +134,18 @@ golang.org/x/text/unicode/norm
 ## explicit; go 1.18
 golang.org/x/tools/go/ast/inspector
 golang.org/x/tools/internal/typeparams
-# google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d
+# google.golang.org/genproto v0.0.0-20231002182017-d307bd883b97
 ## explicit; go 1.19
 google.golang.org/genproto/internal
-# google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d
+# google.golang.org/genproto/googleapis/api v0.0.0-20231002182017-d307bd883b97
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.59.0
+# google.golang.org/grpc v1.60.1
 ## explicit; go 1.19
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -182,6 +182,7 @@ google.golang.org/grpc/internal/metadata
 google.golang.org/grpc/internal/pretty
 google.golang.org/grpc/internal/resolver
 google.golang.org/grpc/internal/resolver/dns
+google.golang.org/grpc/internal/resolver/dns/internal
 google.golang.org/grpc/internal/resolver/passthrough
 google.golang.org/grpc/internal/resolver/unix
 google.golang.org/grpc/internal/serviceconfig
@@ -193,12 +194,13 @@ google.golang.org/grpc/keepalive
 google.golang.org/grpc/metadata
 google.golang.org/grpc/peer
 google.golang.org/grpc/resolver
+google.golang.org/grpc/resolver/dns
 google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.31.0
-## explicit; go 1.11
+# google.golang.org/protobuf v1.32.0
+## explicit; go 1.17
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
