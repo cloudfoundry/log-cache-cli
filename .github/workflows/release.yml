@@ -1,10 +1,12 @@
-name: Release from main
+name: Create release on new tag
+
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Semver version to cut a release for (ie. 4.0.3)'
-        required: true
+  push:
+    tags:
+    - '*'
+
+permissions:
+  contents: write
 
 jobs:
   release:
@@ -15,16 +17,8 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: |
-          GOOS=linux go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-linux
-          GOOS=darwin go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-darwin
-          GOOS=windows go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-windows
-        env:
-          VERSION: ${{ github.event.inputs.version }}
-          CGO_ENABLED: 0
-      - run: |
-          go_version=`go version | { read _ _ v _; echo ${v#go}; }`
-          gh release create -d -t "v$VERSION" --generate-notes "v$VERSION" --notes ":sparkles: built with go$go_version" ./bin/*
+      - uses: goreleaser/goreleaser-action@v5
+        with:
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ github.event.inputs.version }}
