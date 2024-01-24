@@ -5,7 +5,7 @@ go 1.21
 require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
 	code.cloudfoundry.org/go-log-cache/v2 v2.0.6
-	code.cloudfoundry.org/go-loggregator/v9 v9.1.0
+	code.cloudfoundry.org/go-loggregator/v9 v9.2.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/onsi/ginkgo/v2 v2.15.0
@@ -25,7 +25,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
-	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.16.1 // indirect

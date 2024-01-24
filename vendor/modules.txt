@@ -7,8 +7,8 @@ code.cloudfoundry.org/cli/plugin/models
 code.cloudfoundry.org/go-log-cache/v2
 code.cloudfoundry.org/go-log-cache/v2/internal
 code.cloudfoundry.org/go-log-cache/v2/rpc/logcache_v1
-# code.cloudfoundry.org/go-loggregator/v9 v9.1.0
-## explicit; go 1.19
+# code.cloudfoundry.org/go-loggregator/v9 v9.2.0
+## explicit; go 1.21
 code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
@@ -88,7 +88,7 @@ github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
 # github.com/stretchr/testify v1.7.0
 ## explicit; go 1.13
-# golang.org/x/net v0.19.0
+# golang.org/x/net v0.20.0
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
