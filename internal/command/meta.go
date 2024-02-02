@@ -506,12 +506,6 @@ func maxDuration(a, b time.Duration) time.Duration {
 }
 
 func logCacheEndpoint(cli plugin.CliConnection) (string, error) {
-	logCacheAddr := os.Getenv("LOG_CACHE_ADDR")
-
-	if logCacheAddr != "" {
-		return logCacheAddr, nil
-	}
-
 	apiEndpoint, err := cli.ApiEndpoint()
 	if err != nil {
 		return "", err

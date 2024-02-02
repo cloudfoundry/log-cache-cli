@@ -1018,36 +1018,6 @@ var _ = Describe("Meta", func() {
 		Expect(strings.Split(tableWriter.String(), "\n")).To(HaveLen(57))
 	})
 
-	It("uses the LOG_CACHE_ADDR environment variable", func() {
-		_ = os.Setenv("LOG_CACHE_ADDR", "https://different-log-cache:8080")
-		defer func() { _ = os.Unsetenv("LOG_CACHE_ADDR") }()
-
-		httpClient.responseBody = []string{
-			metaResponseInfo("source-1"),
-		}
-
-		cliConn.cliCommandResult = [][]string{
-			{
-				capiAppsResponse(map[string]string{"source-1": "app-1"}),
-			},
-		}
-		cliConn.cliCommandErr = nil
-
-		command.Meta(
-			cliConn,
-			nil,
-			httpClient,
-			logger,
-			tableWriter,
-		)
-
-		Expect(httpClient.requestURLs).To(HaveLen(1))
-		u, err := url.Parse(httpClient.requestURLs[0])
-		Expect(err).ToNot(HaveOccurred())
-		Expect(u.Scheme).To(Equal("https"))
-		Expect(u.Host).To(Equal("different-log-cache:8080"))
-	})
-
 	It("does not send Authorization header with LOG_CACHE_SKIP_AUTH", func() {
 		_ = os.Setenv("LOG_CACHE_SKIP_AUTH", "true")
 		defer func() { _ = os.Unsetenv("LOG_CACHE_SKIP_AUTH") }()

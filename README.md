@@ -55,7 +55,6 @@ USAGE:
    tail [options] <source-id/app>
 
 ENVIRONMENT VARIABLES:
-   LOG_CACHE_ADDR       Overrides the default location of log-cache.
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
 
 OPTIONS:
@@ -81,7 +80,6 @@ USAGE:
    log-meta [options]
 
 ENVIRONMENT VARIABLES:
-   LOG_CACHE_ADDR       Overrides the default location of log-cache.
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
 
 OPTIONS:
@@ -102,7 +100,6 @@ USAGE:
    query <promql-query> [options]
 
 ENVIRONMENT VARIABLES:
-   LOG_CACHE_ADDR       Overrides the default location of log-cache.
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
 
 OPTIONS:

@@ -54,24 +54,21 @@ func Query(
 		})
 	}
 
-	logCacheAddr := os.Getenv("LOG_CACHE_ADDR")
-	if logCacheAddr == "" {
-		hasAPI, err := cli.HasAPIEndpoint()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-
-		if !hasAPI {
-			log.Fatalf("No API endpoint targeted.")
-		}
-
-		tokenURL, err := cli.ApiEndpoint()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-
-		logCacheAddr = strings.Replace(tokenURL, "api", "log-cache", 1)
+	hasAPI, err := cli.HasAPIEndpoint()
+	if err != nil {
+		log.Fatalf("%s", err)
 	}
+
+	if !hasAPI {
+		log.Fatalf("No API endpoint targeted.")
+	}
+
+	tokenURL, err := cli.ApiEndpoint()
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	logCacheAddr := strings.Replace(tokenURL, "api", "log-cache", 1)
 
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
 

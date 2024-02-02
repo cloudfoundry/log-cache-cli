@@ -64,7 +64,6 @@ func (lc *LogCache) GetMetadata() plugin.PluginMetadata {
 					Usage: `tail [options] <source-id/app>
 
 ENVIRONMENT VARIABLES:
-   LOG_CACHE_ADDR       Overrides the default location of log-cache.
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
 					Options: map[string]string{
 						"-start-time":         "Start of query range in UNIX nanoseconds.",
@@ -86,7 +85,6 @@ ENVIRONMENT VARIABLES:
 					Usage: `log-meta [options]
 
 ENVIRONMENT VARIABLES:
-   LOG_CACHE_ADDR       Overrides the default location of log-cache.
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
 					Options: map[string]string{
 						"-source-type": "Source type of information to show. Available: 'all', 'application', 'service', 'platform', and 'unknown'. Excludes unknown sources unless 'all' or 'unknown' is selected, or `--guid` is used. To receive information on platform or unknown source id's, you must have the doppler.firehose, or logs.admin scope.",
@@ -103,7 +101,6 @@ ENVIRONMENT VARIABLES:
 					Usage: `query <promql-query> [options]
 
 ENVIRONMENT VARIABLES:
-   LOG_CACHE_ADDR       Overrides the default location of log-cache.
    LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
 					Options: map[string]string{
 						"-time":  "Effective time for query execution of an instant query. Cannont be used with --start, --end, or --step. Can be a unix timestamp or RFC3339.",
