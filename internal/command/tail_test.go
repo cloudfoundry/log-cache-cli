@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
 
@@ -824,21 +823,6 @@ var _ = Describe("LogCache", func() {
 			}
 
 			Expect(wrapperFunc).To(Panic())
-		})
-
-		It("does not send Authorization header with LOG_CACHE_SKIP_AUTH", func() {
-			os.Setenv("LOG_CACHE_SKIP_AUTH", "true")
-			defer os.Unsetenv("LOG_CACHE_SKIP_AUTH")
-
-			command.Tail(
-				context.Background(),
-				cliConn,
-				[]string{"app-name"},
-				httpClient,
-				logger,
-				writer,
-			)
-			Expect(httpClient.requestHeaders[0]).To(BeEmpty())
 		})
 
 		It("follow retries for empty responses", func() {

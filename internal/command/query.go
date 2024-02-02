@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -44,15 +43,13 @@ func Query(
 
 	lw := lineWriter{w: w}
 
-	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		c = http.NewTokenClient(c, func() string {
-			token, err := cli.AccessToken()
-			if err != nil {
-				log.Fatalf("Unable to get Access Token: %s", err)
-			}
-			return token
-		})
-	}
+	c = http.NewTokenClient(c, func() string {
+		token, err := cli.AccessToken()
+		if err != nil {
+			log.Fatalf("Unable to get Access Token: %s", err)
+		}
+		return token
+	})
 
 	hasAPI, err := cli.HasAPIEndpoint()
 	if err != nil {
