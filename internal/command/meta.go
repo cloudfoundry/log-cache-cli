@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -221,15 +220,13 @@ func createLogCacheClient(c http.Client, log Logger, cli plugin.CliConnection) *
 		log.Fatalf("Could not determine Log Cache endpoint: %s", err)
 	}
 
-	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		c = http.NewTokenClient(c, func() string {
-			token, err := cli.AccessToken()
-			if err != nil {
-				log.Fatalf("Unable to get Access Token: %s", err)
-			}
-			return token
-		})
-	}
+	c = http.NewTokenClient(c, func() string {
+		token, err := cli.AccessToken()
+		if err != nil {
+			log.Fatalf("Unable to get Access Token: %s", err)
+		}
+		return token
+	})
 
 	return logcache.NewClient(
 		logCacheEndpoint,

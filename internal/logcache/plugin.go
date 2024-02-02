@@ -61,10 +61,7 @@ func (lc *LogCache) GetMetadata() plugin.PluginMetadata {
 				Name:     "tail",
 				HelpText: "Output logs for a source-id/app",
 				UsageDetails: plugin.Usage{
-					Usage: `tail [options] <source-id/app>
-
-ENVIRONMENT VARIABLES:
-   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
+					Usage: `tail [options] <source-id/app>`,
 					Options: map[string]string{
 						"-start-time":         "Start of query range in UNIX nanoseconds.",
 						"-end-time":           "End of query range in UNIX nanoseconds.",
@@ -82,10 +79,7 @@ ENVIRONMENT VARIABLES:
 				Name:     "log-meta",
 				HelpText: "Show all available meta information",
 				UsageDetails: plugin.Usage{
-					Usage: `log-meta [options]
-
-ENVIRONMENT VARIABLES:
-   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
+					Usage: `log-meta [options]`,
 					Options: map[string]string{
 						"-source-type": "Source type of information to show. Available: 'all', 'application', 'service', 'platform', and 'unknown'. Excludes unknown sources unless 'all' or 'unknown' is selected, or `--guid` is used. To receive information on platform or unknown source id's, you must have the doppler.firehose, or logs.admin scope.",
 						"-sort-by":     "Sort by specified column. Available: 'source-id', 'source', 'source-type', 'count', 'expired', 'cache-duration', and 'rate'.",
@@ -98,10 +92,7 @@ ENVIRONMENT VARIABLES:
 				Name:     "query",
 				HelpText: "Issues a PromQL query against Log Cache",
 				UsageDetails: plugin.Usage{
-					Usage: `query <promql-query> [options]
-
-ENVIRONMENT VARIABLES:
-   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.`,
+					Usage: `query <promql-query> [options]`,
 					Options: map[string]string{
 						"-time":  "Effective time for query execution of an instant query. Cannont be used with --start, --end, or --step. Can be a unix timestamp or RFC3339.",
 						"-start": "Start time for a range query. Cannont be used with --time. Can be a unix timestamp or RFC3339.",

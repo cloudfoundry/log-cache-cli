@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"text/template"
@@ -114,15 +113,13 @@ func Tail(
 		return formatter.formatEnvelope(e)
 	}
 
-	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		c = http.NewTokenClient(c, func() string {
-			token, err := cli.AccessToken()
-			if err != nil {
-				log.Fatalf("Unable to get Access Token: %s", err)
-			}
-			return token
-		})
-	}
+	c = http.NewTokenClient(c, func() string {
+		token, err := cli.AccessToken()
+		if err != nil {
+			log.Fatalf("Unable to get Access Token: %s", err)
+		}
+		return token
+	})
 
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
 
