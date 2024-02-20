@@ -54,10 +54,6 @@ NAME:
 USAGE:
    tail [options] <source-id/app>
 
-ENVIRONMENT VARIABLES:
-   LOG_CACHE_ADDR       Overrides the default location of log-cache.
-   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
-
 OPTIONS:
    --start-time               Start of query range in UNIX nanoseconds.
    --end-time                 End of query range in UNIX nanoseconds.
@@ -80,10 +76,6 @@ NAME:
 USAGE:
    log-meta [options]
 
-ENVIRONMENT VARIABLES:
-   LOG_CACHE_ADDR       Overrides the default location of log-cache.
-   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
-
 OPTIONS:
    --guid              Display raw source GUIDs with no source Names. Incompativle with 'source' and 'source-type' for --sort-by. Incompatible with 'application' for --source-type
    --noise             Fetch and display the rate of envelopes per minute for the last minute. WARNING: This is slow...
@@ -100,10 +92,6 @@ NAME:
 
 USAGE:
    query <promql-query> [options]
-
-ENVIRONMENT VARIABLES:
-   LOG_CACHE_ADDR       Overrides the default location of log-cache.
-   LOG_CACHE_SKIP_AUTH  Set to 'true' to disable CF authentication.
 
 OPTIONS:
    --end        End time for a range query. Cannont be used with --time. Can be a unix timestamp or RFC3339.

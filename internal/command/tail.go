@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"text/template"
@@ -59,53 +58,50 @@ func Tail(
 		}
 	}()
 
-	logCacheAddr := os.Getenv("LOG_CACHE_ADDR")
-	if logCacheAddr == "" {
-		hasAPI, err := cli.HasAPIEndpoint()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
+	hasAPI, err := cli.HasAPIEndpoint()
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 
-		if !hasAPI {
-			log.Fatalf("No API endpoint targeted.")
-		}
+	if !hasAPI {
+		log.Fatalf("No API endpoint targeted.")
+	}
 
-		tokenURL, err := cli.ApiEndpoint()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
+	tokenURL, err := cli.ApiEndpoint()
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 
-		user, err := cli.Username()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
+	user, err := cli.Username()
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 
-		org, err := cli.GetCurrentOrg()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
+	org, err := cli.GetCurrentOrg()
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 
-		space, err := cli.GetCurrentSpace()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
+	space, err := cli.GetCurrentSpace()
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 
-		logCacheAddr = strings.Replace(tokenURL, "api", "log-cache", 1)
+	logCacheAddr := strings.Replace(tokenURL, "api", "log-cache", 1)
 
-		headerPrinter := formatter.sourceHeader
-		switch o.source.Type {
-		case _application:
-			headerPrinter = formatter.appHeader
-		case _service:
-			headerPrinter = formatter.serviceHeader
-		}
+	headerPrinter := formatter.sourceHeader
+	switch o.source.Type {
+	case _application:
+		headerPrinter = formatter.appHeader
+	case _service:
+		headerPrinter = formatter.serviceHeader
+	}
 
-		if !o.noHeaders {
-			header, ok := headerPrinter(o.source.Name, org.Name, space.Name, user)
-			if ok {
-				lw.Write(header)
-				lw.Write("")
-			}
+	if !o.noHeaders {
+		header, ok := headerPrinter(o.source.Name, org.Name, space.Name, user)
+		if ok {
+			lw.Write(header)
+			lw.Write("")
 		}
 	}
 
@@ -117,15 +113,13 @@ func Tail(
 		return formatter.formatEnvelope(e)
 	}
 
-	if strings.ToLower(os.Getenv("LOG_CACHE_SKIP_AUTH")) != "true" {
-		c = http.NewTokenClient(c, func() string {
-			token, err := cli.AccessToken()
-			if err != nil {
-				log.Fatalf("Unable to get Access Token: %s", err)
-			}
-			return token
-		})
-	}
+	c = http.NewTokenClient(c, func() string {
+		token, err := cli.AccessToken()
+		if err != nil {
+			log.Fatalf("Unable to get Access Token: %s", err)
+		}
+		return token
+	})
 
 	client := logcache.NewClient(logCacheAddr, logcache.WithHTTPClient(c))
 
