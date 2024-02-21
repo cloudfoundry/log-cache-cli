@@ -192,7 +192,7 @@ func jsonEnvelope(e *loggregator_v2.Envelope) ([]byte, error) {
 
 		return json.Marshal(m)
 	default:
-		return protojson.Marshal(e)
+		return protojson.MarshalOptions{EmitUnpopulated: true}.Marshal(e)
 	}
 }
 

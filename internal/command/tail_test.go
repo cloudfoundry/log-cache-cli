@@ -278,10 +278,10 @@ var _ = Describe("LogCache", func() {
 			)
 
 			Expect(writer.bytes).To(MatchJSON(fmt.Sprintf(`{"batch":[
-				{"timestamp":"%d","source_id":"app-name","instance_id":"0","event":{"title":"some-title","body":"some-body"}},
-				{"timestamp":"%d","source_id":"app-name","instance_id":"0","timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}},
-				{"timestamp":"%d","source_id":"app-name","instance_id":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}},
-				{"timestamp":"%d","source_id":"app-name","instance_id":"0","counter":{"name":"some-name","total":"99"}},
+				{"timestamp":"%d","source_id":"app-name","instance_id":"0","deprecated_tags":{},"tags":{},"event":{"title":"some-title","body":"some-body"}},
+				{"timestamp":"%d","source_id":"app-name","instance_id":"0","deprecated_tags":{},"tags":{},"timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}},
+				{"timestamp":"%d","source_id":"app-name","instance_id":"0","deprecated_tags":{},"tags":{},"gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99},"other-name":{"unit":"other-unit","value":0}}}},
+				{"timestamp":"%d","source_id":"app-name","instance_id":"0","deprecated_tags":{},"tags":{},"counter":{"name":"some-name","total":"99","delta":"0"}},
 				{"timestamp":"%d","source_id":"app-name","instance_id":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"log body"}}
 			]}`, startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano())))
 		})
@@ -304,9 +304,9 @@ var _ = Describe("LogCache", func() {
 			)
 
 			Expect(writer.bytes).To(MatchJSON(fmt.Sprintf(`{"batch":[
-				{"timestamp":"%d","source_id":"app-name","instance_id":"0","timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}},
-				{"timestamp":"%d","source_id":"app-name","instance_id":"0","gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99}}}},
-				{"timestamp":"%d","source_id":"app-name","instance_id":"0","counter":{"name":"some-name","total":"99"}}
+				{"timestamp":"%d","source_id":"app-name","instance_id":"0","deprecated_tags":{},"tags":{},"timer":{"name":"http","start":"1517940773000000000","stop":"1517940773000000000"}},
+				{"timestamp":"%d","source_id":"app-name","instance_id":"0","deprecated_tags":{},"tags":{},"gauge":{"metrics":{"some-name":{"unit":"my-unit","value":99},"other-name":{"unit":"other-unit","value":0}}}},
+				{"timestamp":"%d","source_id":"app-name","instance_id":"0","deprecated_tags":{},"tags":{},"counter":{"name":"some-name","total":"99","delta":"0"}}
 			]}`, startTime.UnixNano(), startTime.UnixNano(), startTime.UnixNano())))
 
 			Expect(httpClient.requestURLs).ToNot(BeEmpty())
@@ -334,7 +334,7 @@ var _ = Describe("LogCache", func() {
 			)
 
 			Expect(writer.bytes).To(MatchJSON(fmt.Sprintf(`{"batch":[
-				{"timestamp":"%d","source_id":"app-name","instance_id":"0","event":{"title":"some-title","body":"some-body"}},
+				{"timestamp":"%d","source_id":"app-name","instance_id":"0","deprecated_tags":{},"tags":{},"event":{"title":"some-title","body":"some-body"}},
 				{"timestamp":"%d","source_id":"app-name","instance_id":"0","tags":{"source_type":"APP/PROC/WEB"},"log":{"payload":"log body"}}
 			]}`, startTime.UnixNano(), startTime.UnixNano())))
 
@@ -1895,6 +1895,10 @@ var mixedResponseTemplate = `{
 						"some-name": {
 							"value": 99,
 							"unit":"my-unit"
+						},
+						"other-name": {
+							"value": 0,
+							"unit": "other-unit"
 						}
 					}
 				}
