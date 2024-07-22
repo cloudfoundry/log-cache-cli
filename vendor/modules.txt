@@ -2,7 +2,7 @@
 ## explicit
 code.cloudfoundry.org/cli/plugin
 code.cloudfoundry.org/cli/plugin/models
-# code.cloudfoundry.org/go-log-cache/v3 v3.0.0
+# code.cloudfoundry.org/go-log-cache/v3 v3.0.1
 ## explicit; go 1.21
 code.cloudfoundry.org/go-log-cache/v3
 code.cloudfoundry.org/go-log-cache/v3/internal
@@ -32,8 +32,8 @@ github.com/google/go-cmp/cmp/internal/value
 # github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6
 ## explicit; go 1.19
 github.com/google/pprof/profile
-# github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1
-## explicit; go 1.19
+# github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
+## explicit; go 1.20
 github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
 github.com/grpc-ecosystem/grpc-gateway/v2/runtime
 github.com/grpc-ecosystem/grpc-gateway/v2/utilities
@@ -78,7 +78,7 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# golang.org/x/net v0.26.0
+# golang.org/x/net v0.27.0
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
@@ -124,22 +124,23 @@ golang.org/x/text/unicode/norm
 ## explicit; go 1.19
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/inspector
-# google.golang.org/genproto/googleapis/api v0.0.0-20240318140521-94a12d6c2237
-## explicit; go 1.19
+# google.golang.org/genproto/googleapis/api v0.0.0-20240722135656-d784300faade
+## explicit; go 1.20
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237
-## explicit; go 1.19
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20240722135656-d784300faade
+## explicit; go 1.20
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.64.0
-## explicit; go 1.19
+# google.golang.org/grpc v1.65.0
+## explicit; go 1.21
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base
 google.golang.org/grpc/balancer/grpclb/state
+google.golang.org/grpc/balancer/pickfirst
 google.golang.org/grpc/balancer/roundrobin
 google.golang.org/grpc/binarylog/grpc_binarylog_v1
 google.golang.org/grpc/channelz
@@ -161,7 +162,6 @@ google.golang.org/grpc/internal/channelz
 google.golang.org/grpc/internal/credentials
 google.golang.org/grpc/internal/envconfig
 google.golang.org/grpc/internal/grpclog
-google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
 google.golang.org/grpc/internal/grpcutil
 google.golang.org/grpc/internal/idle
