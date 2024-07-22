@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"time"
 
-	marshaler "code.cloudfoundry.org/go-log-cache/v2/internal"
-	"code.cloudfoundry.org/go-log-cache/v2/rpc/logcache_v1"
+	marshaler "code.cloudfoundry.org/go-log-cache/v3/internal"
+	"code.cloudfoundry.org/go-log-cache/v3/rpc/logcache_v1"
 
-	"code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2"
+	"code.cloudfoundry.org/go-loggregator/v10/rpc/loggregator_v2"
 	"github.com/blang/semver/v4"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -83,7 +83,7 @@ func WithViaGRPC(opts ...grpc.DialOption) ClientOption {
 	return clientOptionFunc(func(c interface{}) {
 		switch c := c.(type) {
 		case *Client:
-			conn, err := grpc.Dial(c.addr, opts...)
+			conn, err := grpc.NewClient(c.addr, opts...)
 			if err != nil {
 				panic(fmt.Sprintf("failed to dial via gRPC: %s", err))
 			}
