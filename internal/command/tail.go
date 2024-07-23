@@ -14,9 +14,9 @@ import (
 	"code.cloudfoundry.org/log-cache-cli/v4/internal/util/http"
 
 	"code.cloudfoundry.org/cli/plugin"
-	logcache "code.cloudfoundry.org/go-log-cache/v2"
-	logcache_v1 "code.cloudfoundry.org/go-log-cache/v2/rpc/logcache_v1"
-	"code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2"
+	logcache "code.cloudfoundry.org/go-log-cache/v3"
+	logcache_v1 "code.cloudfoundry.org/go-log-cache/v3/rpc/logcache_v1"
+	"code.cloudfoundry.org/go-loggregator/v10/rpc/loggregator_v2"
 	"github.com/blang/semver/v4"
 	flags "github.com/jessevdk/go-flags"
 )
