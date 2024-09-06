@@ -2,7 +2,7 @@
 ## explicit
 code.cloudfoundry.org/cli/plugin
 code.cloudfoundry.org/cli/plugin/models
-# code.cloudfoundry.org/go-log-cache/v3 v3.0.2
+# code.cloudfoundry.org/go-log-cache/v3 v3.0.3
 ## explicit; go 1.22
 code.cloudfoundry.org/go-log-cache/v3
 code.cloudfoundry.org/go-log-cache/v3/internal
@@ -32,8 +32,8 @@ github.com/google/go-cmp/cmp/internal/value
 # github.com/google/pprof v0.0.0-20240827171923-fa2c70bbbfe5
 ## explicit; go 1.22
 github.com/google/pprof/profile
-# github.com/grpc-ecosystem/grpc-gateway/v2 v2.21.0
-## explicit; go 1.20
+# github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0
+## explicit; go 1.21
 github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
 github.com/grpc-ecosystem/grpc-gateway/v2/runtime
 github.com/grpc-ecosystem/grpc-gateway/v2/utilities
@@ -128,13 +128,13 @@ golang.org/x/text/unicode/norm
 ## explicit; go 1.19
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/inspector
-# google.golang.org/genproto/googleapis/api v0.0.0-20240723171418-e6d459c13d2a
-## explicit; go 1.20
+# google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142
+## explicit; go 1.21
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20240723171418-e6d459c13d2a
-## explicit; go 1.20
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142
+## explicit; go 1.21
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.65.0
 ## explicit; go 1.21
