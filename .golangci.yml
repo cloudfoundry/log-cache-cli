@@ -17,6 +17,9 @@ linters-settings:
     # Minimal code complexity to report.
     # https://github.com/fzipp/gocyclo#readme
     min-complexity: 28
+  gosec:
+    excludes:
+    - G115
 issues:
   # Disable max issues per linter.
   max-issues-per-linter: 0
