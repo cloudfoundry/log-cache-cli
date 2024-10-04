@@ -16,9 +16,12 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - run: |
-          GOOS=linux go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-linux
-          GOOS=darwin go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-darwin
-          GOOS=windows go build -ldflags "-X main.version=$VERSION" -o bin/log-cache-cf-plugin-windows
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$VERSION" -o "bin/log-cache-cf-plugin_${VERSION}_linux_amd64"
+          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=$VERSION" -o "bin/log-cache-cf-plugin_${VERSION}_linux_arm64"
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$VERSION" -o "bin/log-cache-cf-plugin_${VERSION}_darwin_amd64"
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=$VERSION" -o "bin/log-cache-cf-plugin_${VERSION}_darwin_arm64"
+          GOOS=windows GOARCH=386 go build -ldflags "-X main.version=$VERSION" -o "bin/log-cache-cf-plugin_${VERSION}_windows_386.exe"
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$VERSION" -o "bin/log-cache-cf-plugin_${VERSION}_windows_amd64.exe"
         env:
           VERSION: ${{ github.event.inputs.version }}
           CGO_ENABLED: 0
