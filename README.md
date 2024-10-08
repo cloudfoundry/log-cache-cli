@@ -16,19 +16,9 @@ Install directly from the [Cloud Foundry CLI Plugin Repository](https://github.c
 cf install-plugin -r CF-Community "log-cache"
 ```
 
-Or, you can download a pre-built binary from GitHub:
+Or, you can download a pre-built binary from GitHub and install it:
 ```
-# Linux
-wget https://github.com/cloudfoundry/log-cache-cli/releases/latest/download/log-cache-cf-plugin-linux
-cf install-plugin -f log-cache-cf-plugin-linux
-
-# OSX
-wget https://github.com/cloudfoundry/log-cache-cli/releases/latest/download/log-cache-cf-plugin-darwin
-cf install-plugin -f log-cache-cf-plugin-darwin
-
-# Windows
-wget https://github.com/cloudfoundry/log-cache-cli/releases/latest/download/log-cache-cf-plugin-windows
-cf install-plugin -f log-cache-cf-plugin-windows
+cf install-plugin -f PATH_TO_PLUGIN
 ```
 
 Alternatively, you can build from source:
