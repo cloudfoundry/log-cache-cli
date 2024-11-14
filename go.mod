@@ -12,7 +12,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
 	golang.org/x/term v0.26.0
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.35.2
 )
 
 require (
