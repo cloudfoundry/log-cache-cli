@@ -442,7 +442,7 @@ func getSourceInfo(metaInfo map[string]*logcache_v1.MetaInfo, cli plugin.CliConn
 		s = append(s, id)
 	}
 
-	serviceInfo, err := getSourceInfoFromCAPI(s, "/v2/service_instances", cli)
+	serviceInfo, err := getSourceInfoFromCAPI(s, "/v3/service_instances", cli)
 	if err != nil {
 		return nil, err
 	}

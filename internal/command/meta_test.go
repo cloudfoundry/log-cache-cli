@@ -579,7 +579,7 @@ var _ = Describe("Meta", func() {
 
 		Expect(cliConn.cliCommandArgs[1]).To(HaveLen(2))
 		Expect(cliConn.cliCommandArgs[1][0]).To(Equal("curl"))
-		Expect(cliConn.cliCommandArgs[1][1]).To(Equal("/v2/service_instances?guids=source-2"))
+		Expect(cliConn.cliCommandArgs[1][1]).To(Equal("/v3/service_instances?guids=source-2"))
 
 		Expect(httpClient.requestCount()).To(Equal(1))
 		Expect(strings.Split(tableWriter.String(), "\n")).To(Equal([]string{
@@ -1002,14 +1002,14 @@ var _ = Describe("Meta", func() {
 		Expect(cliConn.cliCommandArgs[2][0]).To(Equal("curl"))
 		uri, err = url.Parse(cliConn.cliCommandArgs[2][1])
 		Expect(err).ToNot(HaveOccurred())
-		Expect(uri.Path).To(Equal("/v2/service_instances"))
+		Expect(uri.Path).To(Equal("/v3/service_instances"))
 		Expect(strings.Split(uri.Query().Get("guids"), ",")).To(HaveLen(50))
 
 		Expect(cliConn.cliCommandArgs[3]).To(HaveLen(2))
 		Expect(cliConn.cliCommandArgs[3][0]).To(Equal("curl"))
 		uri, err = url.Parse(cliConn.cliCommandArgs[3][1])
 		Expect(err).ToNot(HaveOccurred())
-		Expect(uri.Path).To(Equal("/v2/service_instances"))
+		Expect(uri.Path).To(Equal("/v3/service_instances"))
 		Expect(strings.Split(uri.Query().Get("guids"), ",")).To(HaveLen(1))
 
 		// 51 entries, 2 blank lines, "Retrieving..." preamble and table
