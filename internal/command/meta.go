@@ -340,7 +340,7 @@ func getOptions(args []string, log Logger, mopts ...MetaOption) optionsFlags {
 		}
 	}
 
-	if opts.ShowGUID && !(_platform.Equal(opts.SourceType) || _all.Equal(opts.SourceType) || _default.Equal(opts.SourceType)) {
+	if opts.ShowGUID && !_platform.Equal(opts.SourceType) && !_all.Equal(opts.SourceType) && !_default.Equal(opts.SourceType) {
 		log.Fatalf("Source type must be 'platform' when using the --guid flag")
 	}
 

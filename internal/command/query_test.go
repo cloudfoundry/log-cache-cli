@@ -73,7 +73,7 @@ var _ = Describe("LogCache", func() {
 			}).To(Panic())
 
 			Expect(tc.logger.fatalfMessage).To(HavePrefix(
-				"When issuing a range query, you must specify all of --start, --end, and --step",
+				"when issuing a range query, you must specify all of --start, --end, and --step",
 			))
 		})
 
@@ -85,7 +85,7 @@ var _ = Describe("LogCache", func() {
 			}).To(Panic())
 
 			Expect(tc.logger.fatalfMessage).To(HavePrefix(
-				"When issuing an instant query, you cannot specify --start, --end, or --step",
+				"when issuing an instant query, you cannot specify --start, --end, or --step",
 			))
 		})
 
@@ -152,7 +152,7 @@ var _ = Describe("LogCache", func() {
 					}).To(Panic())
 
 					Expect(tc.logger.fatalfMessage).To(HavePrefix(
-						fmt.Sprintf("Couldn't parse --time: invalid time format: %s", timeArg),
+						fmt.Sprintf("couldn't parse --time: invalid time format: %s", timeArg),
 					))
 				},
 				Entry("with an arbitary string", "asdfkj"),
@@ -229,7 +229,7 @@ var _ = Describe("LogCache", func() {
 					}).To(Panic())
 
 					Expect(tc.logger.fatalfMessage).To(HavePrefix(
-						fmt.Sprintf("Couldn't parse --%s: invalid time format: %s", invalidField, invalidArg),
+						fmt.Sprintf("couldn't parse --%s: invalid time format: %s", invalidField, invalidArg),
 					))
 				},
 				Entry("with an arbitary string for start", "start", "asdfkj"),

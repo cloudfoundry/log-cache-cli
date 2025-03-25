@@ -238,11 +238,11 @@ func newTailOptions(cli plugin.CliConnection, args []string, log Logger) (tailOp
 	}
 
 	if len(args) != 1 {
-		return tailOptions{}, fmt.Errorf("Expected 1 argument, got %d.", len(args))
+		return tailOptions{}, fmt.Errorf("expected 1 argument, got %d", len(args))
 	}
 
 	if opts.JSONOutput && opts.OutputFormat != "" {
-		return tailOptions{}, errors.New("Cannot use output-format and json flags together")
+		return tailOptions{}, errors.New("cannot use output-format and json flags together")
 	}
 
 	if opts.EnvelopeType != "" && opts.EnvelopeClass != "" {
@@ -331,16 +331,16 @@ func typeFilter(e *loggregator_v2.Envelope, o tailOptions) bool {
 
 func (o tailOptions) validate() error {
 	if o.startTime.After(o.endTime) && o.endTime != time.Unix(0, 0) {
-		return errors.New("Invalid date/time range. Ensure your start time is prior or equal the end time.")
+		return errors.New("invalid date/time range. Ensure your start time is prior or equal the end time")
 	}
 
 	if o.lines > 1000 || o.lines < 0 {
-		return errors.New("Lines cannot be greater than 1000.")
+		return errors.New("lines cannot be greater than 1000")
 	}
 
 	_, err := regexp.Compile(o.nameFilter)
 	if err != nil {
-		return fmt.Errorf("Invalid name filter '%s'. Ensure your name-filter is a valid regex.", o.nameFilter)
+		return fmt.Errorf("invalid name filter '%s'. Ensure your name-filter is a valid regex", o.nameFilter)
 	}
 
 	return nil

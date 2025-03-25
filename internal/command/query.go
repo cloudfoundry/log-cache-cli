@@ -132,15 +132,15 @@ func newQueryOptions(cli plugin.CliConnection, args []string, log Logger) (query
 	}
 
 	if len(args) != 1 {
-		return queryOptions{}, fmt.Errorf("Expected 1 argument, got %d.", len(args))
+		return queryOptions{}, fmt.Errorf("expected 1 argument, got %d", len(args))
 	}
 
 	if isInstantQuery(opts) && !validInstantQueryArgs(opts) {
-		return queryOptions{}, errors.New("When issuing an instant query, you cannot specify --start, --end, or --step")
+		return queryOptions{}, errors.New("when issuing an instant query, you cannot specify --start, --end, or --step")
 	}
 
 	if isRangeQuery(opts) && !validRangeQueryArgs(opts) {
-		return queryOptions{}, errors.New("When issuing a range query, you must specify all of --start, --end, and --step")
+		return queryOptions{}, errors.New("when issuing a range query, you must specify all of --start, --end, and --step")
 	}
 
 	if isInstantQuery(opts) {
@@ -150,7 +150,7 @@ func newQueryOptions(cli plugin.CliConnection, args []string, log Logger) (query
 
 		parsedTime, err := getParsedTime(opts.Time)
 		if err != nil {
-			return queryOptions{}, fmt.Errorf("Couldn't parse --time: %s", err.Error())
+			return queryOptions{}, fmt.Errorf("couldn't parse --time: %s", err.Error())
 		}
 
 		return queryOptions{timeProvided: true, time: parsedTime}, nil
@@ -159,11 +159,11 @@ func newQueryOptions(cli plugin.CliConnection, args []string, log Logger) (query
 	if isRangeQuery(opts) {
 		parsedStart, err := getParsedTime(opts.Start)
 		if err != nil {
-			return queryOptions{}, fmt.Errorf("Couldn't parse --start: %s", err.Error())
+			return queryOptions{}, fmt.Errorf("couldn't parse --start: %s", err.Error())
 		}
 		parsedEnd, err := getParsedTime(opts.End)
 		if err != nil {
-			return queryOptions{}, fmt.Errorf("Couldn't parse --end: %s", err.Error())
+			return queryOptions{}, fmt.Errorf("couldn't parse --end: %s", err.Error())
 		}
 
 		return queryOptions{start: parsedStart, end: parsedEnd, step: opts.Step, rangeQuery: true}, nil

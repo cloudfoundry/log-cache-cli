@@ -1,4 +1,5 @@
 ---
+version: "2"
 run:
   # Timeout for analysis, e.g. 30s, 5m.
   # Default: 1m
@@ -12,16 +13,35 @@ linters:
     - gocyclo
     # Inspects source code for security problems.
     - gosec
-linters-settings:
-  gocyclo:
-    # Minimal code complexity to report.
-    # https://github.com/fzipp/gocyclo#readme
-    min-complexity: 28
-  gosec:
-    excludes:
-    - G115
+  settings:
+    gocyclo:
+      # Minimal code complexity to report.
+      # https://github.com/fzipp/gocyclo#readme
+      min-complexity: 28
+    gosec:
+      excludes:
+        # Ignore controversial integer overflow warnings.
+        - G115
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
   # Disable max issues per linter.
   max-issues-per-linter: 0
   # Disable max same issues.
   max-same-issues: 0
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
