@@ -1102,7 +1102,7 @@ var _ = Describe("LogCache", func() {
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Cannot use output-format and json flags together"))
+			Expect(logger.fatalfMessage).To(Equal("cannot use output-format and json flags together"))
 		})
 
 		It("fatally logs if an output-format is malformed", func() {
@@ -1158,7 +1158,7 @@ var _ = Describe("LogCache", func() {
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Lines cannot be greater than 1000."))
+			Expect(logger.fatalfMessage).To(Equal("lines cannot be greater than 1000"))
 		})
 
 		It("accepts 0 for --lines", func() {
@@ -1245,7 +1245,7 @@ var _ = Describe("LogCache", func() {
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Invalid date/time range. Ensure your start time is prior or equal the end time."))
+			Expect(logger.fatalfMessage).To(Equal("invalid date/time range. Ensure your start time is prior or equal the end time"))
 		})
 
 		It("fatally logs if the name-filter regex is invalid", func() {
@@ -1261,7 +1261,7 @@ var _ = Describe("LogCache", func() {
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Invalid name filter '*foo'. Ensure your name-filter is a valid regex."))
+			Expect(logger.fatalfMessage).To(Equal("invalid name filter '*foo'. Ensure your name-filter is a valid regex"))
 		})
 
 		It("fatally logs if too many arguments are given", func() {
@@ -1276,7 +1276,7 @@ var _ = Describe("LogCache", func() {
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Expected 1 argument, got 2."))
+			Expect(logger.fatalfMessage).To(Equal("expected 1 argument, got 2"))
 		})
 
 		It("fatally logs if not enough arguments are given", func() {
@@ -1291,7 +1291,7 @@ var _ = Describe("LogCache", func() {
 				)
 			}).To(Panic())
 
-			Expect(logger.fatalfMessage).To(Equal("Expected 1 argument, got 0."))
+			Expect(logger.fatalfMessage).To(Equal("expected 1 argument, got 0"))
 		})
 
 		Context("when name-filter argument is not supplied", func() {
