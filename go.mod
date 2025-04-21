@@ -5,7 +5,7 @@ toolchain go1.24.1
 
 require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
-	code.cloudfoundry.org/go-log-cache/v3 v3.1.0
+	code.cloudfoundry.org/go-log-cache/v3 v3.1.1
 	code.cloudfoundry.org/go-loggregator/v10 v10.2.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/jessevdk/go-flags v1.6.1
