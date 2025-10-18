@@ -1,8 +1,8 @@
 module code.cloudfoundry.org/log-cache-cli/v4
 
-go 1.24.0
+go 1.25.0
 
-toolchain go1.24.1
+toolchain go1.25.3
 
 require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
