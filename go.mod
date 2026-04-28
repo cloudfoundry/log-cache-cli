@@ -10,7 +10,7 @@ require (
 	code.cloudfoundry.org/go-loggregator/v10 v10.3.1
 	github.com/blang/semver/v4 v4.0.0
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/onsi/ginkgo/v2 v2.28.1
+	github.com/onsi/ginkgo/v2 v2.28.2
 	github.com/onsi/gomega v1.39.1
 	golang.org/x/term v0.41.0
 	google.golang.org/protobuf v1.36.11
