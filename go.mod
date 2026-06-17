@@ -11,7 +11,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/onsi/ginkgo/v2 v2.31.0
-	github.com/onsi/gomega v1.41.0
+	github.com/onsi/gomega v1.42.0
 	golang.org/x/term v0.44.0
 	google.golang.org/protobuf v1.36.11
 )
